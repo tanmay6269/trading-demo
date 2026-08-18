@@ -328,8 +328,8 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                 textAlign: 'center'
             }}>
                 {/* BullX Logo & Header */}
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    <BullMarketIcon size={50} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                    <BullMarketIcon size={96} />
                     <span style={{ fontSize: '32px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
                         Bull<span style={{ color: '#00d09c' }}>X</span>
                     </span>
