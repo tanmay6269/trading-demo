@@ -215,15 +215,20 @@ def register_step1():
             (db.func.lower(User.email) == email.strip().lower()) | 
             (db.func.lower(User.username) == username.strip().lower())
         ).first()
-        if existing_user and existing_user.is_verified:
-            return jsonify({'error': 'An account with this email/username already exists'}), 400
+
+        # Only block registration if account is fully verified AND has 4-digit PIN set up
+        if existing_user and existing_user.is_verified and existing_user.mpin_hash:
+            return jsonify({'error': 'An account with this email/username already exists. Please Sign In.'}), 400
 
         if not existing_user:
             user = User(username=username, email=email, phone=phone, is_verified=False)
             user.set_password(password)
             db.session.add(user)
         else:
+            # Overwrite unverified/draft account with new password and send fresh OTP
             existing_user.username = username
+            existing_user.email = email
+            existing_user.phone = phone
             existing_user.set_password(password)
             user = existing_user
 
