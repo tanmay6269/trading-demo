@@ -1006,26 +1006,26 @@ def get_portfolio():
 @app.route('/api/recharge', methods=['POST'])
 @login_required
 def recharge():
+    return jsonify({
+        'error': 'Direct free fund addition is disabled! To add ₹1,00,000 Demo Funds, please complete the ₹500 UPI / QR payment.'
+    }), 403
+
+@app.route('/api/recharge/submit-payment', methods=['POST'])
+@login_required
+def submit_payment_utr():
     try:
-        data = request.get_json()
-        amount = float(data.get('amount', 0))
+        data = request.get_json() or {}
+        utr_number = str(data.get('utr_number') or '').strip()
+        package_amount = float(data.get('package_amount', 100000))
+        real_price = float(data.get('real_price', 500))
         
-        if amount == 500:
-            demo_credits = 50000
-        elif amount == 1000:
-            demo_credits = 110000
-        elif amount == 5000:
-            demo_credits = 600000
-        else:
-            demo_credits = amount * 100
-        
-        user = User.query.get(current_user.id)
-        user.demo_balance += demo_credits
-        db.session.commit()
-        
+        if not utr_number or len(utr_number) < 8:
+            return jsonify({'error': 'Please enter a valid 12-digit UPI UTR / Transaction Reference Number.'}), 400
+            
         return jsonify({
-            'message': f'Added ₹{demo_credits:,.2f} demo credits',
-            'balance': round(user.demo_balance, 2)
+            'success': True,
+            'status': 'PENDING_VERIFICATION',
+            'message': f'⏳ Payment Verification Submitted! Your UPI UTR ({utr_number}) is under verification for ₹{real_price}. Wallet will be credited with ₹{package_amount:,.2f} upon confirmation!'
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

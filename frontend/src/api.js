@@ -230,6 +230,16 @@ export const api = {
             body: JSON.stringify({ amount })
         });
         return handleResponse(res);
+    },
+
+    submitPaymentUTR: async (utr_number, package_amount = 100000, real_price = 500) => {
+        const res = await fetch(`${API_BASE_URL}/recharge/submit-payment`, {
+            method: 'POST',
+            headers: defaultHeaders,
+            credentials: 'include',
+            body: JSON.stringify({ utr_number, package_amount, real_price })
+        });
+        return handleResponse(res);
     }
 };
 
