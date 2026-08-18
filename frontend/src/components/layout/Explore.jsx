@@ -34,6 +34,25 @@ const MOST_TRADED_DEFINITIONS = [
     { symbol: 'INFY', name: 'Infosys' }
 ];
 
+const SEE_MORE_STOCKS_DEFINITIONS = [
+    { symbol: 'RELIANCE', name: 'Reliance Industries' },
+    { symbol: 'TCS', name: 'Tata Consultancy Services' },
+    { symbol: 'HDFCBANK', name: 'HDFC Bank' },
+    { symbol: 'INFY', name: 'Infosys Limited' },
+    { symbol: 'ICICIBANK', name: 'ICICI Bank' },
+    { symbol: 'SBIN', name: 'State Bank of India' },
+    { symbol: 'TATAMOTORS', name: 'Tata Motors' },
+    { symbol: 'BHARTIARTL', name: 'Bharti Airtel' },
+    { symbol: 'MARUTI', name: 'Maruti Suzuki' },
+    { symbol: 'WIPRO', name: 'Wipro Limited' },
+    { symbol: 'ITC', name: 'ITC Limited' },
+    { symbol: 'LT', name: 'Larsen & Toubro' },
+    { symbol: 'TITAN', name: 'Titan Company' },
+    { symbol: 'ASIANPAINT', name: 'Asian Paints' },
+    { symbol: 'BAJFINANCE', name: 'Bajaj Finance' },
+    { symbol: 'SUNPHARMA', name: 'Sun Pharma' }
+];
+
 const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = () => {} }) => {
     const formatChangeAndPct = (change, pct) => {
         const isPos = (change || 0) >= 0;
@@ -57,7 +76,9 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
     const searchRef = useRef(null);
 
     // Real-Time Dynamic Live Quotes State
+    const [showSeeMoreModal, setShowSeeMoreModal] = useState(false);
     const [mostTradedStocks, setMostTradedStocks] = useState(MOST_TRADED_DEFINITIONS.map(s => ({ ...s, price: null, change: 0, change_percent: 0 })));
+    const [seeMoreStocks, setSeeMoreStocks] = useState(SEE_MORE_STOCKS_DEFINITIONS.map(s => ({ ...s, price: null, change: 0, change_percent: 0 })));
     const [categoryStocks, setCategoryStocks] = useState({
         large: CATEGORY_DEFINITIONS.large.map(s => ({ ...s, price: null, change: 0, change_percent: 0 })),
         mid: CATEGORY_DEFINITIONS.mid.map(s => ({ ...s, price: null, change: 0, change_percent: 0 })),
@@ -70,10 +91,10 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
             const indexData = await api.getIndices();
             if (indexData) setIndices(indexData);
         } catch (e) {
-            console.error("Indices load error:", e);
+            console.error("Index load error:", e);
         }
 
-        // 2. Fetch User Watchlist
+        // 2. Load Watchlist
         try {
             const wlData = await api.getWatchlist();
             if (wlData && Array.isArray(wlData.watchlist)) {
@@ -87,6 +108,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
         try {
             const allSymbols = [
                 ...MOST_TRADED_DEFINITIONS.map(s => s.symbol),
+                ...SEE_MORE_STOCKS_DEFINITIONS.map(s => s.symbol),
                 ...CATEGORY_DEFINITIONS.large.map(s => s.symbol),
                 ...CATEGORY_DEFINITIONS.mid.map(s => s.symbol),
                 ...CATEGORY_DEFINITIONS.small.map(s => s.symbol)
@@ -95,8 +117,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
             const quotesMap = await api.getPrices(allSymbols);
 
             if (quotesMap) {
-                // Update Most Traded Live Data
-                setMostTradedStocks(MOST_TRADED_DEFINITIONS.map(s => {
+                const mapStockQuotes = (defs) => defs.map(s => {
                     const q = quotesMap[s.symbol] || {};
                     const priceVal = typeof q === 'object' ? q.price : q;
                     const changeVal = typeof q === 'object' ? (q.change || 0.0) : 0.0;
@@ -107,7 +128,11 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                         change: changeVal,
                         change_percent: pctVal
                     };
-                }));
+                });
+
+                // Update Most Traded Live Data
+                setMostTradedStocks(mapStockQuotes(MOST_TRADED_DEFINITIONS));
+                setSeeMoreStocks(mapStockQuotes(SEE_MORE_STOCKS_DEFINITIONS));
 
                 // Update Category Movers Live Data
                 const updateCategory = (list) => list.map(s => {
@@ -471,9 +496,12 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                             <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '18px', fontWeight: '800' }}>
-                                Most traded stocks on Groww
+                                Most traded stocks on BullX
                             </h3>
-                            <span style={{ color: 'var(--accent-emerald)', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}>
+                            <span 
+                                onClick={() => setShowSeeMoreModal(true)} 
+                                style={{ color: 'var(--accent-emerald)', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
+                            >
                                 See more ❯
                             </span>
                         </div>
@@ -744,6 +772,133 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                 </div>
 
             </div>
+
+            {/* SEE MORE MOST TRADED STOCKS ON BULLX MODAL */}
+            {showSeeMoreModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(5, 10, 20, 0.85)',
+                    backdropFilter: 'blur(10px)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px'
+                }}>
+                    <div className="soft-card fade-in" style={{
+                        width: '100%',
+                        maxWidth: '780px',
+                        maxHeight: '85vh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        padding: '24px',
+                        background: '#0d131f',
+                        border: '1px solid var(--border-color)',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+                        borderRadius: '16px'
+                    }}>
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--border-color)' }}>
+                            <div>
+                                <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    🔥 Most Traded Stocks on BullX
+                                </h2>
+                                <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                                    Top 16 highest volume Indian equities with live price updates
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowSeeMoreModal(false)}
+                                style={{
+                                    background: '#111927',
+                                    border: '1px solid var(--border-color)',
+                                    color: 'var(--text-secondary)',
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '50%',
+                                    cursor: 'pointer',
+                                    fontSize: '16px',
+                                    fontWeight: '700'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Modal Stock List Table */}
+                        <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)', background: '#111927' }}>
+                                        <th style={{ padding: '12px 16px' }}>COMPANY</th>
+                                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>MARKET PRICE</th>
+                                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>1D CHANGE</th>
+                                        <th style={{ padding: '12px 16px', textAlign: 'center' }}>ACTION</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {seeMoreStocks.map((stk) => {
+                                        const isPos = (stk.change || 0) >= 0;
+                                        const isStarred = watchlist.includes(stk.symbol);
+                                        return (
+                                            <tr
+                                                key={stk.symbol}
+                                                style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-surface-hover)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                onClick={() => {
+                                                    setShowSeeMoreModal(false);
+                                                    handleStockClick(stk.symbol);
+                                                }}
+                                            >
+                                                <td style={{ padding: '12px 16px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <StockLogo symbol={stk.symbol} name={stk.name} size={36} />
+                                                        <div>
+                                                            <div style={{ fontSize: '14px', fontWeight: '800' }}>{stk.name}</div>
+                                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>{stk.symbol}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '800', color: 'var(--text-primary)', fontSize: '14px' }}>
+                                                    {stk.price ? `₹${stk.price.toFixed(2)}` : 'Loading...'}
+                                                </td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '700', color: isPos ? 'var(--accent-emerald)' : 'var(--accent-rose)', fontSize: '13px' }}>
+                                                    {formatChangeAndPct(stk.change, stk.change_percent)}
+                                                </td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                        <button
+                                                            onClick={(e) => toggleWatchlist(e, stk.symbol)}
+                                                            style={{ background: '#111927', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
+                                                            title={isStarred ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                                                        >
+                                                            {isStarred ? '⭐' : '☆'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setShowSeeMoreModal(false);
+                                                                handleStockClick(stk.symbol);
+                                                            }}
+                                                            style={{ background: 'var(--accent-emerald)', color: '#ffffff', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '800' }}
+                                                        >
+                                                            Trade ➔
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
