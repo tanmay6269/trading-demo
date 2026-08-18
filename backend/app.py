@@ -548,6 +548,7 @@ def set_mpin():
 
         user.set_mpin(mpin)
         user.is_verified = True
+        get_or_create_user_details(user)
         db.session.commit()
         backup_users_to_file()
 
