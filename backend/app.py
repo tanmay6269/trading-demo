@@ -239,6 +239,17 @@ def restore_users_from_file():
 with app.app_context():
     restore_users_from_file()
 
+@app.route('/api/admin/reset-db', methods=['GET', 'POST'])
+def force_reset_db():
+    try:
+        db.session.rollback()
+        db.drop_all()
+        db.create_all()
+        restore_users_from_file()
+        return jsonify({'success': True, 'message': 'Database schema reset & auto-healed successfully!'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ============================================
 # SECURE AUTH & MPIN / OTP ROUTES
 # ============================================
