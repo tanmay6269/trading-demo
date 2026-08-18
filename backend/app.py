@@ -383,6 +383,36 @@ def force_reset_db():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/get-all-users', methods=['GET'])
+def get_all_users_export():
+    try:
+        users = UserLogin.query.all()
+        data = []
+        for u in users:
+            dt = u.details
+            data.append({
+                'username': u.username,
+                'email': u.email,
+                'phone': u.phone or '',
+                'password_hash': u.password_hash,
+                'mpin_hash': u.mpin_hash,
+                'is_verified': u.is_verified,
+                'demo_balance': u.demo_balance,
+                'watchlist': u.watchlist,
+                'active_devices': u.active_devices,
+                'profile_pic': dt.profile_pic if dt else None,
+                'dob': dt.dob if dt else '15-08-1998',
+                'pan_number': dt.pan_number if dt else 'ABCDE1234F',
+                'gender': dt.gender if dt else 'Male',
+                'marital_status': dt.marital_status if dt else 'Single',
+                'occupation': dt.occupation if dt else 'Professional',
+                'income_range': dt.income_range if dt else '5-10 Lakhs',
+                'father_name': dt.father_name if dt else 'Rajesh Sharma'
+            })
+        return jsonify({'success': True, 'count': len(data), 'users': data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ============================================
 # SECURE AUTH & MPIN / OTP ROUTES
 # ============================================

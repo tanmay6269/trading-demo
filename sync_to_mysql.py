@@ -1,22 +1,32 @@
 import os
 import json
 import pymysql
+import requests
 
-# Path to users_backup.json
+CLOUD_API_URL = "https://trading-demo-backend.onrender.com/api/admin/get-all-users"
 backup_file = os.path.join(os.path.dirname(__file__), 'backend', 'users_backup.json')
-if not os.path.exists(backup_file):
-    backup_file = os.path.join(os.path.dirname(__file__), 'users_backup.json')
 
-print(f"Reading live account records from {backup_file}...")
+users_data = []
 
-if not os.path.exists(backup_file):
-    print("❌ Backup file not found!")
-    exit(1)
+# Step 1: Attempt to fetch live accounts from cloud server
+print(f"Fetching live registered accounts from cloud server ({CLOUD_API_URL})...")
+try:
+    r = requests.get(CLOUD_API_URL, timeout=12)
+    if r.status_code == 200 and r.json().get('success'):
+        users_data = r.json().get('users', [])
+        print(f"✅ Successfully retrieved {len(users_data)} live account(s) from cloud server!")
+        # Save to local users_backup.json
+        with open(backup_file, 'w', encoding='utf-8') as f:
+            json.dump(users_data, f, indent=2)
+except Exception as e:
+    print(f"⚠️ Could not reach cloud server directly ({e}). Falling back to local backup file...")
 
-with open(backup_file, 'r', encoding='utf-8') as f:
-    users_data = json.load(f)
+# Step 2: Fallback to local backup file if cloud lookup returned empty
+if not users_data and os.path.exists(backup_file):
+    with open(backup_file, 'r', encoding='utf-8') as f:
+        users_data = json.load(f)
 
-print(f"Found {len(users_data)} user account(s). Connecting to local MySQL server (root:1234@127.0.0.1:3306/bullx_trading)...")
+print(f"Found total {len(users_data)} user account(s) to sync into MySQL. Connecting to local MySQL server (root:1234@127.0.0.1:3306/bullx_trading)...")
 
 try:
     conn = pymysql.connect(
