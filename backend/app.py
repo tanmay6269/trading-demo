@@ -28,7 +28,17 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True, origins=["https://trading-demo-neon.vercel.app", "http://localhost:3000", "http://127.0.0.1:3000"])
+
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get('Origin')
+    if origin:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-Device-Id'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    return response
 
 # Configure MySQL / Relational Database URI with fallback
 db_url = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
