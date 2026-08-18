@@ -11,15 +11,15 @@ users_data = []
 # Step 1: Attempt to fetch live accounts from cloud server
 print(f"Fetching live registered accounts from cloud server ({CLOUD_API_URL})...")
 try:
-    r = requests.get(CLOUD_API_URL, timeout=12)
+    r = requests.get(CLOUD_API_URL, timeout=25)
     if r.status_code == 200 and r.json().get('success'):
         users_data = r.json().get('users', [])
-        print(f"✅ Successfully retrieved {len(users_data)} live account(s) from cloud server!")
+        print(f"[SUCCESS] Retrieved {len(users_data)} live account(s) from cloud server!")
         # Save to local users_backup.json
         with open(backup_file, 'w', encoding='utf-8') as f:
             json.dump(users_data, f, indent=2)
 except Exception as e:
-    print(f"⚠️ Could not reach cloud server directly ({e}). Falling back to local backup file...")
+    print(f"[WARNING] Cloud server response delayed ({e}). Using local backup data...")
 
 # Step 2: Fallback to local backup file if cloud lookup returned empty
 if not users_data and os.path.exists(backup_file):
