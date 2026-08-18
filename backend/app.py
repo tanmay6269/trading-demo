@@ -30,8 +30,17 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
 CORS(app, supports_credentials=True)
 
-# Configure SQLite database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///trading.db'
+# Configure MySQL / Relational Database URI with fallback
+db_url = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
+if db_url:
+    if db_url.startswith("mysql://"):
+        db_url = db_url.replace("mysql://", "mysql+pymysql://", 1)
+    elif db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///trading.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize database
