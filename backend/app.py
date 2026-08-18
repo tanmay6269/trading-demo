@@ -606,7 +606,11 @@ def verify_otp():
             return jsonify({'error': 'OTP code has expired. Please request a new one.'}), 400
 
         otp_rec.is_used = True
-        user = UserLogin.query.filter((UserLogin.email == identifier) | (UserLogin.username == identifier)).first()
+        user = UserLogin.query.filter(
+            (db.func.lower(UserLogin.email) == identifier.lower()) | 
+            (UserLogin.phone == identifier) |
+            (db.func.lower(UserLogin.username) == identifier.lower())
+        ).first()
         if user:
             user.is_verified = True
             get_or_create_user_details(user)
@@ -633,7 +637,11 @@ def set_mpin():
         if not identifier or not mpin or len(str(mpin)) != 4 or not str(mpin).isdigit():
             return jsonify({'error': 'A valid 4-digit numeric PIN is required'}), 400
 
-        user = User.query.filter_by(email=identifier).first()
+        user = UserLogin.query.filter(
+            (db.func.lower(UserLogin.email) == str(identifier).lower()) | 
+            (UserLogin.phone == str(identifier)) |
+            (db.func.lower(UserLogin.username) == str(identifier).lower())
+        ).first()
         if not user:
             return jsonify({'error': 'User account not found'}), 404
 
