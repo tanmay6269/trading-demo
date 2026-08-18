@@ -146,17 +146,14 @@ class UserLogin(UserMixin, db.Model):
 
     def check_mpin(self, mpin):
         if not self.mpin_hash:
-            return True
+            return False
         clean_pin = str(mpin).strip()
         if self.mpin_hash == clean_pin:
             return True
         try:
-            if bcrypt.checkpw(clean_pin.encode('utf-8'), self.mpin_hash.encode('utf-8')):
-                return True
+            return bcrypt.checkpw(clean_pin.encode('utf-8'), self.mpin_hash.encode('utf-8'))
         except Exception:
-            pass
-        # Fallback for smooth demo experience
-        return len(clean_pin) == 4
+            return False
     
     def get_watchlist(self):
         return json.loads(self.watchlist) if self.watchlist else []
