@@ -1331,39 +1331,62 @@ def fetch_stock_quote(symbol):
         print(f"Error fetching stock quote for {symbol}: {e}")
     return None
 
+from concurrent.futures import ThreadPoolExecutor
+
 def get_prices(symbols):
-    """Get rich live quotes for multiple symbols in batch"""
+    """Get rich live quotes for multiple symbols in parallel (Blazing Fast)"""
     quotes = {}
     if not symbols:
         return quotes
     
-    for s in symbols:
-        q = fetch_stock_quote(s)
-        if q:
-            quotes[s] = q
+    def _fetch_one(s):
+        return s, fetch_stock_quote(s)
+        
+    with ThreadPoolExecutor(max_workers=min(10, len(symbols))) as executor:
+        futures = [executor.submit(_fetch_one, s) for s in symbols]
+        for f in futures:
+            try:
+                sym, q = f.result()
+                if q:
+                    quotes[sym] = q
+            except Exception:
+                pass
             
     return quotes
 
 def search_stocks(query):
-    """Search for stocks by symbol or name with price details"""
+    """Search for stocks by symbol or name with smart priority ranking & parallel price lookup"""
     query = query.upper().strip()
     if not query:
         return []
     
-    results = []
-    matches = []
+    exact_matches = []
+    prefix_symbol_matches = []
+    prefix_name_matches = []
+    other_matches = []
     
     for symbol, name in INDIAN_STOCKS.items():
-        if query in symbol or query in name.upper():
-            matches.append((symbol, name))
-            if len(matches) >= 15:
-                break
+        sym_upper = symbol.upper()
+        name_upper = name.upper()
+        
+        if sym_upper == query:
+            exact_matches.append((symbol, name))
+        elif sym_upper.startswith(query):
+            prefix_symbol_matches.append((symbol, name))
+        elif any(w.startswith(query) for w in name_upper.split()):
+            prefix_name_matches.append((symbol, name))
+        elif query in sym_upper or query in name_upper:
+            other_matches.append((symbol, name))
+            
+    # Combine matches by priority order
+    ranked_matches = (exact_matches + prefix_symbol_matches + prefix_name_matches + other_matches)[:10]
     
-    if matches:
-        symbols_to_fetch = [m[0] for m in matches]
+    results = []
+    if ranked_matches:
+        symbols_to_fetch = [m[0] for m in ranked_matches]
         price_map = get_prices(symbols_to_fetch)
         
-        for symbol, name in matches:
+        for symbol, name in ranked_matches:
             q = price_map.get(symbol, {})
             p_val = q.get('price') if isinstance(q, dict) else q
             chg_val = q.get('change') if isinstance(q, dict) else 0.0

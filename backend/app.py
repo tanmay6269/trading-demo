@@ -679,12 +679,29 @@ def recharge():
         return jsonify({'error': str(e)}), 500
 
 # ============================================
-# HEALTH CHECK
+# HEALTH CHECK & KEEP-ALIVE
 # ============================================
 
 @app.route('/api/health', methods=['GET'])
+@app.route('/api/ping', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'ok', 'message': 'Server is running'})
+    return jsonify({'status': 'ok', 'message': 'Server is active and awake 24/7'})
+
+def start_keep_alive_ping():
+    import threading, time, requests
+    def _ping():
+        time.sleep(10)
+        while True:
+            try:
+                # Self-ping keep alive every 10 minutes
+                requests.get('http://127.0.0.1:5000/api/ping', timeout=5)
+            except Exception:
+                pass
+            time.sleep(600)
+    t = threading.Thread(target=_ping, daemon=True)
+    t.start()
+
+start_keep_alive_ping()
 
 # ============================================
 # CREATE DATABASE AND RUN
