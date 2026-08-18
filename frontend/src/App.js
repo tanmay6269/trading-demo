@@ -21,7 +21,10 @@ import ProfileModal from './components/ui/ProfileModal';
 function App() {
   // Auth & Security state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(() => {
+    // Only lock on initial load if saved_trader exists in localStorage
+    return !!localStorage.getItem('saved_trader');
+  });
   const [username, setUsername] = useState('DemoTrader');
   const [toastMsg, setToastMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,7 +48,6 @@ function App() {
     setIsLocked(false);
     if (userData.username) setUsername(userData.username);
     if (userData.balance !== undefined) setBalance(userData.balance);
-    checkSession();
   };
 
   const handleLogout = async () => {
@@ -69,9 +71,6 @@ function App() {
         setUsername(data.username);
         setBalance(data.balance || 100000);
         setUserInfo(data);
-        if (data.has_mpin) {
-          setIsLocked(true); // Requires 4-digit PIN unlock on return
-        }
       }
     } catch (e) {}
   }, []);
