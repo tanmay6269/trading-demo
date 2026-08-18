@@ -58,7 +58,8 @@ login_manager.init_app(app)
 # DATABASE MODELS
 # ============================================
 
-class User(UserMixin, db.Model):
+class UserLogin(UserMixin, db.Model):
+    __tablename__ = 'user_login'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -68,20 +69,11 @@ class User(UserMixin, db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     demo_balance = db.Column(db.Float, default=100000.0)
     watchlist = db.Column(db.Text, default='[]')
-    
-    # Profile & KYC Details
-    profile_pic = db.Column(db.Text, nullable=True)
-    dob = db.Column(db.String(20), default='15-08-1998')
-    pan_number = db.Column(db.String(20), default='ABCDE1234F')
-    gender = db.Column(db.String(20), default='Male')
-    marital_status = db.Column(db.String(20), default='Single')
-    occupation = db.Column(db.String(50), default='Professional')
-    income_range = db.Column(db.String(50), default='5-10 Lakhs')
-    father_name = db.Column(db.String(80), default='Rajesh Sharma')
-    
-    # Max 2-Device Session Enforcement
     active_devices = db.Column(db.Text, default='[]')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # One-to-One Relationship to UserDetails
+    details = db.relationship('UserDetails', backref='login_user', uselist=False, cascade="all, delete-orphan")
 
     def get_active_devices(self):
         try:
@@ -131,6 +123,24 @@ class User(UserMixin, db.Model):
     def set_watchlist(self, stocks):
         self.watchlist = json.dumps(stocks)
 
+# Alias User to UserLogin for Flask-Login compatibility
+User = UserLogin
+
+class UserDetails(db.Model):
+    __tablename__ = 'user_details'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user_login.id'), nullable=False, unique=True)
+    email = db.Column(db.String(120), nullable=False)
+    dob = db.Column(db.String(20), default='15-08-1998')
+    pan_number = db.Column(db.String(20), default='ABCDE1234F')
+    gender = db.Column(db.String(20), default='Male')
+    marital_status = db.Column(db.String(20), default='Single')
+    occupation = db.Column(db.String(50), default='Professional')
+    income_range = db.Column(db.String(50), default='5-10 Lakhs')
+    father_name = db.Column(db.String(80), default='Rajesh Sharma')
+    profile_pic = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class OTPRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     identifier = db.Column(db.String(120), nullable=False)
@@ -140,7 +150,7 @@ class OTPRecord(db.Model):
 
 class Trade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user_login.id'), nullable=False)
     symbol = db.Column(db.String(20), nullable=False)
     trade_type = db.Column(db.String(10), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
@@ -161,11 +171,35 @@ import random
 
 USERS_BACKUP_FILE = os.path.join(os.path.dirname(__file__), 'users_backup.json')
 
+def get_or_create_user_details(user):
+    if not user:
+        return None
+    try:
+        if not user.details:
+            dt = UserDetails(
+                user_id=user.id,
+                email=user.email,
+                dob='15-08-1998',
+                pan_number='ABCDE1234F',
+                gender='Male',
+                marital_status='Single',
+                occupation='Professional',
+                income_range='5-10 Lakhs',
+                father_name='Rajesh Sharma'
+            )
+            db.session.add(dt)
+            db.session.commit()
+        return user.details
+    except Exception:
+        db.session.rollback()
+        return None
+
 def backup_users_to_file():
     try:
-        users = User.query.all()
+        users = UserLogin.query.all()
         data = []
         for u in users:
+            dt = u.details
             data.append({
                 'username': u.username,
                 'email': u.email,
@@ -175,14 +209,15 @@ def backup_users_to_file():
                 'is_verified': u.is_verified,
                 'demo_balance': u.demo_balance,
                 'watchlist': u.watchlist,
-                'profile_pic': u.profile_pic,
-                'dob': u.dob,
-                'pan_number': u.pan_number,
-                'gender': u.gender,
-                'marital_status': u.marital_status,
-                'occupation': u.occupation,
-                'income_range': u.income_range,
-                'father_name': u.father_name
+                'active_devices': u.active_devices,
+                'profile_pic': dt.profile_pic if dt else None,
+                'dob': dt.dob if dt else '15-08-1998',
+                'pan_number': dt.pan_number if dt else 'ABCDE1234F',
+                'gender': dt.gender if dt else 'Male',
+                'marital_status': dt.marital_status if dt else 'Single',
+                'occupation': dt.occupation if dt else 'Professional',
+                'income_range': dt.income_range if dt else '5-10 Lakhs',
+                'father_name': dt.father_name if dt else 'Rajesh Sharma'
             })
         with open(USERS_BACKUP_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
@@ -192,9 +227,8 @@ def backup_users_to_file():
 def restore_users_from_file():
     try:
         db.create_all()
-        # Verify schema integrity for newly added profile columns
         try:
-            User.query.first()
+            UserLogin.query.first()
         except Exception:
             db.session.rollback()
             db.drop_all()
@@ -205,9 +239,9 @@ def restore_users_from_file():
                 data = json.load(f)
             for item in data:
                 try:
-                    existing = User.query.filter((User.email == item['email']) | (User.username == item['username'])).first()
-                    if not existing:
-                        u = User(
+                    u = UserLogin.query.filter((UserLogin.email == item['email']) | (UserLogin.username == item['username'])).first()
+                    if not u:
+                        u = UserLogin(
                             username=item['username'],
                             email=item['email'],
                             phone=item.get('phone', ''),
@@ -216,6 +250,15 @@ def restore_users_from_file():
                             is_verified=item.get('is_verified', True),
                             demo_balance=item.get('demo_balance', 100000.0),
                             watchlist=item.get('watchlist', '[]'),
+                            active_devices=item.get('active_devices', '[]')
+                        )
+                        db.session.add(u)
+                        db.session.flush()
+
+                    if u and not u.details:
+                        dt = UserDetails(
+                            user_id=u.id,
+                            email=u.email,
                             profile_pic=item.get('profile_pic'),
                             dob=item.get('dob', '15-08-1998'),
                             pan_number=item.get('pan_number', 'ABCDE1234F'),
@@ -225,31 +268,17 @@ def restore_users_from_file():
                             income_range=item.get('income_range', '5-10 Lakhs'),
                             father_name=item.get('father_name', 'Rajesh Sharma')
                         )
-                        db.session.add(u)
-                    else:
-                        existing.password_hash = item['password_hash']
-                        existing.mpin_hash = item.get('mpin_hash')
-                        existing.is_verified = item.get('is_verified', True)
-                        existing.demo_balance = item.get('demo_balance', 100000.0)
-                        existing.profile_pic = item.get('profile_pic', getattr(existing, 'profile_pic', None))
-                        existing.dob = item.get('dob', getattr(existing, 'dob', '15-08-1998'))
-                        existing.pan_number = item.get('pan_number', getattr(existing, 'pan_number', 'ABCDE1234F'))
-                        existing.gender = item.get('gender', getattr(existing, 'gender', 'Male'))
-                        existing.marital_status = item.get('marital_status', getattr(existing, 'marital_status', 'Single'))
-                        existing.occupation = item.get('occupation', getattr(existing, 'occupation', 'Professional'))
-                        existing.income_range = item.get('income_range', getattr(existing, 'income_range', '5-10 Lakhs'))
-                        existing.father_name = item.get('father_name', getattr(existing, 'father_name', 'Rajesh Sharma'))
-                except Exception:
+                        db.session.add(dt)
+                except Exception as ex:
+                    print("Restore item error:", ex)
                     db.session.rollback()
-                    db.drop_all()
-                    db.create_all()
-                    break
+
             db.session.commit()
             
         # Ensure default DemoTrader account exists
-        demo = User.query.filter((User.email == 'demotrader@groww.com') | (User.username == 'DemoTrader')).first()
+        demo = UserLogin.query.filter((UserLogin.email == 'demotrader@groww.com') | (UserLogin.username == 'DemoTrader')).first()
         if not demo:
-            demo = User(
+            demo = UserLogin(
                 username='DemoTrader',
                 email='demotrader@groww.com',
                 phone='9876543210',
@@ -259,6 +288,20 @@ def restore_users_from_file():
             demo.set_password('Password123')
             demo.set_mpin('1234')
             db.session.add(demo)
+            db.session.flush()
+            
+            dt = UserDetails(
+                user_id=demo.id,
+                email=demo.email,
+                dob='15-08-1998',
+                pan_number='ABCDE1234F',
+                gender='Male',
+                marital_status='Single',
+                occupation='Professional',
+                income_range='5-10 Lakhs',
+                father_name='Rajesh Sharma'
+            )
+            db.session.add(dt)
             db.session.commit()
             backup_users_to_file()
     except Exception as e:
@@ -286,6 +329,7 @@ def force_reset_db():
 @app.route('/api/me', methods=['GET'])
 def get_current_user_info():
     if current_user.is_authenticated:
+        dt = get_or_create_user_details(current_user)
         return jsonify({
             'logged_in': True,
             'username': current_user.username,
@@ -293,14 +337,14 @@ def get_current_user_info():
             'phone': current_user.phone or '',
             'balance': current_user.demo_balance,
             'has_mpin': bool(current_user.mpin_hash),
-            'profile_pic': current_user.profile_pic,
-            'dob': current_user.dob or '15-08-1998',
-            'pan_number': current_user.pan_number or 'ABCDE1234F',
-            'gender': current_user.gender or 'Male',
-            'marital_status': current_user.marital_status or 'Single',
-            'occupation': current_user.occupation or 'Professional',
-            'income_range': current_user.income_range or '5-10 Lakhs',
-            'father_name': current_user.father_name or 'Rajesh Sharma'
+            'profile_pic': dt.profile_pic if dt else None,
+            'dob': dt.dob if dt else '15-08-1998',
+            'pan_number': dt.pan_number if dt else 'ABCDE1234F',
+            'gender': dt.gender if dt else 'Male',
+            'marital_status': dt.marital_status if dt else 'Single',
+            'occupation': dt.occupation if dt else 'Professional',
+            'income_range': dt.income_range if dt else '5-10 Lakhs',
+            'father_name': dt.father_name if dt else 'Rajesh Sharma'
         })
     return jsonify({'logged_in': False})
 
@@ -309,26 +353,29 @@ def get_current_user_info():
 def update_user_profile():
     try:
         data = request.get_json() or {}
-        user = User.query.get(current_user.id)
+        user = UserLogin.query.get(current_user.id)
+        dt = get_or_create_user_details(user)
         
         if 'username' in data and data['username'].strip():
             user.username = data['username'].strip()
         if 'phone' in data:
             user.phone = data['phone'].strip()
-        if 'dob' in data:
-            user.dob = data['dob'].strip()
-        if 'pan_number' in data:
-            user.pan_number = data['pan_number'].strip().upper()
-        if 'gender' in data:
-            user.gender = data['gender'].strip()
-        if 'marital_status' in data:
-            user.marital_status = data['marital_status'].strip()
-        if 'occupation' in data:
-            user.occupation = data['occupation'].strip()
-        if 'income_range' in data:
-            user.income_range = data['income_range'].strip()
-        if 'father_name' in data:
-            user.father_name = data['father_name'].strip()
+            
+        if dt:
+            if 'dob' in data:
+                dt.dob = data['dob'].strip()
+            if 'pan_number' in data:
+                dt.pan_number = data['pan_number'].strip().upper()
+            if 'gender' in data:
+                dt.gender = data['gender'].strip()
+            if 'marital_status' in data:
+                dt.marital_status = data['marital_status'].strip()
+            if 'occupation' in data:
+                dt.occupation = data['occupation'].strip()
+            if 'income_range' in data:
+                dt.income_range = data['income_range'].strip()
+            if 'father_name' in data:
+                dt.father_name = data['father_name'].strip()
             
         db.session.commit()
         backup_users_to_file()
@@ -340,14 +387,14 @@ def update_user_profile():
                 'username': user.username,
                 'email': user.email,
                 'phone': user.phone,
-                'dob': user.dob,
-                'pan_number': user.pan_number,
-                'gender': user.gender,
-                'marital_status': user.marital_status,
-                'occupation': user.occupation,
-                'income_range': user.income_range,
-                'father_name': user.father_name,
-                'profile_pic': user.profile_pic
+                'dob': dt.dob if dt else '',
+                'pan_number': dt.pan_number if dt else '',
+                'gender': dt.gender if dt else '',
+                'marital_status': dt.marital_status if dt else '',
+                'occupation': dt.occupation if dt else '',
+                'income_range': dt.income_range if dt else '',
+                'father_name': dt.father_name if dt else '',
+                'profile_pic': dt.profile_pic if dt else None
             }
         })
     except Exception as e:
@@ -364,17 +411,22 @@ def update_profile_photo():
         if not photo_data:
             return jsonify({'error': 'Photo data required'}), 400
             
-        user = User.query.get(current_user.id)
-        user.profile_pic = photo_data
+        user = UserLogin.query.get(current_user.id)
+        dt = get_or_create_user_details(user)
+        if dt:
+            dt.profile_pic = photo_data
+            
         db.session.commit()
         backup_users_to_file()
         
         return jsonify({
             'success': True,
             'message': 'Profile photo updated successfully!',
-            'profile_pic': user.profile_pic
+            'profile_pic': photo_data
         })
     except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
@@ -522,18 +574,20 @@ def login_password():
         if not identifier or not password:
             return jsonify({'error': 'Email / Username and Password are required'}), 400
 
-        # Case-insensitive query for email or username with auto-healing retry
+        # Case-insensitive query for email, phone, or username with auto-healing retry
         try:
-            user = User.query.filter(
-                (db.func.lower(User.email) == identifier.lower()) | 
-                (db.func.lower(User.username) == identifier.lower())
+            user = UserLogin.query.filter(
+                (db.func.lower(UserLogin.email) == identifier.lower()) | 
+                (UserLogin.phone == identifier) |
+                (db.func.lower(UserLogin.username) == identifier.lower())
             ).first()
         except Exception:
             db.session.rollback()
             restore_users_from_file()
-            user = User.query.filter(
-                (db.func.lower(User.email) == identifier.lower()) | 
-                (db.func.lower(User.username) == identifier.lower())
+            user = UserLogin.query.filter(
+                (db.func.lower(UserLogin.email) == identifier.lower()) | 
+                (UserLogin.phone == identifier) |
+                (db.func.lower(UserLogin.username) == identifier.lower())
             ).first()
 
         if not user:
