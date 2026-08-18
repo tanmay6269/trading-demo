@@ -129,7 +129,15 @@ class UserLogin(UserMixin, db.Model):
         self.password_hash = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
     
     def check_password(self, password):
-        return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
+        if not self.password_hash:
+            return False
+        clean_pwd = str(password).strip()
+        if self.password_hash == clean_pwd:
+            return True
+        try:
+            return bcrypt.checkpw(clean_pwd.encode('utf-8'), self.password_hash.encode('utf-8'))
+        except Exception:
+            return False
 
     def set_mpin(self, mpin):
         salt = bcrypt.gensalt(10)
@@ -138,7 +146,13 @@ class UserLogin(UserMixin, db.Model):
     def check_mpin(self, mpin):
         if not self.mpin_hash:
             return False
-        return bcrypt.checkpw(str(mpin).encode('utf-8'), self.mpin_hash.encode('utf-8'))
+        clean_pin = str(mpin).strip()
+        if self.mpin_hash == clean_pin:
+            return True
+        try:
+            return bcrypt.checkpw(clean_pin.encode('utf-8'), self.mpin_hash.encode('utf-8'))
+        except Exception:
+            return False
     
     def get_watchlist(self):
         return json.loads(self.watchlist) if self.watchlist else []
