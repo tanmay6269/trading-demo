@@ -140,7 +140,10 @@ def register_step1():
         if len(password) < 6:
             return jsonify({'error': 'Password must be at least 6 characters'}), 400
 
-        existing_user = User.query.filter((User.email == email) | (User.username == username)).first()
+        existing_user = User.query.filter(
+            (db.func.lower(User.email) == email.strip().lower()) | 
+            (db.func.lower(User.username) == username.strip().lower())
+        ).first()
         if existing_user and existing_user.is_verified:
             return jsonify({'error': 'An account with this email/username already exists'}), 400
 
@@ -252,16 +255,23 @@ def login_password():
     """Step 1 Login: Verify Email + Password -> Triggers 4-Digit PIN Unlock Screen"""
     try:
         data = request.get_json() or {}
-        identifier = data.get('identifier')
-        password = data.get('password')
+        identifier = str(data.get('identifier') or '').strip()
+        password = str(data.get('password') or '').strip()
 
         if not identifier or not password:
-            return jsonify({'error': 'Email and Password are required'}), 400
+            return jsonify({'error': 'Email / Username and Password are required'}), 400
 
-        user = User.query.filter((User.email == identifier) | (User.username == identifier)).first()
+        # Case-insensitive query for email or username
+        user = User.query.filter(
+            (db.func.lower(User.email) == identifier.lower()) | 
+            (db.func.lower(User.username) == identifier.lower())
+        ).first()
 
-        if not user or not user.check_password(password):
-            return jsonify({'error': 'Invalid email or password'}), 401
+        if not user:
+            return jsonify({'error': f'No account found for "{identifier}". Please click "Create Account" to register.'}), 404
+
+        if not user.check_password(password):
+            return jsonify({'error': 'Incorrect password. Please check your password and try again.'}), 401
 
         has_pin = bool(user.mpin_hash)
 
