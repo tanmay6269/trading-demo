@@ -7,6 +7,32 @@
     "mpin_hash": "$2b$12$XBbVnZDuuQgXn8/TNqHRqeIUGcxchLXbVZ/P1saDZR0khcItdHcKi",
     "is_verified": true,
     "demo_balance": 100000.0,
-    "watchlist": "[]"
+    "watchlist": "[]",
+    "profile_pic": null,
+    "dob": "15-08-1998",
+    "pan_number": "ABCDE1234F",
+    "gender": "Male",
+    "marital_status": "Single",
+    "occupation": "Professional",
+    "income_range": "5-10 Lakhs",
+    "father_name": "Rajesh Sharma"
+  },
+  {
+    "username": "DemoTrader",
+    "email": "demotrader@groww.com",
+    "phone": "9876543210",
+    "password_hash": "$2b$12$msFPZhmhqWWKjBnLN9kAgObnQ.v0digdq7Uhi.PD8I8bTE3BaHxtu",
+    "mpin_hash": "$2b$12$yYF8bP8lQyGyAwBThM1kqeHtqvB./MvaDx0W4htjmolciZl4aq/di",
+    "is_verified": true,
+    "demo_balance": 100000.0,
+    "watchlist": "[]",
+    "profile_pic": null,
+    "dob": "15-08-1998",
+    "pan_number": "ABCDE1234F",
+    "gender": "Male",
+    "marital_status": "Single",
+    "occupation": "Professional",
+    "income_range": "5-10 Lakhs",
+    "father_name": "Rajesh Sharma"
   }
 ]
