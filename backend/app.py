@@ -323,35 +323,6 @@ def restore_users_from_file():
                     db.session.rollback()
                     print(f"Restore single user error: {ex}")
 
-        # Ensure default DemoTrader account exists
-        demo = UserLogin.query.filter((UserLogin.email == 'demotrader@groww.com') | (UserLogin.username == 'DemoTrader')).first()
-        if not demo:
-            demo = UserLogin(
-                username='DemoTrader',
-                email='demotrader@groww.com',
-                phone='9876543210',
-                is_verified=True
-            )
-            demo.set_password('Password123')
-            demo.set_mpin('1234')
-            db.session.add(demo)
-            db.session.commit()
-            
-            dt = UserDetails(
-                user_id=demo.id,
-                email=demo.email,
-                demo_balance=100000.0,
-                dob='15-08-1998',
-                pan_number='ABCDE1234F',
-                gender='Male',
-                marital_status='Single',
-                occupation='Professional',
-                income_range='5-10 Lakhs',
-                father_name='Rajesh Sharma'
-            )
-            db.session.add(dt)
-            db.session.commit()
-            backup_users_to_file()
     except Exception as e:
         print(f"Error restoring users: {e}")
 
