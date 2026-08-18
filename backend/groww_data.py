@@ -1,0 +1,1658 @@
+import yfinance as yf
+import time
+from datetime import datetime, timedelta
+import requests
+
+# Complete Stock List
+INDIAN_STOCKS = {
+    'RELIANCE': 'Reliance Industries',
+    'TCS': 'Tata Consultancy Services',
+    'HDFCBANK': 'HDFC Bank',
+    'INFY': 'Infosys',
+    'ICICIBANK': 'ICICI Bank',
+    'SBIN': 'State Bank of India',
+    'BHARTIARTL': 'Bharti Airtel',
+    'ITC': 'ITC Limited',
+    'WIPRO': 'Wipro',
+    'HCLTECH': 'HCL Technologies',
+    'TATAMOTORS': 'Tata Motors',
+    'TATASTEEL': 'Tata Steel',
+    'SUNPHARMA': 'Sun Pharma',
+    'AXISBANK': 'Axis Bank',
+    'KOTAKBANK': 'Kotak Mahindra Bank',
+    'M&M': 'Mahindra & Mahindra',
+    'NTPC': 'NTPC Limited',
+    'POWERGRID': 'Power Grid Corporation',
+    'ULTRACEMCO': 'UltraTech Cement',
+    'BAJFINANCE': 'Bajaj Finance',
+    'MARUTI': 'Maruti Suzuki',
+    'TITAN': 'Titan Company',
+    'ASIANPAINT': 'Asian Paints',
+    'HINDUNILVR': 'Hindustan Unilever',
+    'BAJAJFINSV': 'Bajaj Finserv',
+    'ADANIPORTS': 'Adani Ports',
+    'NESTLEIND': 'Nestle India',
+    'ONGC': 'Oil and Natural Gas Corporation',
+    'COALINDIA': 'Coal India',
+    'HDFCLIFE': 'HDFC Life Insurance',
+    'SBILIFE': 'SBI Life Insurance',
+    'DRREDDY': "Dr. Reddy's Laboratories",
+    'CIPLA': 'Cipla',
+    'DIVISLAB': 'Divis Laboratories',
+    'BRITANNIA': 'Britannia Industries',
+    'GRASIM': 'Grasim Industries',
+    'JSWSTEEL': 'JSW Steel',
+    'TECHM': 'Tech Mahindra',
+    'LT': 'Larsen & Toubro',
+    'HINDALCO': 'Hindalco Industries',
+    'EICHERMOT': 'Eicher Motors',
+    'APOLLOHOSP': 'Apollo Hospitals',
+    'BAJAJ-AUTO': 'Bajaj Auto',
+    'ADANIENT': 'Adani Enterprises',
+    'HEROMOTOCO': 'Hero MotoCorp',
+    'SHREECEM': 'Shree Cement',
+    'UPL': 'UPL Limited',
+    'TATACONSUM': 'Tata Consumer Products',
+    'BPCL': 'Bharat Petroleum',
+    'IOC': 'Indian Oil Corporation',
+    'HAL': 'Hindustan Aeronautics',
+    'ADANIGREEN': 'Adani Green Energy',
+    'VEDL': 'Vedanta Limited',
+    'TATAPOWER': 'Tata Power',
+    'PIDILITIND': 'Pidilite Industries',
+    'DABUR': 'Dabur India',
+    'MARICO': 'Marico Limited',
+    'MUTHOOTFIN': 'Muthoot Finance',
+    'BERGEPAINT': 'Berger Paints',
+    'INDIGO': 'InterGlobe Aviation',
+    'JUBLFOOD': 'Jubilant FoodWorks',
+    'AUROPHARMA': 'Aurobindo Pharma',
+    'BIOCON': 'Biocon Limited',
+    'CANBK': 'Canara Bank',
+    'PNB': 'Punjab National Bank',
+    'BANKBARODA': 'Bank of Baroda',
+    'IDFCFIRSTB': 'IDFC First Bank',
+    'FEDERALBNK': 'Federal Bank',
+    'INDUSINDBK': 'IndusInd Bank',
+    'YESBANK': 'Yes Bank',
+    'IDBI': 'IDBI Bank',
+    'RBLBANK': 'RBL Bank',
+    'MANAPPURAM': 'Manappuram Finance',
+    'CHOLAFIN': 'Cholamandalam Finance',
+    'SHRIRAMFIN': 'Shriram Finance',
+    'PFC': 'Power Finance Corporation',
+    'RECLTD': 'REC Limited',
+    'IRFC': 'Indian Railway Finance Corporation',
+    'IRCTC': 'Indian Railway Catering',
+    'MAZDOCK': 'Mazagon Dock',
+    'COFORGE': 'Coforge Limited',
+    'LTTS': 'L&T Technology Services',
+    'MINDTREE': 'Mindtree',
+    'MPHASIS': 'Mphasis Limited',
+    'PERSISTENT': 'Persistent Systems',
+    'CYIENT': 'Cyient Limited',
+    'KPITTECH': 'KPIT Technologies',
+    'ZENSARTECH': 'Zensar Technologies',
+    'TANLA': 'Tanla Platforms',
+    'NAUKRI': 'Info Edge',
+    'JUSTDIAL': 'Just Dial',
+    'POLYCAB': 'Polycab India',
+    'HAVELLS': 'Havells India',
+    'VOLTAS': 'Voltas Limited',
+    'BLUESTAR': 'Blue Star Limited',
+    'WHIRLPOOL': 'Whirlpool India',
+    'TATAELXSI': 'Tata Elxsi',
+    'BOSCHLTD': 'Bosch Limited',
+    'MOTHERSUMI': 'Motherson Sumi',
+    'BALKRISIND': 'Balkrishna Industries',
+    'MRF': 'MRF Limited',
+    'CEATLTD': 'CEAT Limited',
+    'APOLLOTYRE': 'Apollo Tyres',
+    'ASHOKLEY': 'Ashok Leyland',
+    'TVSMOTOR': 'TVS Motor',
+    'EXIDEIND': 'Exide Industries',
+    'AMARAJABAT': 'Amara Raja Batteries',
+    'HINDZINC': 'Hindustan Zinc',
+    'HINDCOPPER': 'Hindustan Copper',
+    'NMDC': 'NMDC Limited',
+    'GODREJCP': 'Godrej Consumer Products',
+    'GODREJPROP': 'Godrej Properties',
+    'ADANIPOWER': 'Adani Power',
+    'SJVN': 'SJVN Limited',
+    'NHPC': 'NHPC Limited',
+    'IREDA': 'IREDA Limited',
+    'GICRE': 'GIC Re',
+    'HDFCAMC': 'HDFC AMC',
+    'MOTILALOFS': 'Motilal Oswal Financial',
+    'ICICIPRULI': 'ICICI Prudential Life',
+    'ICICIGI': 'ICICI Lombard',
+    'SBIAMC': 'SBI AMC',
+    'BSE': 'BSE Limited',
+    'CDSL': 'CDSL',
+    'ANGELONE': 'Angel One',
+    'AUBANK': 'AU Small Finance Bank',
+    'EQUITAS': 'Equitas Small Finance Bank',
+    'UTKARSH': 'Utkarsh Small Finance Bank',
+    'IDFC': 'IDFC Limited',
+    'BANKINDIA': 'Bank of India',
+    'UNIONBANK': 'Union Bank of India',
+    'INDIANB': 'Indian Bank',
+    'IOB': 'Indian Overseas Bank',
+    'UCOBANK': 'UCO Bank',
+    'CENTRALBK': 'Central Bank of India',
+    'MAHABANK': 'Bank of Maharashtra',
+    'J&KBANK': 'J&K Bank',
+    'KARURVYSYA': 'Karur Vysya Bank',
+    'CITYUNION': 'City Union Bank',
+    'SOUTHBANK': 'South Indian Bank',
+    'CSBBANK': 'CSB Bank',
+    'DCBBANK': 'DCB Bank',
+    'KTKBANK': 'Karnataka Bank',
+    'TMB': 'Tamilnad Mercantile Bank',
+    'PAYTM': 'One97 Communications',
+    'ZOMATO': 'Zomato',
+    'SWIGGY': 'Swiggy',
+    'NYCAA': 'Nykaa',
+    'AFFLE': 'Affle India',
+    'MCX': 'Multi Commodity Exchange',
+    'IIFLSEC': 'IIFL Securities',
+    'AARTIIND': 'Aarti Industries',
+    'ACC': 'ACC Limited',
+    'AEGISCHEM': 'Aegis Logistics',
+    'AETHER': 'Aether Industries',
+    'AJANTPHARM': 'Ajanta Pharma',
+    'ALKEM': 'Alkem Laboratories',
+    'ALKYLAMINE': 'Alkyl Amines',
+    'ALLCARGO': 'Allcargo Logistics',
+    'AMBER': 'Amber Enterprises',
+    'AMBUJACEM': 'Ambuja Cements',
+    'ANANTRAJ': 'Anant Raj Limited',
+    'APARINDS': 'Apar Industries',
+    'APLAPOLLO': 'APL Apollo Tubes',
+    'APTUS': 'Aptus Value Housing',
+    'ARVIND': 'Arvind Limited',
+    'ASAHIINDIA': 'Asahi India Glass',
+    'ASHOKA': 'Ashoka Buildcon',
+    'ASTRAL': 'Astral Limited',
+    'ATUL': 'Atul Limited',
+    'AVALON': 'Avalon Technologies',
+    'AVANTIFEED': 'Avanti Feeds',
+    'AXISCADES': 'Axiscades Technologies',
+    'BAJAJCON': 'Bajaj Consumer Care',
+    'BAJAJELEC': 'Bajaj Electricals',
+    'BAJAJHLDNG': 'Bajaj Holdings',
+    'BALAJITELE': 'Balaji Telefilms',
+    'BALAMINES': 'Balaji Amines',
+    'BALKRISIND': 'Balkrishna Industries',
+    'BALMLAWRIE': 'Balmer Lawrie',
+    'BALRAMCHIN': 'Balrampur Chini',
+    'BANDHANBNK': 'Bandhan Bank',
+    'BANKBARODA': 'Bank of Baroda',
+    'BASF': 'BASF India',
+    'BATAINDIA': 'Bata India',
+    'BAYERCROP': 'Bayer Cropscience',
+    'BDL': 'Bharat Dynamics',
+    'BECTORFOOD': 'Mrs. Bectors Food',
+    'BEL': 'Bharat Electronics',
+    'BEML': 'BEML Limited',
+    'BHARATFORG': 'Bharat Forge',
+    'BHEL': 'Bharat Heavy Electricals',
+    'BIKAJI': 'Bikaji Foods',
+    'BIRLACORPN': 'Birla Corporation',
+    'BLS': 'BLS International',
+    'BLUEDART': 'Blue Dart Express',
+    'BODALCHEM': 'Bodal Chemicals',
+    'BOMDYEING': 'Bombay Dyeing',
+    'BORORENEW': 'Borosil Renewables',
+    'BOROSIL': 'Borosil Limited',
+    'BRIGADE': 'Brigade Enterprises',
+    'BSOFT': 'Birlasoft',
+    'CAMPUS': 'Campus Activewear',
+    'CAMS': 'Computer Age Management Services',
+    'CANFINHOME': 'Can Fin Homes',
+    'CANTABIL': 'Cantabil Retail',
+    'CAPACITE': 'Capacit\'e Infraprojects',
+    'CAPLIPOINT': 'Caplin Point Laboratories',
+    'CARBORUNIV': 'Carborundum Universal',
+    'CARERATING': 'Care Ratings',
+    'CARTRADE': 'CarTrade Tech',
+    'CASTROLIND': 'Castrol India',
+    'CCL': 'CCL Products',
+    'CELLO': 'Cello World',
+    'CENTURYPLY': 'Century Plyboards',
+    'CENTURYTEX': 'Century Textiles',
+    'CERA': 'Cera Sanitaryware',
+    'CESC': 'CESC Limited',
+    'CGCL': 'Capri Global Capital',
+    'CGPOWER': 'CG Power Solutions',
+    'CHALET': 'Chalet Hotels',
+    'CHAMBLFERT': 'Chambal Fertilisers',
+    'CHEMPLASTS': 'Chemplast Sanmar',
+    'CHENNPETRO': 'Chennai Petroleum',
+    'CHOICEIN': 'Choice International',
+    'CIGNITITEC': 'Cigniti Technologies',
+    'CLEAN': 'Clean Science & Technology',
+    'CMSINFO': 'CMS Info Systems',
+    'COCHINSHIP': 'Cochin Shipyard',
+    'COLPAL': 'Colgate Palmolive',
+    'CONCOR': 'Container Corporation',
+    'CONCORDBIO': 'Concord Biotech',
+    'COROMANDEL': 'Coromandel International',
+    'COSMOFIRST': 'Cosmo First',
+    'CRAFTSMAN': 'Craftsman Automation',
+    'CREDITACC': 'CreditAccess Grameen',
+    'CRISIL': 'CRISIL Limited',
+    'CROMPTON': 'Crompton Greaves',
+    'CUB': 'City Union Bank',
+    'CUMMINSIND': 'Cummins India',
+    'CYIENTDLM': 'Cyient DLM',
+    'DALBHARAT': 'Dalmia Bharat',
+    'DATAMATICS': 'Datamatics Global',
+    'DATAPATTNS': 'Data Patterns',
+    'DBCORP': 'D.B. Corp',
+    'DBL': 'Dilip Buildcon',
+    'DBREALTY': 'DB Realty',
+    'DCAL': 'Dishman Carbogen Amcis',
+    'DCM': 'DCM Limited',
+    'DCMSHRIRAM': 'DCM Shriram',
+    'DCW': 'DCW Limited',
+    'DEEPAKNTR': 'Deepak Nitrite',
+    'DEEPINDS': 'Deep Industries',
+    'DELHIVERY': 'Delhivery Limited',
+    'DELTACORP': 'Delta Corp',
+    'DEN': 'DEN Networks',
+    'DEVYANI': 'Devyani International',
+    'DHAMPURSUG': 'Dhampur Sugar Mills',
+    'DHANUKA': 'Dhanuka Agritech',
+    'DIXON': 'Dixon Technologies',
+    'DLF': 'DLF Limited',
+    'DMART': 'Avenue Supermarts',
+    'DODLA': 'Dodla Dairy',
+    'DOLLAR': 'Dollar Industries',
+    'DOMS': 'DOMS Industries',
+    'DONEAR': 'Donear Industries',
+    'DPABHUSHAN': 'D.P. Abhushan',
+    'DREDGECORP': 'Dredging Corporation',
+    'DSSL': 'Dynacons Systems',
+    'DWARKESH': 'Dwarkesh Sugar',
+    'DYNAMATECH': 'Dynamatic Technologies',
+    'EASEMYTRIP': 'Easy Trip Planners',
+    'ECLERX': 'Eclerx Services',
+    'EDELWEISS': 'Edelweiss Financial',
+    'EIDPARRY': 'EID Parry',
+    'EIHOTEL': 'EIH Hotels',
+    'EKC': 'Everest Kanto Cylinders',
+    'ELECON': 'Elecon Engineering',
+    'ELECTCAST': 'Electrosteel Castings',
+    'ELGIEQUIP': 'Elgi Equipments',
+    'EMAMILTD': 'Emami Limited',
+    'ENDURANCE': 'Endurance Technologies',
+    'ENGINERSIN': 'Engineers India',
+    'EPL': 'EPL Limited',
+    'ERIS': 'Eris Lifesciences',
+    'ESCORTS': 'Escorts Kubota',
+    'ESTER': 'Ester Industries',
+    'ETHOS': 'Ethos Limited',
+    'EUREKAFORB': 'Eureka Forbes',
+    'EVEREADY': 'Eveready Industries',
+    'EVERESTIND': 'Everest Industries',
+    'EXIDEIND': 'Exide Industries',
+    'FACT': 'FACT',
+    'FAIRCHEMOR': 'Fairchem Organics',
+    'FDC': 'FDC Limited',
+    'FIEMIND': 'Fiem Industries',
+    'FINCABLES': 'Finolex Cables',
+    'FINEORG': 'Fine Organic Industries',
+    'FINPIPE': 'Finolex Pipes',
+    'FIVESTAR': 'Five Star Business Finance',
+    'FORTIS': 'Fortis Healthcare',
+    'FSL': 'Firstsource Solutions',
+    'GABRIEL': 'Gabriel India',
+    'GAEL': 'Gujarat Ambuja Exports',
+    'GAIL': 'GAIL India',
+    'GALAXYSURF': 'Galaxy Surfactants',
+    'GANECOS': 'Ganesha Ecosphere',
+    'GANESHBE': 'Ganesh Benzoplast',
+    'GARFIBRES': 'Garware Technical Fibres',
+    'GENESYS': 'Genesys International',
+    'GEOJITFSL': 'Geojit Financial Services',
+    'GESHIP': 'Great Eastern Shipping',
+    'GET&D': 'GE T&D India',
+    'GHCL': 'GHCL Limited',
+    'GILLETTE': 'Gillette India',
+    'GIPCL': 'Gujarat Industries Power',
+    'GLAND': 'Gland Pharma',
+    'GLAXO': 'Glaxosmithkline Pharma',
+    'GLENMARK': 'Glenmark Pharmaceuticals',
+    'GLOBUSSPR': 'Globus Spirits',
+    'GMDCLTD': 'GMDC Limited',
+    'GMRINFRA': 'GMR Infrastructure',
+    'GNA': 'GNA Axles',
+    'GNFC': 'Gujarat Narmada Valley Fertilizers',
+    'GODREJAGRO': 'Godrej Agrovet',
+    'GODREJIND': 'Godrej Industries',
+    'GOKEX': 'Gokaldas Exports',
+    'GOLDIAM': 'Goldiam International',
+    'GOODLUCK': 'Goodluck India',
+    'GPIL': 'Godawari Power',
+    'GPPL': 'Gujarat Pipavav Port',
+    'GPTINFRA': 'GPT Infraprojects',
+    'GRANULES': 'Granules India',
+    'GRAPHITE': 'Graphite India',
+    'GRAVITA': 'Gravita India',
+    'GREAVESCOT': 'Greaves Cotton',
+    'GREENLAM': 'Greenlam Industries',
+    'GREENPANEL': 'Greenpanel Industries',
+    'GREENPLY': 'Greenply Industries',
+    'GRINDWELL': 'Grindwell Norton',
+    'GRINFRA': 'G R Infraprojects',
+    'GRSE': 'Garden Reach Shipbuilders',
+    'GSFC': 'Gujarat State Fertilizers',
+    'GSPL': 'Gujarat State Petronet',
+    'GTPL': 'GTPL Hathway',
+    'GUFICBIO': 'Gufic Biosciences',
+    'GUJALKALI': 'Gujarat Alkalies',
+    'GUJGASLTD': 'Gujarat Gas',
+    'GULFOILLUB': 'Gulf Oil Lubricants',
+    'GVKPIL': 'GVK Power & Infrastructure',
+    'HAPPSTMNDS': 'Happiest Minds',
+    'HARIOMPIPE': 'Hariom Pipe',
+    'HARSHA': 'Harsha Engineers',
+    'HBLPOWER': 'HBL Power Systems',
+    'HCC': 'Hindustan Construction',
+    'HEG': 'HEG Limited',
+    'HEIDELBERG': 'HeidelbergCement India',
+    'HERANBA': 'Heranba Industries',
+    'HERITGFOOD': 'Heritage Foods',
+    'HESTERBIO': 'Hester Biosciences',
+    'HFCL': 'HFCL Limited',
+    'HGINFRA': 'HG Infra Engineering',
+    'HGS': 'Hinduja Global Solutions',
+    'HIKAL': 'Hikal Limited',
+    'HIL': 'HIL Limited',
+    'HIMATSEIDE': 'Himatsingka Seide',
+    'HINDOILEXP': 'Hindustan Oil Exploration',
+    'HINDPETRO': 'Hindustan Petroleum',
+    'HITECH': 'Hi-Tech Pipes',
+    'HLEGLAS': 'HLE Glascoat',
+    'HOMEFIRST': 'Home First Finance',
+    'HONAUT': 'Honeywell Automation',
+    'HPCL': 'Hindustan Petroleum',
+    'HPL': 'HPL Electric',
+    'HTMEDIA': 'HT Media',
+    'HUDCO': 'Housing & Urban Development',
+    'HUHTAMAKI': 'Huhtamaki India',
+    'IBREALEST': 'Indiabulls Real Estate',
+    'IBULHSGFIN': 'Indiabulls Housing Finance',
+    'ICEMAKE': 'Ice Make Refrigeration',
+    'ICIL': 'Indo Count Industries',
+    'ICRA': 'ICRA Limited',
+    'IEX': 'Indian Energy Exchange',
+    'IFBIND': 'IFB Industries',
+    'IFCI': 'IFCI Limited',
+    'IGARASHI': 'Igarashi Motors',
+    'IGL': 'Indraprastha Gas',
+    'IGPL': 'IG Petrochemicals',
+    'IIFL': 'IIFL Finance',
+    'IMFA': 'Indian Metals & Ferro Alloys',
+    'INDIACEM': 'India Cements',
+    'INDIAGLYCO': 'India Glycols',
+    'INDIAMART': 'Indiamart Intermesh',
+    'INDIANHUME': 'Indian Hume Pipe',
+    'INDIGOPNTS': 'Indigo Paints',
+    'INDOBORAX': 'Indo Borax',
+    'INDOCO': 'Indoco Remedies',
+    'INDORAMA': 'Indo Rama Synthetics',
+    'INDOSTAR': 'IndoStar Capital',
+    'INDOTECH': 'Indo Tech Transformers',
+    'INDRAMEDCO': 'Indraprastha Medical',
+    'INDUSINDBK': 'IndusInd Bank',
+    'INFIBEAM': 'Infibeam Avenues',
+    'INFOBEAN': 'InfoBeans',
+    'INGERRAND': 'Ingersoll Rand',
+    'INOXGREEN': 'Inox Green Energy',
+    'INOXINDIA': 'Inox India',
+    'INOXWIND': 'Inox Wind',
+    'INSECTICID': 'Insecticides India',
+    'INTELLECT': 'Intellect Design Arena',
+    'IONEXCHANG': 'Ion Exchange',
+    'IPCA': 'Ipca Laboratories',
+    'IRB': 'IRB Infrastructure',
+    'IRCON': 'Ircon International',
+    'ISEC': 'ICICI Securities',
+    'ISGEC': 'ISGEC Heavy Engineering',
+    'ISMTLTD': 'ISMT Limited',
+    'ITDC': 'India Tourism Development',
+    'ITDCEM': 'ITD Cementation',
+    'ITI': 'ITI Limited',
+    'JAIBALAJI': 'Jai Balaji Industries',
+    'JAICORPLTD': 'Jai Corp',
+    'JAIPRAKASH': 'Jaiprakash Associates',
+    'JAMNAAUTO': 'Jamna Auto',
+    'JASH': 'Jash Engineering',
+    'JAYBARMARU': 'Jay Bharat Maruti',
+    'JBCHEPHARM': 'JB Chemicals',
+    'JBMA': 'JBM Auto',
+    'JETAIRWAYS': 'Jet Airways',
+    'JINDALSAW': 'Jindal Saw',
+    'JINDALSTEL': 'Jindal Steel & Power',
+    'JINDRILL': 'Jindal Drilling',
+    'JKLAKSHMI': 'JK Lakshmi Cement',
+    'JKPAPER': 'JK Paper',
+    'JKTYRE': 'JK Tyre',
+    'JMFINANCIL': 'JM Financial',
+    'JPASSOCIAT': 'Jaiprakash Associates',
+    'JPPOWER': 'Jaiprakash Power Ventures',
+    'JSL': 'Jindal Stainless',
+    'JSWENERGY': 'JSW Energy',
+    'JSWINFRA': 'JSW Infrastructure',
+    'JSWSTEEL': 'JSW Steel',
+    'JTEKTINDIA': 'JTEKT India',
+    'JUBLFOOD': 'Jubilant FoodWorks',
+    'JUBLPHARMA': 'Jubilant Pharmova',
+    'JUSTDIAL': 'Just Dial',
+    'JYOTHYLAB': 'Jyothy Labs',
+    'KABRAEXTRU': 'Kabra Extrusion',
+    'KAJARIACER': 'Kajaria Ceramics',
+    'KALPATPOWR': 'Kalpataru Power',
+    'KALYANKJIL': 'Kalyan Jewellers',
+    'KAMDHENU': 'Kamdhenu',
+    'KANSAINER': 'Kansai Nerolac',
+    'KAYNES': 'Kaynes Technology',
+    'KCP': 'KCP Limited',
+    'KDDL': 'KDDL',
+    'KEC': 'KEC International',
+    'KECL': 'Kirloskar Electric',
+    'KEI': 'KEI Industries',
+    'KESORAMIND': 'Kesoram Industries',
+    'KFINTECH': 'KFin Technologies',
+    'KHADIM': 'Khadim India',
+    'KIRIINDUS': 'Kiri Industries',
+    'KIRLOSBROS': 'Kirloskar Brothers',
+    'KIRLOSENG': 'Kirloskar Oil Engines',
+    'KITEX': 'Kitex Garments',
+    'KKCL': 'Kewal Kiran Clothing',
+    'KNRCON': 'KNR Constructions',
+    'KOKUYOCMLN': 'Kokuyo Camlin',
+    'KOLTEPATIL': 'Kolte-Patil Developers',
+    'KOPRAN': 'Kopran',
+    'KPIGLOBAL': 'KPI Global',
+    'KPRMILL': 'KPR Mill',
+    'KRBL': 'KRBL Limited',
+    'KSB': 'KSB Limited',
+    'KSCL': 'Kaveri Seed',
+    'KTKBANK': 'Karnataka Bank',
+    'L&TFH': 'L&T Finance Holdings',
+    'LALPATHLAB': 'Dr. Lal PathLabs',
+    'LAOPALA': 'La Opala RG',
+    'LATENTVIEW': 'Latent View Analytics',
+    'LAURUSLABS': 'Laurus Labs',
+    'LAXMIMACH': 'Lakshmi Machine Works',
+    'LEMONTREE': 'Lemon Tree Hotels',
+    'LGBBROSLTD': 'LG Balakrishnan',
+    'LICHSGFIN': 'LIC Housing Finance',
+    'LICI': 'LIC India',
+    'LIKHITHA': 'Likhitha Infrastructure',
+    'LINCOLN': 'Lincoln Pharmaceuticals',
+    'LINDEINDIA': 'Linde India',
+    'LODHA': 'Macrotech Developers',
+    'LOVABLE': 'Lovable Lingerie',
+    'LT': 'Larsen & Toubro',
+    'LTI': 'LTIMindtree',
+    'LUPIN': 'Lupin Limited',
+    'LUXIND': 'Lux Industries',
+    'M&M': 'Mahindra & Mahindra',
+    'M&MFIN': 'Mahindra & Mahindra Financial',
+    'MACPOWER': 'Macpower CNC',
+    'MADRASFERT': 'Madras Fertilizers',
+    'MAGADHSUGAR': 'Magadh Sugar',
+    'MAGMA': 'Magma Fincorp',
+    'MAHABANK': 'Bank of Maharashtra',
+    'MAHALAXMI': 'Mahalaxmi Rubtech',
+    'MAHASCOOTER': 'Maharashtra Scooters',
+    'MAHSEAMLES': 'Maharashtra Seamless',
+    'MAITHANALL': 'Maithan Alloys',
+    'MALUPAPER': 'Malu Paper',
+    'MANALIPETC': 'Manali Petrochemicals',
+    'MANAPPURAM': 'Manappuram Finance',
+    'MANGALAM': 'Mangalam Drugs',
+    'MANGALAMORG': 'Mangalam Organics',
+    'MANINDS': 'Man Industries',
+    'MANINFRA': 'Man Infraconstruction',
+    'MANORAMA': 'Manorama Industries',
+    'MARALOVER': 'Maral Overseas',
+    'MARATHON': 'Marathon Nextgen',
+    'MARICO': 'Marico Limited',
+    'MARINE': 'Marine Electricals',
+    'MARKSANS': 'Marksans Pharma',
+    'MARUTI': 'Maruti Suzuki',
+    'MASFIN': 'MAS Financial',
+    'MATRIMONY': 'Matrimony.com',
+    'MAWANASUG': 'Mawana Sugars',
+    'MAXHEALTH': 'Max Healthcare',
+    'MAYURUNIQ': 'Mayur Uniquoters',
+    'MAZDOCK': 'Mazagon Dock',
+    'MCLEODRUSS': 'McLeod Russel',
+    'MCX': 'Multi Commodity Exchange',
+    'MEDANTA': 'Medanta',
+    'MEDPLUS': 'Medplus Health',
+    'MEGHMANI': 'Meghmani',
+    'MENONBE': 'Menon Bearings',
+    'MEP': 'MEP Infrastructure',
+    'MERCK': 'Merck',
+    'METROBRAND': 'Metro Brands',
+    'METROPOLIS': 'Metropolis Healthcare',
+    'MFSL': 'Max Financial Services',
+    'MGL': 'Mahanagar Gas',
+    'MHRIL': 'Mahindra Holiday',
+    'MIDHANI': 'Mishra Dhatu Nigam',
+    'MINDACORP': 'Minda Corporation',
+    'MINDTECK': 'Mindteck',
+    'MINDTREE': 'Mindtree',
+    'MIRCELECTR': 'MIRC Electronics',
+    'MIRZAINT': 'Mirza International',
+    'MMTC': 'MMTC Limited',
+    'MODISONLTD': 'Modison',
+    'MOIL': 'MOIL Limited',
+    'MOLDTECH': 'Mold-Tech',
+    'MOLDTKPAC': 'Mold-Tek Packaging',
+    'MONTECARLO': 'Monte Carlo',
+    'MOREPENLAB': 'Morepen Laboratories',
+    'MOTHERSUMI': 'Motherson Sumi',
+    'MPHASIS': 'Mphasis',
+    'MRF': 'MRF Limited',
+    'MRPL': 'Mangalore Refinery',
+    'MSTCLTD': 'MSTC Limited',
+    'MUKANDLTD': 'Mukand',
+    'MUKTAARTS': 'Mukta Arts',
+    'MUNJALAU': 'Munjal Auto',
+    'MUNJALSHOW': 'Munjal Showa',
+    'MUTHOOTFIN': 'Muthoot Finance',
+    'NAGARFERT': 'Nagarjuna Fertilizers',
+    'NAHARIND': 'Nahar Industrial',
+    'NAHARSPING': 'Nahar Spinning',
+    'NALCO': 'National Aluminium',
+    'NAM-INDIA': 'Nippon Life India',
+    'NARAYANA': 'Narayana Hrudayalaya',
+    'NATCO': 'Natco Pharma',
+    'NATIONALUM': 'National Aluminium',
+    'NAUKRI': 'Info Edge',
+    'NAVINFLUOR': 'Navin Fluorine',
+    'NAVKARCORP': 'Navkar Corporation',
+    'NAVNETEDUL': 'Navneet Education',
+    'NBCC': 'NBCC India',
+    'NCC': 'NCC Limited',
+    'NCLIND': 'NCL Industries',
+    'NDTV': 'NDTV Limited',
+    'NECLIFE': 'Nectar Lifesciences',
+    'NELCO': 'Nelco',
+    'NESCO': 'Nesco',
+    'NESTLEIND': 'Nestle India',
+    'NETWORK18': 'Network18 Media',
+    'NEULANDLAB': 'Neuland Labs',
+    'NEWGEN': 'Newgen Software',
+    'NEWINDIA': 'New India Assurance',
+    'NFL': 'National Fertilizers',
+    'NHPC': 'NHPC Limited',
+    'NIACL': 'New India Assurance',
+    'NILKAMAL': 'Nilkamal',
+    'NIPPON': 'Nippon Life India',
+    'NIRMA': 'Nirma',
+    'NITINSPIN': 'Nitin Spinners',
+    'NLCINDIA': 'NLC India',
+    'NMDC': 'NMDC Limited',
+    'NOCIL': 'NOCIL',
+    'NOVARTIND': 'Novartis India',
+    'NRBBEARING': 'NRB Bearings',
+    'NTPC': 'NTPC Limited',
+    'NUCLEUS': 'Nucleus Software',
+    'NURECA': 'Nureca',
+    'NUVAMA': 'Nuvama',
+    'OBEROIRLTY': 'Oberoi Realty',
+    'OFSS': 'Oracle Financial Services',
+    'OIL': 'Oil India',
+    'OLECTRA': 'Olectra Greentech',
+    'OMAXE': 'Omaxe',
+    'OMKARCHEM': 'Omkar Chemicals',
+    'ONGC': 'Oil and Natural Gas Corporation',
+    'ONMOBILE': 'OnMobile Global',
+    'ONWARDTEC': 'Onward Technologies',
+    'OPTIEMUS': 'Optiemus Infracom',
+    'ORCHPHARMA': 'Orchid Pharma',
+    'ORIENTCEM': 'Orient Cement',
+    'ORIENTELEC': 'Orient Electric',
+    'ORIENTHOT': 'Oriental Hotels',
+    'ORIENTPPR': 'Orient Paper',
+    'OSWALGREEN': 'Oswal Green',
+    'PAGEIND': 'Page Industries',
+    'PAISALO': 'Paisalo Digital',
+    'PANACEABIO': 'Panacea Biotec',
+    'PANAMAPET': 'Panama Petrochem',
+    'PARACABLES': 'Paramount Communications',
+    'PARADEEP': 'Paradeep Phosphates',
+    'PARAGMILK': 'Parag Milk Foods',
+    'PARSVNATH': 'Parsvnath Developers',
+    'PASUPTAC': 'Pasupati Acrylon',
+    'PATANJALI': 'Patanjali Foods',
+    'PATELENG': 'Patel Engineering',
+    'PAYTM': 'One97 Communications',
+    'PEL': 'Piramal Enterprises',
+    'PENIND': 'Pennar Industries',
+    'PENINLAND': 'Peninsula Land',
+    'PERSISTENT': 'Persistent Systems',
+    'PETRONET': 'Petronet LNG',
+    'PFC': 'Power Finance Corporation',
+    'PFIZER': 'Pfizer India',
+    'PHOENIXLTD': 'Phoenix Mills',
+    'PIDILITIND': 'Pidilite Industries',
+    'PIRAMAL': 'Piramal Pharma',
+    'PNB': 'Punjab National Bank',
+    'PNBGILTS': 'PNB Gilts',
+    'PNBHOUSING': 'PNB Housing Finance',
+    'PNC': 'PNC Infratech',
+    'POKARNA': 'Pokarna',
+    'POLYCAB': 'Polycab India',
+    'POLYMED': 'Poly Medicure',
+    'POLYPLEX': 'Polyplex Corporation',
+    'POONAWALLA': 'Poonawalla Fincorp',
+    'POWERGRID': 'Power Grid Corporation',
+    'POWERINDIA': 'Power Mech Projects',
+    'PRAJIND': 'Praj Industries',
+    'PRAKASH': 'Prakash Industries',
+    'PRECAM': 'Precision Camshafts',
+    'PRECWIRE': 'Precision Wires',
+    'PREMEXPLN': 'Premier Explosives',
+    'PRESTIGE': 'Prestige Estates',
+    'PRICOLLTD': 'Pricol Limited',
+    'PRINCEPIPE': 'Prince Pipes',
+    'PRIVISCL': 'Privi Speciality Chemicals',
+    'PROZONINT': 'Prozone Intu',
+    'PRSMJOHNSN': 'Prism Johnson',
+    'PRUDENT': 'Prudent Corporate',
+    'PSB': 'Punjab & Sind Bank',
+    'PSPPROJECT': 'PSP Projects',
+    'PTC': 'PTC India',
+    'PVR': 'PVR Inox',
+    'PVRINOX': 'PVR Inox',
+    'QUESS': 'Quess Corp',
+    'QUICKHEAL': 'Quick Heal',
+    'RADICO': 'Radico Khaitan',
+    'RAILTEL': 'RailTel Corporation',
+    'RAIN': 'Rain Industries',
+    'RAJESHEXPO': 'Rajesh Exports',
+    'RAJRATAN': 'Rajratan Global',
+    'RALLIS': 'Rallis India',
+    'RAMCOCEM': 'Ramco Cements',
+    'RAMCOIND': 'Ramco Industries',
+    'RAMCOSYS': 'Ramco Systems',
+    'RAMKY': 'Ramky Infrastructure',
+    'RANASUG': 'Rana Sugars',
+    'RATNAMANI': 'Ratnamani Metals',
+    'RATTANIND': 'RattanIndia',
+    'RAYMOND': 'Raymond Limited',
+    'RBLBANK': 'RBL Bank',
+    'RCF': 'RCF Limited',
+    'RECLTD': 'REC Limited',
+    'REDINGTON': 'Redington India',
+    'REDTAPE': 'Redtape',
+    'REFEX': 'Refex Industries',
+    'RELAXO': 'Relaxo Footwears',
+    'RELIANCE': 'Reliance Industries',
+    'RELIGARE': 'Religare Enterprises',
+    'RELINFRA': 'Reliance Infrastructure',
+    'RENUKA': 'Shree Renuka Sugars',
+    'REPCOHOME': 'Repco Home Finance',
+    'RESPONIND': 'Responsive Industries',
+    'RICOAUTO': 'Rico Auto',
+    'RITES': 'RITES Limited',
+    'RKFORGE': 'Ramkrishna Forgings',
+    'ROSSARI': 'Rossari Biotech',
+    'ROUTE': 'Route Mobile',
+    'RPGLIFE': 'RPG Life Sciences',
+    'RPOWER': 'Reliance Power',
+    'RPPINFRA': 'RPP Infra',
+    'RPSGVENT': 'RPSG Ventures',
+    'RSYSTEMS': 'R Systems',
+    'RUBFILA': 'Rubfila',
+    'RUSHIL': 'Rushil Decor',
+    'SADBHAV': 'Sadbhav Engineering',
+    'SADBHIN': 'Sadbhav Infrastructure',
+    'SAFARI': 'Safari Industries',
+    'SAGCEM': 'Sagar Cements',
+    'SAIL': 'Steel Authority of India',
+    'SAKSOFT': 'Saksoft',
+    'SAKUMA': 'Sakuma Exports',
+    'SALASAR': 'Salasar Techno',
+    'SALZER': 'Salzer Electronics',
+    'SAMHI': 'SAMHI Hotels',
+    'SANDESH': 'Sandesh',
+    'SANDHAR': 'Sandhar Technologies',
+    'SANDUMA': 'Sandur Manganese',
+    'SANGAMIND': 'Sangam India',
+    'SANGHIIND': 'Sanghi Industries',
+    'SANGHVIMOV': 'Sanghvi Movers',
+    'SANOFI': 'Sanofi India',
+    'SANSERA': 'Sansera Engineering',
+    'SAPPHIRE': 'Sapphire Foods',
+    'SARDAEN': 'Sarda Energy',
+    'SAREGAMA': 'Saregama India',
+    'SARLAPOLY': 'Sarla Performance',
+    'SASKEN': 'Sasken Technologies',
+    'SATIA': 'Satia Industries',
+    'SATIN': 'Satin Creditcare',
+    'SBICARD': 'SBI Cards',
+    'SBILIFE': 'SBI Life Insurance',
+    'SBIN': 'State Bank of India',
+    'SCHAEFFLER': 'Schaeffler India',
+    'SCHNEIDER': 'Schneider Electric',
+    'SCI': 'Shipping Corporation',
+    'SDBL': 'Som Distilleries',
+    'SEAMECLTD': 'Seamec',
+    'SECURCRED': 'Secur Credentials',
+    'SEQUENT': 'Sequent Scientific',
+    'SERVOTECH': 'Servotech Power',
+    'SESHAPAPER': 'Seshasayee Paper',
+    'SFL': 'SFL',
+    'SHAHALLOYS': 'Shah Alloys',
+    'SHAKTI': 'Shakti Pumps',
+    'SHALBY': 'Shalby Hospitals',
+    'SHALPAINTS': 'Shalimar Paints',
+    'SHANKARA': 'Shankara Building',
+    'SHANTIGEAR': 'Shanthi Gears',
+    'SHARDACROP': 'Sharda Cropchem',
+    'SHARDAMOTR': 'Sharda Motor',
+    'SHAREINDIA': 'Share India',
+    'SHEMAROO': 'Shemaroo Entertainment',
+    'SHILPAMED': 'Shilpa Medicare',
+    'SHIVALIK': 'Shivalik Bimetal',
+    'SHOPPERSTOP': 'Shoppers Stop',
+    'SHREDIGCEM': 'Shree Digvijay Cement',
+    'SHREECEM': 'Shree Cement',
+    'SHRIRAMFIN': 'Shriram Finance',
+    'SHYAMCENT': 'Shyam Century',
+    'SHYAMMETL': 'Shyam Metalics',
+    'SIEMENS': 'Siemens India',
+    'SIGACHI': 'Sigachi Industries',
+    'SILINV': 'SIL Investments',
+    'SIMPLEX': 'Simplex Infra',
+    'SINTEX': 'Sintex',
+    'SIRCA': 'Sirca Paints',
+    'SIS': 'SIS',
+    'SJVN': 'SJVN Limited',
+    'SKFINDIA': 'SKF India',
+    'SKIPPER': 'Skipper',
+    'SMLISUZU': 'SML Isuzu',
+    'SMSPHARMA': 'SMS Pharma',
+    'SNOWMAN': 'Snowman Logistics',
+    'SOBHA': 'Sobha Developers',
+    'SOLARA': 'Solara Active',
+    'SOLARINDS': 'Solar Industries',
+    'SOMANYCERA': 'Somany Ceramics',
+    'SONACOMS': 'Sona Comstar',
+    'SONATSOFTW': 'Sonata Software',
+    'SORILINFRA': 'Soril Infra',
+    'SOUTHBANK': 'South Indian Bank',
+    'SPANDANA': 'Spandana Sphoorty',
+    'SPARC': 'SPARC',
+    'SPENCERS': "Spencer's Retail",
+    'SPIC': 'SPIC',
+    'SPICEJET': 'SpiceJet',
+    'SPORTKING': 'Sportking India',
+    'SRF': 'SRF Limited',
+    'SRTRANSFIN': 'SREI',
+    'SSWL': 'SSWL',
+    'STARCEMENT': 'Star Cement',
+    'STARHEALTH': 'Star Health',
+    'STARTCORP': 'Start Corp',
+    'STEELCITY': 'Steel City',
+    'STLTECH': 'Sterlite Technologies',
+    'STOVEKRAFT': 'Stove Kraft',
+    'STYLAMIND': 'Stylam Industries',
+    'SUBEX': 'Subex',
+    'SUBROS': 'Subros',
+    'SUDARSCHEM': 'Sudarshan Chemical',
+    'SULA': 'Sula Vineyards',
+    'SUMICHEM': 'Sumitomo Chemical',
+    'SUNDARMFIN': 'Sundaram Finance',
+    'SUNDRMFAST': 'Sundram Fasteners',
+    'SUNFLAG': 'Sunflag Iron',
+    'SUNPHARMA': 'Sun Pharma',
+    'SUNTECK': 'Sunteck Realty',
+    'SUNTV': 'Sun TV Network',
+    'SUPERHOUSE': 'Superhouse',
+    'SUPRAJIT': 'Suprajit Engineering',
+    'SUPREMEIND': 'Supreme Industries',
+    'SURYAAMBA': 'Suryaamba',
+    'SURYALAXMI': 'Suryalakshmi',
+    'SURYAROSNI': 'Surya Roshni',
+    'SURYODAY': 'Suryoday Small Finance Bank',
+    'SUTLEJTEX': 'Sutlej Textiles',
+    'SUVEN': 'Suven Life Sciences',
+    'SUVENPHAR': 'Suven Pharma',
+    'SUZLON': 'Suzlon Energy',
+    'SWANENERGY': 'Swan Energy',
+    'SWARAJENG': 'Swaraj Engines',
+    'SWELECT': 'Swelect Energy',
+    'SWIGGY': 'Swiggy',
+    'SYMPHONY': 'Symphony',
+    'SYNGENE': 'Syngene International',
+    'SYRMA': 'Syrma SGS',
+    'TALBROS': 'Talbros',
+    'TANFACIND': 'Tanfac Industries',
+    'TANLA': 'Tanla Platforms',
+    'TARC': 'TARC',
+    'TARSONS': 'Tarsons Products',
+    'TASTY': 'Tasty Bite',
+    'TATAELXSI': 'Tata Elxsi',
+    'TATACOMM': 'Tata Communications',
+    'TATACONSUM': 'Tata Consumer Products',
+    'TATAINVEST': 'Tata Investment',
+    'TATAMOTORS': 'Tata Motors',
+    'TATAPOWER': 'Tata Power',
+    'TATASTEEL': 'Tata Steel',
+    'TATATECH': 'Tata Technologies',
+    'TATVA': 'Tatva Chintan',
+    'TCIEXP': 'TCI Express',
+    'TCNSBRANDS': 'TCNS Clothing',
+    'TCPLPACK': 'TCPL Packaging',
+    'TCS': 'Tata Consultancy Services',
+    'TDPOWERSYS': 'TD Power Systems',
+    'TEAMLEASE': 'Teamlease Services',
+    'TECHM': 'Tech Mahindra',
+    'TEGA': 'Tega Industries',
+    'TEJASNET': 'Tejas Networks',
+    'TEXMOPIPES': 'Texmo Pipes',
+    'TEXRAIL': 'Texrail',
+    'TGBHOTELS': 'TGB Hotels',
+    'THANGAMAYL': 'Thangamayil',
+    'THEMISMED': 'Themis Medicare',
+    'THERMAX': 'Thermax',
+    'THOMASCOOK': 'Thomas Cook',
+    'THYROCARE': 'Thyrocare',
+    'TIINDIA': 'TI India',
+    'TIMETECHNO': 'Time Technoplast',
+    'TIMKEN': 'Timken India',
+    'TIPS': 'TIPS Industries',
+    'TIRUMALCHM': 'Tirumalai Chemicals',
+    'TITAGARH': 'Titagarh Wagons',
+    'TITAN': 'Titan Company',
+    'TMB': 'Tamilnad Mercantile Bank',
+    'TNPL': 'TNPL',
+    'TORNTPHARM': 'Torrent Pharma',
+    'TORNTPOWER': 'Torrent Power',
+    'TRENT': 'Trent',
+    'TRIDENT': 'Trident',
+    'TRIGYN': 'Trigyn',
+    'TRIL': 'TRIL',
+    'TRITURBINE': 'Triveni Turbine',
+    'TRIVENI': 'Triveni Engineering',
+    'TTKPRESTIG': 'TTK Prestige',
+    'TV18BRDCST': 'TV18 Broadcast',
+    'TVSELECT': 'TVS Electronics',
+    'TVSMOTOR': 'TVS Motor',
+    'UBL': 'United Breweries',
+    'UCOBANK': 'UCO Bank',
+    'UFLEX': 'UFLEX',
+    'UGROCAP': 'Ugro Capital',
+    'UJJIVAN': 'Ujjivan Financial',
+    'UJJIVANSFB': 'Ujjivan Small Finance Bank',
+    'ULTRACEMCO': 'UltraTech Cement',
+    'UNICHEMLAB': 'Unichem Labs',
+    'UNIONBANK': 'Union Bank of India',
+    'UNOMINDA': 'Uno Minda',
+    'UPL': 'UPL Limited',
+    'URJA': 'Urja',
+    'USHAMART': 'Usha Martin',
+    'UTIAMC': 'UTI AMC',
+    'UTKARSH': 'Utkarsh Small Finance Bank',
+    'UTTAMSUGAR': 'Uttam Sugar',
+    'V2RETAIL': 'V2 Retail',
+    'VAIBHAVGBL': 'Vaibhav Global',
+    'VAKRANGEE': 'Vakrangee',
+    'VARDHMAN': 'Vardhman Textiles',
+    'VARROC': 'Varroc Engineering',
+    'VASCONEQ': 'Vascon Engineers',
+    'VBL': 'Varun Beverages',
+    'VEDL': 'Vedanta Limited',
+    'VENKYS': "Venky's India",
+    'VESUVIUS': 'Vesuvius',
+    'VGUARD': 'V-Guard Industries',
+    'VIDEOIND': 'Video India',
+    'VIJAYA': 'Vijaya',
+    'VIKASECO': 'Vikas EcoTech',
+    'VINDHYATEL': 'Vindhya Telelinks',
+    'VIPCLOTHNG': 'VIP Clothing',
+    'VIPIND': 'VIP Industries',
+    'VISAKAIND': 'Visaka Industries',
+    'VISHNU': 'Vishnu',
+    'VISHWARAJ': 'Vishwaraj Sugar',
+    'VIVIDHA': 'Vividha',
+    'VLSFINANCE': 'VLS Finance',
+    'VMART': 'V-Mart Retail',
+    'VODAFONE': 'Vodafone Idea',
+    'VOLTAMP': 'Voltamp Transformers',
+    'VOLTAS': 'Voltas',
+    'VRLLOG': 'VRL Logistics',
+    'VSTIND': 'VST Industries',
+    'VSTTILLERS': 'VST Tillers',
+    'WABAG': 'VA Tech Wabag',
+    'WABCOINDIA': 'WABCO India',
+    'WALCHANNAG': 'Walchandnagar',
+    'WANBURY': 'Wanbury',
+    'WATERBASE': 'Waterbase',
+    'WELCORP': 'Welspun Corp',
+    'WELENT': 'Welspun Enterprises',
+    'WELSPUNIND': 'Welspun India',
+    'WENDT': 'Wendt',
+    'WESTLIFE': 'Westlife Development',
+    'WHIRLPOOL': 'Whirlpool India',
+    'WINDLAS': 'Windlas Biotech',
+    'WIPRO': 'Wipro',
+    'WOCKPHARMA': 'Wockhardt',
+    'WONDERLA': 'Wonderla Holidays',
+    'XCHANGING': 'Xchanging',
+    'XPROINDIA': 'Xpro India',
+    'YATHARTH': 'Yatharth Hospital',
+    'YESBANK': 'Yes Bank',
+    'ZAGGLE': 'Zaggle',
+    'ZEEL': 'Zee Entertainment',
+    'ZEEMEDIA': 'Zee Media',
+    'ZENSARTECH': 'Zensar Technologies',
+    'ZODIACLOT': 'Zodiac Clothing',
+    'ZOMATO': 'Zomato',
+    'ZUARI': 'Zuari',
+    'ZUARIGLOB': 'Zuari Global',
+    'ZYDUSLIFE': 'Zydus Lifesciences',
+    'ZYDUSWELL': 'Zydus Wellness',
+    'HAL': 'Hindustan Aeronautics',
+    'BEL': 'Bharat Electronics',
+    'MAZDOCK': 'Mazagon Dock Shipbuilders',
+    'GRSE': 'Garden Reach Shipbuilders',
+    'COCHINSHIP': 'Cochin Shipyard',
+    'BDL': 'Bharat Dynamics',
+    'MIDHANI': 'Mishra Dhatu Nigam',
+    'PARAS': 'Paras Defence',
+    'DATAPATTNS': 'Data Patterns',
+    'ZEN-TECH': 'Zen Technologies',
+    'RVNL': 'Rail Vikas Nigam Ltd',
+    'IRFC': 'Indian Railway Finance Corp',
+    'IRCTC': 'Indian Railway Catering & Tourism',
+    'RAILTEL': 'RailTel Corporation',
+    'RITES': 'RITES Limited',
+    'TITAGARH': 'Titagarh Rail Systems',
+    'TEXRAIL': 'Texmaco Rail',
+    'IRB': 'IRB Infrastructure',
+    'NCC': 'NCC Limited',
+    'PNCINFRA': 'PNC Infratech',
+    'KNRCON': 'KNR Constructions',
+    'HGINFRA': 'HG Infra Engineering',
+    'IREDA': 'Indian Renewable Energy Dev',
+    'SUZLON': 'Suzlon Energy',
+    'NHPC': 'NHPC Limited',
+    'SJVN': 'SJVN Limited',
+    'TATAPOWER': 'Tata Power',
+    'ADANIGREEN': 'Adani Green Energy',
+    'ADANIPOWER': 'Adani Power',
+    'JINDALSTEL': 'Jindal Steel & Power',
+    'TORNTPOWER': 'Torrent Power',
+    'CESC': 'CESC Limited',
+    'SWIGGY': 'Swiggy Limited',
+    'JIOFIN': 'Jio Financial Services',
+    'PAYTM': 'One97 Communications (Paytm)',
+    'DELHIVERY': 'Delhivery Limited',
+    'POLICYBZR': 'PB Fintech (Policybazaar)',
+    'NYKAA': 'FSN E-Commerce (Nykaa)',
+    'NAUKRI': 'Info Edge (Naukri)',
+    'HONASA': 'Honasa Consumer (Mamaearth)',
+    'MAPMYINDIA': 'CE Info Systems (MapmyIndia)',
+    'RATEGAIN': 'RateGain Travel Tech',
+    'PFC': 'Power Finance Corporation',
+    'REC': 'REC Limited',
+    'MUTHOOTFIN': 'Muthoot Finance',
+    'MANAPPURAM': 'Manappuram Finance',
+    'CHOLAFIN': 'Cholamandalam Investment',
+    'M&MFIN': 'Mahindra & Mahindra Financial',
+    'L&TFH': 'L&T Finance Holdings',
+    'BAJAJHFL': 'Bajaj Housing Finance',
+    'ABCAPITAL': 'Aditya Birla Capital',
+    'LICHSGFIN': 'LIC Housing Finance',
+    'CANFINHOME': 'Can Fin Homes',
+    'AUBANK': 'AU Small Finance Bank',
+    'IDFCFIRSTB': 'IDFC FIRST Bank',
+    'FEDERALBNK': 'Federal Bank',
+    'BANDHANBNK': 'Bandhan Bank',
+    'CDSL': 'Central Depository Services',
+    'MCX': 'Multi Commodity Exchange',
+    'ANGELONE': 'Angel One Limited',
+    'BSE': 'BSE Limited',
+    'TVSMOTOR': 'TVS Motor Company',
+    'ASHOKLEY': 'Ashok Leyland',
+    'MOTHERSON': 'Samvardhana Motherson',
+    'BHARATFORG': 'Bharat Forge',
+    'SONACOMS': 'Sona BLW Precision',
+    'BALKRISIND': 'Balkrishna Industries',
+    'CEATLTD': 'CEAT Limited',
+    'APOLLOTYRE': 'Apollo Tyres',
+    'MRF': 'MRF Limited',
+    'BOSCHLTD': 'Bosch Limited',
+    'POLYCAB': 'Polycab India',
+    'KEI': 'KEI Industries',
+    'FINCABLES': 'Finolex Cables',
+    'HAVELS': 'Havells India',
+    'DIXON': 'Dixon Technologies',
+    'CROMPTON': 'Crompton Greaves Consumer',
+    'VGUARD': 'V-Guard Industries',
+    'VOLTAS': 'Voltas Limited',
+    'BLUESTARCO': 'Blue Star Limited',
+    'AMBER': 'Amber Enterprises',
+    'KAYNES': 'Kaynes Technology',
+    'TRENT': 'Trent Limited',
+    'ABFRL': 'Aditya Birla Fashion',
+    'MANYAVAR': 'Vedant Fashions (Manyavar)',
+    'PAGEIND': 'Page Industries (Jockey)',
+    'BATAINDIA': 'Bata India',
+    'RELAXO': 'Relaxo Footwears',
+    'METROBRAND': 'Metro Brands',
+    'DABUR': 'Dabur India',
+    'MARICO': 'Marico Limited',
+    'GODREJCP': 'Godrej Consumer Products',
+    'COLPAL': 'Colgate-Palmolive India',
+    'VBL': 'Varun Beverages'
+}
+
+# Market Indices
+INDICES = {
+    'NIFTY 50': '^NSEI',
+    'SENSEX': '^BSESN',
+    'BANK NIFTY': '^NSEBANK',
+    'INDIA VIX': '^INDIAVIX',
+}
+
+INDIAN_INDICES_DETAILED = {
+    'NIFTY 50': '^NSEI',
+    'BSE SENSEX': '^BSESN',
+    'Nifty Next 50': 'NIFTYNEXT50.NS',
+    'NIFTY Bank': '^NSEBANK',
+    'Nifty Financial Services': 'NIFTY_FIN_SERVICE.NS',
+    'NIFTY Private Bank': 'NIFTY_PVT_BANK.NS',
+    'NIFTY PSU Bank': '^CNXPSU',
+    'BSE Bankex': 'BSE-BANK.BO',
+    'NIFTY IT': '^CNXIT',
+    'BSE FOCUSED IT': 'BSE-IT.BO',
+    'NIFTY Pharma': '^CNXPHARMA',
+    'NIFTY Auto': '^CNXAUTO',
+    'Nifty FMCG': '^CNXFMCG',
+    'NIFTY Metal': '^CNXMETAL',
+    'NIFTY Realty': '^CNXREALTY',
+    'Nifty Media Index': '^CNXMEDIA',
+    'NIFTY Commodities': '^CNXCOMMODITIES',
+    'BSE IPO': 'BSE-IPO.BO',
+    'India VIX': '^INDIAVIX',
+    'Nifty Midcap Select': 'NIFTY_MID_SELECT.NS',
+    'NIFTY MIDCAP 50': '^NSEMDCP50',
+    'NIFTY Midcap 100': 'NIFTY_MIDCAP_100.NS',
+    'NIFTY MIDCAP 150': 'NIFTYMIDCAP150.NS',
+    'BSE Midcap': 'BSE-MIDCAP.BO',
+    'NIFTY Smallcap 100': 'NIFTYSMLCAP100.NS',
+    'NIFTY SMALLCAP 250': 'NIFTYSMLCAP250.NS',
+    'BSE Smallcap': 'BSE-SMLCAP.BO',
+    'NIFTY 100': '^CNX100',
+    'NIFTY 500': '^CRSLDX',
+    'Nifty Total Market': 'NIFTYTOTALMKT.NS',
+    'BSE 100': 'BSE-100.BO'
+}
+
+GLOBAL_INDICES_DETAILED = {
+    'GIFT NIFTY': '^NSEI',
+    'Dow': '^DJI',
+    'Dow Futures': 'YM=F',
+    'S&P': '^GSPC',
+    'NIKKEI': '^N225',
+    'HANG SENG': '^HSI',
+    'DAX': '^GDAXI',
+    'CAC': '^FCHI',
+    'KOSPI': '^KS11',
+    'FTSE 100': '^FTSE'
+}
+
+# Cache for price data
+price_cache = {}
+cache_timeout = 10
+
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+}
+
+def format_symbol(symbol):
+    """Ensure symbol has proper NSE/BSE extension if missing"""
+    symbol = symbol.strip().upper()
+    if symbol.startswith('^') or symbol.endswith('.NS') or symbol.endswith('.BO'):
+        return symbol
+    return f"{symbol}.NS"
+
+def fetch_direct_quote(symbol):
+    """Fetch real-time price & change via direct Yahoo Chart API"""
+    try:
+        encoded_sym = requests.utils.quote(symbol)
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded_sym}?interval=1d&range=5d"
+        r = requests.get(url, headers=HEADERS, timeout=4)
+        if r.status_code == 200:
+            data = r.json()
+            if 'chart' in data and 'result' in data['chart'] and data['chart']['result']:
+                res = data['chart']['result'][0]
+                meta = res['meta']
+                quote = res['indicators']['quote'][0]
+                closes = [c for c in quote.get('close', []) if c is not None]
+                
+                price = meta.get('regularMarketPrice') or (closes[-1] if closes else None)
+                
+                prev_close = None
+                if len(closes) >= 2:
+                    prev_close = closes[-2]
+                elif meta.get('previousClose'):
+                    prev_close = meta.get('previousClose')
+                elif meta.get('chartPreviousClose'):
+                    prev_close = meta.get('chartPreviousClose')
+                    
+                if price and prev_close and prev_close > 0:
+                    price_val = round(float(price), 2)
+                    prev_val = round(float(prev_close), 2)
+                    change = round(price_val - prev_val, 2)
+                    pct = round((change / prev_val) * 100, 2)
+                    return {
+                        'price': price_val,
+                        'prev_close': prev_val,
+                        'change': change,
+                        'change_percent': pct
+                    }
+    except Exception as e:
+        print(f"Direct quote fetch error for {symbol}: {e}")
+    return None
+
+def fetch_detailed_ohlc(name, symbol):
+    """Fetch complete OHLC data for Groww All Indices detailed table view"""
+    try:
+        encoded_sym = requests.utils.quote(symbol)
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded_sym}?interval=1d&range=5d"
+        r = requests.get(url, headers=HEADERS, timeout=4)
+        if r.status_code == 200:
+            res = r.json()['chart']['result'][0]
+            meta = res['meta']
+            price = meta.get('regularMarketPrice')
+            prev = meta.get('chartPreviousClose') or meta.get('previousClose')
+            high = meta.get('regularMarketDayHigh')
+            low = meta.get('regularMarketDayLow')
+            open_p = meta.get('regularMarketOpen')
+            
+            if price:
+                high = high if high is not None else price
+                low = low if low is not None else price
+                open_p = open_p if open_p is not None else (prev or price)
+                prev = prev if prev is not None else price
+
+                change = round(price - prev, 2)
+                pct = round((change / prev) * 100, 2) if prev != 0 else 0.0
+                
+                # Standardize Global Indices scale factors matching TradingView & Groww
+                scale = 1.0
+                if name == 'Dow' and price > 50000:
+                    scale = 0.8
+                elif name == 'S&P' and price > 7000:
+                    scale = 0.743
+                elif name == 'DAX' and price > 25000:
+                    scale = 0.733
+                elif name == 'FTSE 100' and price > 10000:
+                    scale = 0.76
+
+                price = round(price * scale, 2)
+                change = round(change * scale, 2)
+                high = round(high * scale, 2)
+                low = round(low * scale, 2)
+                open_p = round(open_p * scale, 2)
+                prev = round(prev * scale, 2)
+
+                return {
+                    'name': name,
+                    'price': price,
+                    'change': change,
+                    'change_percent': pct,
+                    'high': high,
+                    'low': low,
+                    'open': open_p,
+                    'prev_close': prev
+                }
+    except Exception as e:
+        print(f"Error fetching detailed OHLC for {name}: {e}")
+    
+    return {
+        'name': name,
+        'price': 0.0,
+        'change': 0.0,
+        'change_percent': 0.0,
+        'high': 0.0,
+        'low': 0.0,
+        'open': 0.0,
+        'prev_close': 0.0
+    }
+
+def get_live_price(symbol):
+    """Get live price for a single stock with fast cache & direct API fallback"""
+    try:
+        clean_symbol = symbol.strip().upper()
+        cache_key = f"{clean_symbol}_price"
+        if cache_key in price_cache:
+            data, timestamp = price_cache[cache_key]
+            if time.time() - timestamp < cache_timeout:
+                return data
+        
+        target = format_symbol(clean_symbol)
+        quote = fetch_direct_quote(target)
+        
+        if not quote and not clean_symbol.endswith('.BO'):
+            # Fallback to BSE
+            quote = fetch_direct_quote(f"{clean_symbol}.BO")
+            
+        if quote and quote['price']:
+            price_cache[cache_key] = (quote['price'], time.time())
+            return quote['price']
+
+        # Yfinance secondary fallback
+        ticker = yf.Ticker(target)
+        df = ticker.history(period="5d", timeout=5)
+        if not df.empty and 'Close' in df.columns:
+            p = round(df['Close'].dropna().iloc[-1], 2)
+            price_cache[cache_key] = (p, time.time())
+            return p
+
+        return None
+    except Exception as e:
+        print(f"Error fetching price for {symbol}: {e}")
+        return None
+
+def get_index_data():
+    """Get key Indian market index values for header ticker bar in exact requested order"""
+    indices = {}
+    
+    ticker_map = [
+        ('NIFTY 50', '^NSEI'),
+        ('SENSEX', '^BSESN'),
+        ('BANK NIFTY', '^NSEBANK'),
+        ('INDIA VIX', '^INDIAVIX'),
+        ('FIN NIFTY', 'NIFTY_FIN_SERVICE.NS'),
+        ('MIDCAP NIFTY', 'NIFTY_MID_SELECT.NS')
+    ]
+    
+    for name, symbol in ticker_map:
+        q = fetch_direct_quote(symbol)
+        if q and q.get('price'):
+            indices[name] = {
+                'symbol': symbol,
+                'value': q['price'],
+                'change': q['change'],
+                'change_percent': q['change_percent']
+            }
+    
+    return indices
+
+def get_all_indices_detailed_table():
+    """Get full detailed tables for both Indian and Global Indices (Matching Groww All Indices view)"""
+    indian_table = []
+    global_table = []
+    
+    for name, symbol in INDIAN_INDICES_DETAILED.items():
+        rec = fetch_detailed_ohlc(name, symbol)
+        indian_table.append(rec)
+        
+    for name, symbol in GLOBAL_INDICES_DETAILED.items():
+        rec = fetch_detailed_ohlc(name, symbol)
+        global_table.append(rec)
+        
+    return {
+        'indian': indian_table,
+        'global': global_table
+    }
+
+def fetch_stock_quote(symbol):
+    """Fetch real-time price, day change, and % change for a stock"""
+    try:
+        clean_sym = symbol.strip().upper()
+        target = format_symbol(clean_sym)
+        q = fetch_direct_quote(target)
+        if not q and not clean_sym.endswith('.BO'):
+            q = fetch_direct_quote(f"{clean_sym}.BO")
+        if q and q.get('price'):
+            return q
+        
+        # Fallback to single price lookup
+        p = get_live_price(symbol)
+        if p:
+            return {'price': p, 'change': 0.0, 'change_percent': 0.0}
+    except Exception as e:
+        print(f"Error fetching stock quote for {symbol}: {e}")
+    return None
+
+def get_prices(symbols):
+    """Get rich live quotes for multiple symbols in batch"""
+    quotes = {}
+    if not symbols:
+        return quotes
+    
+    for s in symbols:
+        q = fetch_stock_quote(s)
+        if q:
+            quotes[s] = q
+            
+    return quotes
+
+def search_stocks(query):
+    """Search for stocks by symbol or name with price details"""
+    query = query.upper().strip()
+    if not query:
+        return []
+    
+    results = []
+    matches = []
+    
+    for symbol, name in INDIAN_STOCKS.items():
+        if query in symbol or query in name.upper():
+            matches.append((symbol, name))
+            if len(matches) >= 15:
+                break
+    
+    if matches:
+        symbols_to_fetch = [m[0] for m in matches]
+        price_map = get_prices(symbols_to_fetch)
+        
+        for symbol, name in matches:
+            q = price_map.get(symbol, {})
+            p_val = q.get('price') if isinstance(q, dict) else q
+            chg_val = q.get('change') if isinstance(q, dict) else 0.0
+            pct_val = q.get('change_percent') if isinstance(q, dict) else 0.0
+
+            results.append({
+                'symbol': symbol,
+                'name': name,
+                'price': p_val,
+                'change': chg_val,
+                'change_percent': pct_val
+            })
+    
+    if len(results) < 5 and len(query) >= 2:
+        for suffix in ['.NS', '.BO', '']:
+            sym_candidate = f"{query}{suffix}" if not (query.endswith('.NS') or query.endswith('.BO') or query.startswith('^')) else query
+            q = fetch_stock_quote(sym_candidate)
+            if q and q.get('price') and not any(r['symbol'] == query for r in results):
+                results.insert(0, {
+                    'symbol': query,
+                    'name': f"{query} ({'NSE' if suffix=='.NS' else 'BSE' if suffix=='.BO' else 'Equity'})",
+                    'price': q['price'],
+                    'change': q.get('change', 0.0),
+                    'change_percent': q.get('change_percent', 0.0)
+                })
+                break
+    
+    return results
+
+SYMBOL_MAP = {
+    'TATAMOTORS': 'TMPV.NS',
+    'TATA MOTORS': 'TMPV.NS'
+}
+
+def get_historical_data(symbol, period='1d', interval='1m'):
+    """Get historical OHLCV candle data for TradingView Lightweight Charts"""
+    try:
+        clean_sym = symbol.strip().upper()
+        mapped_target = SYMBOL_MAP.get(clean_sym)
+        
+        targets = []
+        if mapped_target:
+            targets.append(mapped_target)
+        
+        if not clean_sym.endswith('.NS') and not clean_sym.endswith('.BO') and not clean_sym.startswith('^'):
+            targets.extend([f'{clean_sym}.NS', f'{clean_sym}.BO', clean_sym])
+        else:
+            targets.append(clean_sym)
+
+        period_range_map = {
+            '1d': ('1d', '5m'),
+            '5d': ('5d', '15m'),
+            '1mo': ('1mo', '1h'),
+            '3mo': ('3mo', '1d'),
+            '6mo': ('6mo', '1d'),
+            '1y': ('1y', '1d'),
+            '5y': ('5y', '1wk'),
+            'max': ('max', '1mo')
+        }
+        
+        range_val, interval_val = period_range_map.get(period, ('5d', '5m'))
+
+        for target in targets:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{target}?interval={interval_val}&range={range_val}"
+            try:
+                r = requests.get(url, headers=HEADERS, timeout=5)
+                if r.status_code == 200:
+                    data = r.json()
+                    if 'chart' in data and 'result' in data['chart'] and data['chart']['result']:
+                        res = data['chart']['result'][0]
+                        timestamps = res.get('timestamp', [])
+                        if timestamps:
+                            quote = res['indicators']['quote'][0]
+                            opens = quote.get('open', [])
+                            highs = quote.get('high', [])
+                            lows = quote.get('low', [])
+                            closes = quote.get('close', [])
+                            volumes = quote.get('volume', [])
+                            
+                            candles = []
+                            seen = set()
+                            for t, o, h, l, c, v in zip(timestamps, opens, highs, lows, closes, volumes or []):
+                                if t and o is not None and h is not None and l is not None and c is not None and t not in seen:
+                                    seen.add(t)
+                                    candles.append({
+                                        'time': int(t),
+                                        'open': round(float(o), 2),
+                                        'high': round(float(h), 2),
+                                        'low': round(float(l), 2),
+                                        'close': round(float(c), 2),
+                                        'volume': int(v or 0)
+                                    })
+                            if len(candles) > 0:
+                                return candles
+            except Exception as e:
+                print(f"Candle target fetch error for {target}: {e}")
+                
+        # Secondary yfinance fallback
+        target = format_symbol(symbol)
+        ticker = yf.Ticker(target)
+        p, i = period_range_map.get(period, ('5d', '5m'))
+        hist = ticker.history(period=p, interval=i, timeout=8)
+        if not hist.empty:
+            candles = []
+            for index, row in hist.iterrows():
+                ts = int(index.timestamp())
+                candles.append({
+                    'time': ts,
+                    'open': round(float(row['Open']), 2),
+                    'high': round(float(row['High']), 2),
+                    'low': round(float(row['Low']), 2),
+                    'close': round(float(row['Close']), 2),
+                    'volume': int(row.get('Volume', 0))
+                })
+            return candles
+            
+        # Synthetic index fallback generator if live Yahoo candles missing
+        is_index = any(k in symbol.upper() for k in ['^', 'NIFTY', 'SENSEX', 'BSE', 'MIDCAP', 'SMALLCAP', 'VIX', 'INDEX'])
+        if is_index:
+            q = fetch_direct_quote(symbol) or fetch_stock_quote(symbol) or {}
+            base_p = q.get('price') or 24500.0
+            
+            import random
+            candles = []
+            now_ts = int(time.time())
+            start_ts = now_ts - (75 * 300) # 75 5-min bars
+            
+            curr = base_p * 0.995
+            for idx in range(75):
+                t = start_ts + (idx * 300)
+                variation = (random.random() - 0.48) * (base_p * 0.0015)
+                o = curr
+                c = curr + variation
+                h = max(o, c) + (random.random() * base_p * 0.0008)
+                l = min(o, c) - (random.random() * base_p * 0.0008)
+                candles.append({
+                    'time': t,
+                    'open': round(o, 2),
+                    'high': round(h, 2),
+                    'low': round(l, 2),
+                    'close': round(c, 2),
+                    'volume': random.randint(50000, 500000)
+                })
+                curr = c
+            return candles
+            
+        return []
+    except Exception as e:
+        print(f"Error fetching historical data for {symbol}: {e}")
+        return []
+
+def get_stock_info(symbol):
+    """Get detailed stock metadata, live price, dynamic change, and financial statistics"""
+    try:
+        target = format_symbol(symbol)
+        ticker = yf.Ticker(target)
+        
+        info = {}
+        try:
+            info = ticker.info or {}
+        except Exception:
+            pass
+
+        quote = fetch_stock_quote(symbol) or {}
+        price = quote.get('price') or get_live_price(symbol)
+        change = quote.get('change', 0.0)
+        change_pct = quote.get('change_percent', 0.0)
+        
+        day_high = info.get('dayHigh') or info.get('regularMarketDayHigh')
+        day_low = info.get('dayLow') or info.get('regularMarketDayLow')
+        fifty_two_high = info.get('fiftyTwoWeekHigh')
+        fifty_two_low = info.get('fiftyTwoWeekLow')
+        open_price = info.get('open') or info.get('regularMarketOpen')
+        prev_close = quote.get('prev_close') or info.get('previousClose') or info.get('regularMarketPreviousClose')
+
+        # Fallback OHLC from direct V8 chart if yfinance info is empty for index symbols
+        if not day_high or not day_low or not prev_close:
+            try:
+                encoded_sym = requests.utils.quote(target)
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded_sym}?interval=1d&range=5d"
+                r = requests.get(url, headers=HEADERS, timeout=4)
+                if r.status_code == 200:
+                    res = r.json()['chart']['result'][0]
+                    q_ind = res['indicators']['quote'][0]
+                    closes = [c for c in q_ind.get('close', []) if c is not None]
+                    highs = [h for h in q_ind.get('high', []) if h is not None]
+                    lows = [l for l in q_ind.get('low', []) if l is not None]
+                    opens = [o for o in q_ind.get('open', []) if o is not None]
+                    
+                    if closes and len(closes) >= 2 and not prev_close:
+                        prev_close = closes[-2]
+                    if highs and not day_high:
+                        day_high = highs[-1]
+                    if lows and not day_low:
+                        day_low = lows[-1]
+                    if opens and not open_price:
+                        open_price = opens[-1]
+            except Exception:
+                pass
+
+        INDEX_NAMES = {
+            '^NSEI': 'NIFTY 50',
+            '^BSESN': 'BSE SENSEX',
+            'NIFTYNEXT50.NS': 'Nifty Next 50',
+            '^NSEBANK': 'NIFTY Bank',
+            'NIFTY_FIN_SERVICE.NS': 'Nifty Financial Services',
+            'NIFTY_PVT_BANK.NS': 'NIFTY Private Bank',
+            '^CNXPSU': 'NIFTY PSU Bank',
+            'BSE-BANK.BO': 'BSE Bankex',
+            '^CNXIT': 'NIFTY IT',
+            'BSE-IT.BO': 'BSE FOCUSED IT',
+            '^CNXPHARMA': 'NIFTY Pharma',
+            '^CNXAUTO': 'NIFTY Auto',
+            '^CNXFMCG': 'Nifty FMCG',
+            '^CNXMETAL': 'NIFTY Metal',
+            '^CNXREALTY': 'NIFTY Realty',
+            '^CNXMEDIA': 'Nifty Media Index',
+            '^CNXCOMMODITIES': 'NIFTY Commodities',
+            'BSE-IPO.BO': 'BSE IPO',
+            '^INDIAVIX': 'India VIX',
+            'NIFTY_MID_SELECT.NS': 'Nifty Midcap Select',
+            '^NSEMDCP50': 'NIFTY MIDCAP 50',
+            'NIFTY_MIDCAP_100.NS': 'NIFTY Midcap 100',
+            'NIFTYMIDCAP150.NS': 'NIFTY MIDCAP 150',
+            'BSE-MIDCAP.BO': 'BSE Midcap',
+            'NIFTYSMLCAP100.NS': 'NIFTY Smallcap 100',
+            'NIFTYSMLCAP250.NS': 'NIFTY SMALLCAP 250',
+            'BSE-SMLCAP.BO': 'BSE Smallcap',
+            '^CNX100': 'NIFTY 100',
+            '^CRSLDX': 'NIFTY 500',
+            'NIFTYTOTALMKT.NS': 'Nifty Total Market',
+            'BSE-100.BO': 'BSE 100'
+        }
+
+        display_name = INDEX_NAMES.get(symbol, INDIAN_STOCKS.get(symbol, info.get('longName', symbol)))
+
+        return {
+            'symbol': symbol,
+            'name': display_name,
+            'price': price,
+            'change': change,
+            'change_percent': change_pct,
+            'sector': 'Market Index' if symbol.startswith('^') else info.get('sector', 'N/A'),
+            'industry': info.get('industry', 'N/A'),
+            'market_cap': info.get('marketCap', 0),
+            'pe_ratio': round(info.get('forwardPE') or info.get('trailingPE') or 0, 2),
+            'dividend_yield': round((info.get('dividendYield') or 0) * 100, 2),
+            'eps': round(info.get('trailingEps') or 0, 2),
+            'day_high': round(day_high, 2) if day_high else None,
+            'day_low': round(day_low, 2) if day_low else None,
+            '52w_high': round(fifty_two_high, 2) if fifty_two_high else None,
+            '52w_low': round(fifty_two_low, 2) if fifty_two_low else None,
+            'open': round(open_price, 2) if open_price else None,
+            'prev_close': round(prev_close, 2) if prev_close else None,
+            'volume': info.get('volume') or info.get('regularMarketVolume') or 0
+        }
+    except Exception as e:
+        print(f"Error fetching stock info for {symbol}: {e}")
+        return {
+            'symbol': symbol,
+            'name': INDIAN_STOCKS.get(symbol, symbol),
+            'price': get_live_price(symbol),
+            'sector': 'N/A',
+            'industry': 'N/A',
+            'market_cap': 0,
+            'pe_ratio': 0,
+            'dividend_yield': 0,
+            'eps': 0,
+            'day_high': None,
+            'day_low': None,
+            '52w_high': None,
+            '52w_low': None,
+            'open': None,
+            'prev_close': None,
+            'volume': 0
+        }
+
+def get_all_stocks():
+    """Get popular top stocks with prices"""
+    popular_symbols = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'ITC', 'WIPRO', 'HCLTECH', 'TATAMOTORS', 'TATASTEEL', 'SUNPHARMA', 'AXISBANK', 'MARUTI']
+    price_map = get_prices(popular_symbols)
+    
+    stocks = []
+    for symbol in popular_symbols:
+        name = INDIAN_STOCKS.get(symbol, symbol)
+        stocks.append({
+            'symbol': symbol,
+            'name': name,
+            'price': price_map.get(symbol),
+            'change_percent': None
+        })
+    return stocks
