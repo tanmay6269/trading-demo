@@ -16,6 +16,7 @@ import StockDetails from './components/trading/StockDetails';
 import TradePanel from './components/trading/TradePanel';
 import HoldingsTable from './components/portfolio/HoldingsTable';
 import AuthScreen from './components/ui/AuthScreen';
+import ProfileModal from './components/ui/ProfileModal';
 
 function App() {
   // Auth & Security state
@@ -24,6 +25,8 @@ function App() {
   const [username, setUsername] = useState('DemoTrader');
   const [toastMsg, setToastMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
 
   // Trading state
   const [symbol, setSymbol] = useState('RELIANCE');
@@ -42,6 +45,7 @@ function App() {
     setIsLocked(false);
     if (userData.username) setUsername(userData.username);
     if (userData.balance !== undefined) setBalance(userData.balance);
+    checkSession();
   };
 
   const handleLogout = async () => {
@@ -53,6 +57,7 @@ function App() {
     } catch (e) {}
     setIsLoggedIn(false);
     setIsLocked(false);
+    setIsProfileOpen(false);
     showToast('Logged out');
   };
 
@@ -63,6 +68,7 @@ function App() {
         setIsLoggedIn(true);
         setUsername(data.username);
         setBalance(data.balance || 100000);
+        setUserInfo(data);
         if (data.has_mpin) {
           setIsLocked(true); // Requires 4-digit PIN unlock on return
         }
@@ -258,11 +264,23 @@ function App() {
         onLockApp={() => setIsLocked(true)}
         setActiveTab={setActiveTab}
         activeTab={activeTab}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        profilePic={userInfo?.profile_pic}
       />
 
       <main className="main-content">
         {renderContent()}
       </main>
+
+      {/* User Profile & KYC Modal */}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        userInfo={userInfo}
+        onLogout={handleLogout}
+        onLockApp={() => setIsLocked(true)}
+        onProfileUpdated={checkSession}
+      />
 
       {/* Floating Toast Notification */}
       {toastMsg && (

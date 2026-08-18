@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTab, activeTab }) => {
+const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTab, activeTab, onOpenProfile = () => {}, profilePic }) => {
     const [topCategory, setTopCategory] = useState('stocks'); // 'stocks' | 'fno' | 'mf'
     const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') || 'dark');
 
@@ -193,20 +193,31 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                     </button>
 
                     {/* User Avatar */}
-                    <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #818cf8 0%, #38bdf8 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ffffff',
-                        fontWeight: '800',
-                        fontSize: '14px',
-                        cursor: 'pointer'
-                    }} title={`Logged in as ${username} · Click to Logout`} onClick={onLogout}>
-                        {username ? username.charAt(0).toUpperCase() : 'U'}
+                    <div 
+                        style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '50%',
+                            background: profilePic ? 'none' : 'linear-gradient(135deg, #818cf8 0%, #00d09c 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            fontWeight: '800',
+                            fontSize: '15px',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(0, 208, 156, 0.3)',
+                            overflow: 'hidden',
+                            border: '2px solid #00d09c'
+                        }} 
+                        title={`Logged in as ${username} · Click to View & Edit Profile`} 
+                        onClick={onOpenProfile}
+                    >
+                        {profilePic ? (
+                            <img src={profilePic} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            username ? username.charAt(0).toUpperCase() : 'U'
+                        )}
                     </div>
                 </div>
             </div>

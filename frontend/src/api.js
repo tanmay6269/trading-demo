@@ -19,6 +19,26 @@ export const api = {
         return handleResponse(res);
     },
 
+    updateProfile: async (profileData) => {
+        const res = await fetch(`${API_BASE_URL}/user/profile/update`, {
+            method: 'POST',
+            headers: defaultHeaders,
+            credentials: 'include',
+            body: JSON.stringify(profileData)
+        });
+        return handleResponse(res);
+    },
+
+    updateProfilePhoto: async (profilePic) => {
+        const res = await fetch(`${API_BASE_URL}/user/profile/photo`, {
+            method: 'POST',
+            headers: defaultHeaders,
+            credentials: 'include',
+            body: JSON.stringify({ profile_pic: profilePic })
+        });
+        return handleResponse(res);
+    },
+
     loginGuest: async () => {
         const res = await fetch(`${API_BASE_URL}/guest-login`, {
             method: 'POST',

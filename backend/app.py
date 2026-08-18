@@ -56,6 +56,16 @@ class User(UserMixin, db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     demo_balance = db.Column(db.Float, default=100000.0)
     watchlist = db.Column(db.Text, default='[]')
+    
+    # Profile & KYC Details
+    profile_pic = db.Column(db.Text, nullable=True)
+    dob = db.Column(db.String(20), default='15-08-1998')
+    pan_number = db.Column(db.String(20), default='ABCDE1234F')
+    gender = db.Column(db.String(20), default='Male')
+    marital_status = db.Column(db.String(20), default='Single')
+    occupation = db.Column(db.String(50), default='Professional')
+    income_range = db.Column(db.String(50), default='5-10 Lakhs')
+    father_name = db.Column(db.String(80), default='Rajesh Sharma')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
@@ -123,7 +133,15 @@ def backup_users_to_file():
                 'mpin_hash': u.mpin_hash,
                 'is_verified': u.is_verified,
                 'demo_balance': u.demo_balance,
-                'watchlist': u.watchlist
+                'watchlist': u.watchlist,
+                'profile_pic': u.profile_pic,
+                'dob': u.dob,
+                'pan_number': u.pan_number,
+                'gender': u.gender,
+                'marital_status': u.marital_status,
+                'occupation': u.occupation,
+                'income_range': u.income_range,
+                'father_name': u.father_name
             })
         with open(USERS_BACKUP_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
@@ -147,7 +165,15 @@ def restore_users_from_file():
                         mpin_hash=item.get('mpin_hash'),
                         is_verified=item.get('is_verified', True),
                         demo_balance=item.get('demo_balance', 100000.0),
-                        watchlist=item.get('watchlist', '[]')
+                        watchlist=item.get('watchlist', '[]'),
+                        profile_pic=item.get('profile_pic'),
+                        dob=item.get('dob', '15-08-1998'),
+                        pan_number=item.get('pan_number', 'ABCDE1234F'),
+                        gender=item.get('gender', 'Male'),
+                        marital_status=item.get('marital_status', 'Single'),
+                        occupation=item.get('occupation', 'Professional'),
+                        income_range=item.get('income_range', '5-10 Lakhs'),
+                        father_name=item.get('father_name', 'Rajesh Sharma')
                     )
                     db.session.add(u)
                 else:
@@ -155,6 +181,14 @@ def restore_users_from_file():
                     existing.mpin_hash = item.get('mpin_hash')
                     existing.is_verified = item.get('is_verified', True)
                     existing.demo_balance = item.get('demo_balance', 100000.0)
+                    existing.profile_pic = item.get('profile_pic', existing.profile_pic)
+                    existing.dob = item.get('dob', existing.dob)
+                    existing.pan_number = item.get('pan_number', existing.pan_number)
+                    existing.gender = item.get('gender', existing.gender)
+                    existing.marital_status = item.get('marital_status', existing.marital_status)
+                    existing.occupation = item.get('occupation', existing.occupation)
+                    existing.income_range = item.get('income_range', existing.income_range)
+                    existing.father_name = item.get('father_name', existing.father_name)
             db.session.commit()
             
         # Ensure default DemoTrader account exists
@@ -190,10 +224,93 @@ def get_current_user_info():
             'logged_in': True,
             'username': current_user.username,
             'email': current_user.email,
+            'phone': current_user.phone or '',
             'balance': current_user.demo_balance,
-            'has_mpin': bool(current_user.mpin_hash)
+            'has_mpin': bool(current_user.mpin_hash),
+            'profile_pic': current_user.profile_pic,
+            'dob': current_user.dob or '15-08-1998',
+            'pan_number': current_user.pan_number or 'ABCDE1234F',
+            'gender': current_user.gender or 'Male',
+            'marital_status': current_user.marital_status or 'Single',
+            'occupation': current_user.occupation or 'Professional',
+            'income_range': current_user.income_range or '5-10 Lakhs',
+            'father_name': current_user.father_name or 'Rajesh Sharma'
         })
     return jsonify({'logged_in': False})
+
+@app.route('/api/user/profile/update', methods=['POST'])
+@login_required
+def update_user_profile():
+    try:
+        data = request.get_json() or {}
+        user = User.query.get(current_user.id)
+        
+        if 'username' in data and data['username'].strip():
+            user.username = data['username'].strip()
+        if 'phone' in data:
+            user.phone = data['phone'].strip()
+        if 'dob' in data:
+            user.dob = data['dob'].strip()
+        if 'pan_number' in data:
+            user.pan_number = data['pan_number'].strip().upper()
+        if 'gender' in data:
+            user.gender = data['gender'].strip()
+        if 'marital_status' in data:
+            user.marital_status = data['marital_status'].strip()
+        if 'occupation' in data:
+            user.occupation = data['occupation'].strip()
+        if 'income_range' in data:
+            user.income_range = data['income_range'].strip()
+        if 'father_name' in data:
+            user.father_name = data['father_name'].strip()
+            
+        db.session.commit()
+        backup_users_to_file()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Profile details updated successfully!',
+            'user': {
+                'username': user.username,
+                'email': user.email,
+                'phone': user.phone,
+                'dob': user.dob,
+                'pan_number': user.pan_number,
+                'gender': user.gender,
+                'marital_status': user.marital_status,
+                'occupation': user.occupation,
+                'income_range': user.income_range,
+                'father_name': user.father_name,
+                'profile_pic': user.profile_pic
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/user/profile/photo', methods=['POST'])
+@login_required
+def update_profile_photo():
+    try:
+        data = request.get_json() or {}
+        photo_data = data.get('profile_pic')
+        
+        if not photo_data:
+            return jsonify({'error': 'Photo data required'}), 400
+            
+        user = User.query.get(current_user.id)
+        user.profile_pic = photo_data
+        db.session.commit()
+        backup_users_to_file()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Profile photo updated successfully!',
+            'profile_pic': user.profile_pic
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/register-step1', methods=['POST'])
 def register_step1():
