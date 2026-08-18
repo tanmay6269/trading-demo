@@ -230,7 +230,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                     fontSize: '10px',
                                     fontWeight: '800'
                                 }}>
-                                    ⚡ PRO TRADER
+                                    🐂 BULL TRADER
                                 </div>
                             </div>
 

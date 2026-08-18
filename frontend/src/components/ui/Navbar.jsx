@@ -46,19 +46,19 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                         onClick={() => setActiveTab('explore')}
                     >
                         <div style={{
-                            width: '38px',
-                            height: '38px',
+                            width: '40px',
+                            height: '40px',
                             borderRadius: '12px',
-                            background: 'linear-gradient(135deg, #00d09c 0%, #38bdf8 100%)',
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #00d09c 100%)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: '#ffffff',
                             fontWeight: '900',
-                            fontSize: '20px',
-                            boxShadow: '0 4px 14px rgba(0, 208, 156, 0.4)'
+                            fontSize: '22px',
+                            boxShadow: '0 4px 16px rgba(245, 158, 11, 0.4)'
                         }}>
-                            ⚡
+                            🐂
                         </div>
                         <h2 style={{ 
                             margin: 0, 
@@ -67,7 +67,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                             letterSpacing: '-0.5px',
                             color: 'var(--text-primary)'
                         }}>
-                            Zenith<span style={{ color: '#00d09c' }}>X</span>
+                            Bull<span style={{ color: '#00d09c' }}>X</span>
                         </h2>
                     </div>
 

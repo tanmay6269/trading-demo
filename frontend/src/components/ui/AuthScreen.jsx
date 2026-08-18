@@ -326,29 +326,29 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                 borderRadius: '20px',
                 textAlign: 'center'
             }}>
-                {/* ZenithX Logo & Header */}
+                {/* BullX Logo & Header */}
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                     <div style={{
-                        width: '42px',
-                        height: '42px',
+                        width: '46px',
+                        height: '46px',
                         borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #00d09c 0%, #38bdf8 100%)',
+                        background: 'linear-gradient(135deg, #f59e0b 0%, #00d09c 100%)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '24px',
+                        fontSize: '26px',
                         color: '#ffffff',
-                        boxShadow: '0 4px 16px rgba(0, 208, 156, 0.4)'
+                        boxShadow: '0 4px 18px rgba(245, 158, 11, 0.45)'
                     }}>
-                        ⚡
+                        🐂
                     </div>
-                    <span style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-                        Zenith<span style={{ color: '#00d09c' }}>X</span>
+                    <span style={{ fontSize: '30px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
+                        Bull<span style={{ color: '#00d09c' }}>X</span>
                     </span>
                 </div>
 
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', fontWeight: '600' }}>
-                    Next-Gen Stock & F&O Trading Terminal
+                    BSE & NSE Stock Trading Platform
                 </div>
 
                 {/* Groww Tab Mode Switcher: Sign In vs Create Account */}
