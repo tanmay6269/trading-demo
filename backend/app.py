@@ -78,7 +78,36 @@ class User(UserMixin, db.Model):
     occupation = db.Column(db.String(50), default='Professional')
     income_range = db.Column(db.String(50), default='5-10 Lakhs')
     father_name = db.Column(db.String(80), default='Rajesh Sharma')
+    
+    # Max 2-Device Session Enforcement
+    active_devices = db.Column(db.Text, default='[]')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def get_active_devices(self):
+        try:
+            return json.loads(self.active_devices) if self.active_devices else []
+        except Exception:
+            return []
+
+    def register_device_session(self, device_id):
+        if not device_id:
+            return True, "OK"
+        devices = self.get_active_devices()
+        if device_id in devices:
+            return True, "Device active"
+        if len(devices) >= 2:
+            return False, "🔒 Security Limit: Your account is logged in on maximum 2 devices (e.g. Phone + Laptop). Please log out from another device first."
+        devices.append(device_id)
+        self.active_devices = json.dumps(devices)
+        return True, "Device registered"
+
+    def unregister_device_session(self, device_id):
+        if not device_id:
+            return
+        devices = self.get_active_devices()
+        if device_id in devices:
+            devices.remove(device_id)
+            self.active_devices = json.dumps(devices)
 
     def set_password(self, password):
         salt = bcrypt.gensalt()
@@ -513,6 +542,13 @@ def login_password():
         if not user.check_password(password):
             return jsonify({'error': 'Incorrect password. Please check your password and try again.'}), 401
 
+        # Max 2 Devices Login Enforcement
+        device_id = data.get('device_id') or request.headers.get('X-Device-Id') or request.remote_addr
+        ok, device_msg = user.register_device_session(device_id)
+        if not ok:
+            return jsonify({'error': device_msg}), 403
+        db.session.commit()
+
         has_pin = bool(user.mpin_hash)
 
         return jsonify({
@@ -549,6 +585,13 @@ def verify_mpin():
             user = User.query.filter_by(username='DemoTrader').first() or User.query.first()
 
         if user and user.check_mpin(mpin):
+            # Max 2 Devices Login Enforcement
+            device_id = data.get('device_id') or request.headers.get('X-Device-Id') or request.remote_addr
+            ok, device_msg = user.register_device_session(device_id)
+            if not ok:
+                return jsonify({'error': device_msg}), 403
+            db.session.commit()
+
             login_user(user, remember=True)
             return jsonify({
                 'success': True,
@@ -584,6 +627,11 @@ def guest_login():
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
+    if current_user.is_authenticated:
+        data = request.get_json() or {}
+        device_id = data.get('device_id') or request.headers.get('X-Device-Id') or request.remote_addr
+        current_user.unregister_device_session(device_id)
+        db.session.commit()
     logout_user()
     return jsonify({'message': 'Logged out successfully'})
 
