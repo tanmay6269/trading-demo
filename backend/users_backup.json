@@ -1,0 +1,42 @@
+[
+  {
+    "username": "Pragya",
+    "email": "pragya@test.com",
+    "phone": "",
+    "password_hash": "$2b$12$2KSAqYiZjR//SNd8ny4NleCluYp6pwkO.0Xt6ASA.XV2pT6hYLcCi",
+    "mpin_hash": "$2b$12$6lXmrVaqMeKb1JrH5FSMZOcrDG3IQ4Gek9cFuTtnS/vio4UtzxYeu",
+    "is_verified": true,
+    "demo_balance": 100000.0,
+    "watchlist": "[]"
+  },
+  {
+    "username": "Tanmay Agrawal",
+    "email": "tanmayagrawal1712@gmail.com",
+    "phone": "Tanmay6269",
+    "password_hash": "$2b$12$bPQPHBpAATYRdHGaSloRF.duoSzBNtq7FPGgmGcBTH.9f6uaqkNRe",
+    "mpin_hash": "$2b$12$npD.kRSR.YOivMJcWaFc3.X.nSnLP7wVNYI.FZVwOOVM0WfXs3vx6",
+    "is_verified": true,
+    "demo_balance": 150000.0,
+    "watchlist": "[]"
+  },
+  {
+    "username": "testuser",
+    "email": "testuser@gmail.com",
+    "phone": "9876543210",
+    "password_hash": "$2b$12$.55cpNxkBN6BixcvrspxwOgmVRcUJnElWz1FYDDbkSyDSH0xW0ZVC",
+    "mpin_hash": null,
+    "is_verified": false,
+    "demo_balance": 100000.0,
+    "watchlist": "[]"
+  },
+  {
+    "username": "DemoTrader",
+    "email": "demotrader@groww.com",
+    "phone": "9876543210",
+    "password_hash": "$2b$12$Rq12vl3m977BtFIVsHA5zOd654vLZIVQvZvhgjUooWBlGDFJUBK3m",
+    "mpin_hash": "$2b$12$sXNyizgKJZBXuKOz/y86UOco.GqMXkRXBWXyJBnHJyD/7e3qR313C",
+    "is_verified": true,
+    "demo_balance": 100000.0,
+    "watchlist": "[]"
+  }
+]

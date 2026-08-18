@@ -108,6 +108,77 @@ def load_user(user_id):
 
 import random
 
+USERS_BACKUP_FILE = os.path.join(os.path.dirname(__file__), 'users_backup.json')
+
+def backup_users_to_file():
+    try:
+        users = User.query.all()
+        data = []
+        for u in users:
+            data.append({
+                'username': u.username,
+                'email': u.email,
+                'phone': u.phone,
+                'password_hash': u.password_hash,
+                'mpin_hash': u.mpin_hash,
+                'is_verified': u.is_verified,
+                'demo_balance': u.demo_balance,
+                'watchlist': u.watchlist
+            })
+        with open(USERS_BACKUP_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Error backing up users: {e}")
+
+def restore_users_from_file():
+    try:
+        db.create_all()
+        if os.path.exists(USERS_BACKUP_FILE):
+            with open(USERS_BACKUP_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            for item in data:
+                existing = User.query.filter((User.email == item['email']) | (User.username == item['username'])).first()
+                if not existing:
+                    u = User(
+                        username=item['username'],
+                        email=item['email'],
+                        phone=item.get('phone', ''),
+                        password_hash=item['password_hash'],
+                        mpin_hash=item.get('mpin_hash'),
+                        is_verified=item.get('is_verified', True),
+                        demo_balance=item.get('demo_balance', 100000.0),
+                        watchlist=item.get('watchlist', '[]')
+                    )
+                    db.session.add(u)
+                else:
+                    existing.password_hash = item['password_hash']
+                    existing.mpin_hash = item.get('mpin_hash')
+                    existing.is_verified = item.get('is_verified', True)
+                    existing.demo_balance = item.get('demo_balance', 100000.0)
+            db.session.commit()
+            
+        # Ensure default DemoTrader account exists
+        demo = User.query.filter((User.email == 'demotrader@groww.com') | (User.username == 'DemoTrader')).first()
+        if not demo:
+            demo = User(
+                username='DemoTrader',
+                email='demotrader@groww.com',
+                phone='9876543210',
+                is_verified=True,
+                demo_balance=100000.0
+            )
+            demo.set_password('Password123')
+            demo.set_mpin('1234')
+            db.session.add(demo)
+            db.session.commit()
+            backup_users_to_file()
+    except Exception as e:
+        print(f"Error restoring users: {e}")
+
+# Run automatic database restore on startup
+with app.app_context():
+    restore_users_from_file()
+
 # ============================================
 # SECURE AUTH & MPIN / OTP ROUTES
 # ============================================
@@ -165,6 +236,7 @@ def register_step1():
         otp_rec = OTPRecord(identifier=email, otp_code=otp_code, expires_at=expires_at, is_used=False)
         db.session.add(otp_rec)
         db.session.commit()
+        backup_users_to_file()
 
         print(f"==================================================")
         print(f"🔒 [OTP GENERATED] Email: {email} | OTP: {otp_code}")
@@ -237,6 +309,7 @@ def set_mpin():
         user.set_mpin(mpin)
         user.is_verified = True
         db.session.commit()
+        backup_users_to_file()
 
         login_user(user, remember=True)
 
