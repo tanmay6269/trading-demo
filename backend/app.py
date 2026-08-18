@@ -163,44 +163,58 @@ def backup_users_to_file():
 def restore_users_from_file():
     try:
         db.create_all()
+        # Verify schema integrity for newly added profile columns
+        try:
+            User.query.first()
+        except Exception:
+            db.session.rollback()
+            db.drop_all()
+            db.create_all()
+
         if os.path.exists(USERS_BACKUP_FILE):
             with open(USERS_BACKUP_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             for item in data:
-                existing = User.query.filter((User.email == item['email']) | (User.username == item['username'])).first()
-                if not existing:
-                    u = User(
-                        username=item['username'],
-                        email=item['email'],
-                        phone=item.get('phone', ''),
-                        password_hash=item['password_hash'],
-                        mpin_hash=item.get('mpin_hash'),
-                        is_verified=item.get('is_verified', True),
-                        demo_balance=item.get('demo_balance', 100000.0),
-                        watchlist=item.get('watchlist', '[]'),
-                        profile_pic=item.get('profile_pic'),
-                        dob=item.get('dob', '15-08-1998'),
-                        pan_number=item.get('pan_number', 'ABCDE1234F'),
-                        gender=item.get('gender', 'Male'),
-                        marital_status=item.get('marital_status', 'Single'),
-                        occupation=item.get('occupation', 'Professional'),
-                        income_range=item.get('income_range', '5-10 Lakhs'),
-                        father_name=item.get('father_name', 'Rajesh Sharma')
-                    )
-                    db.session.add(u)
-                else:
-                    existing.password_hash = item['password_hash']
-                    existing.mpin_hash = item.get('mpin_hash')
-                    existing.is_verified = item.get('is_verified', True)
-                    existing.demo_balance = item.get('demo_balance', 100000.0)
-                    existing.profile_pic = item.get('profile_pic', existing.profile_pic)
-                    existing.dob = item.get('dob', existing.dob)
-                    existing.pan_number = item.get('pan_number', existing.pan_number)
-                    existing.gender = item.get('gender', existing.gender)
-                    existing.marital_status = item.get('marital_status', existing.marital_status)
-                    existing.occupation = item.get('occupation', existing.occupation)
-                    existing.income_range = item.get('income_range', existing.income_range)
-                    existing.father_name = item.get('father_name', existing.father_name)
+                try:
+                    existing = User.query.filter((User.email == item['email']) | (User.username == item['username'])).first()
+                    if not existing:
+                        u = User(
+                            username=item['username'],
+                            email=item['email'],
+                            phone=item.get('phone', ''),
+                            password_hash=item['password_hash'],
+                            mpin_hash=item.get('mpin_hash'),
+                            is_verified=item.get('is_verified', True),
+                            demo_balance=item.get('demo_balance', 100000.0),
+                            watchlist=item.get('watchlist', '[]'),
+                            profile_pic=item.get('profile_pic'),
+                            dob=item.get('dob', '15-08-1998'),
+                            pan_number=item.get('pan_number', 'ABCDE1234F'),
+                            gender=item.get('gender', 'Male'),
+                            marital_status=item.get('marital_status', 'Single'),
+                            occupation=item.get('occupation', 'Professional'),
+                            income_range=item.get('income_range', '5-10 Lakhs'),
+                            father_name=item.get('father_name', 'Rajesh Sharma')
+                        )
+                        db.session.add(u)
+                    else:
+                        existing.password_hash = item['password_hash']
+                        existing.mpin_hash = item.get('mpin_hash')
+                        existing.is_verified = item.get('is_verified', True)
+                        existing.demo_balance = item.get('demo_balance', 100000.0)
+                        existing.profile_pic = item.get('profile_pic', getattr(existing, 'profile_pic', None))
+                        existing.dob = item.get('dob', getattr(existing, 'dob', '15-08-1998'))
+                        existing.pan_number = item.get('pan_number', getattr(existing, 'pan_number', 'ABCDE1234F'))
+                        existing.gender = item.get('gender', getattr(existing, 'gender', 'Male'))
+                        existing.marital_status = item.get('marital_status', getattr(existing, 'marital_status', 'Single'))
+                        existing.occupation = item.get('occupation', getattr(existing, 'occupation', 'Professional'))
+                        existing.income_range = item.get('income_range', getattr(existing, 'income_range', '5-10 Lakhs'))
+                        existing.father_name = item.get('father_name', getattr(existing, 'father_name', 'Rajesh Sharma'))
+                except Exception:
+                    db.session.rollback()
+                    db.drop_all()
+                    db.create_all()
+                    break
             db.session.commit()
             
         # Ensure default DemoTrader account exists
