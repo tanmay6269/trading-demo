@@ -460,7 +460,8 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                 return (
                                     <button
                                         key={i}
-                                        onClick={() => handleKeypadPress(val)}
+                                        type="button"
+                                        onClick={(e) => { e.preventDefault(); handleKeypadPress(val); }}
                                         style={{
                                             background: '#111927',
                                             border: '1px solid var(--border-color)',
@@ -871,7 +872,8 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                         return (
                                             <button
                                                 key={i}
-                                                onClick={() => handleKeypadPress(val)}
+                                                type="button"
+                                                onClick={(e) => { e.preventDefault(); handleKeypadPress(val); }}
                                                 style={{
                                                     background: '#111927',
                                                     border: '1px solid var(--border-color)',
