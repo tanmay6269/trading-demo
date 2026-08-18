@@ -6,6 +6,7 @@ import bcrypt
 from datetime import datetime, timedelta
 import json
 import os
+import threading
 from dotenv import load_dotenv
 
 # Import from groww_data
@@ -268,34 +269,37 @@ def get_or_create_user_details(user):
         return None
 
 def backup_users_to_file():
-    try:
-        users = UserLogin.query.all()
-        data = []
-        for u in users:
-            dt = u.details
-            data.append({
-                'username': u.username,
-                'email': u.email,
-                'phone': u.phone,
-                'password_hash': u.password_hash,
-                'mpin_hash': u.mpin_hash,
-                'is_verified': u.is_verified,
-                'demo_balance': u.demo_balance,
-                'watchlist': u.watchlist,
-                'active_devices': u.active_devices,
-                'profile_pic': dt.profile_pic if dt else None,
-                'dob': dt.dob if dt else '15-08-1998',
-                'pan_number': dt.pan_number if dt else 'ABCDE1234F',
-                'gender': dt.gender if dt else 'Male',
-                'marital_status': dt.marital_status if dt else 'Single',
-                'occupation': dt.occupation if dt else 'Professional',
-                'income_range': dt.income_range if dt else '5-10 Lakhs',
-                'father_name': dt.father_name if dt else 'Rajesh Sharma'
-            })
-        with open(USERS_BACKUP_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-    except Exception as e:
-        print(f"Error backing up users: {e}")
+    def _do_backup():
+        try:
+            with app.app_context():
+                users = UserLogin.query.all()
+                data = []
+                for u in users:
+                    dt = u.details
+                    data.append({
+                        'username': u.username,
+                        'email': u.email,
+                        'phone': u.phone,
+                        'password_hash': u.password_hash,
+                        'mpin_hash': u.mpin_hash,
+                        'is_verified': u.is_verified,
+                        'demo_balance': u.demo_balance,
+                        'watchlist': u.watchlist,
+                        'active_devices': u.active_devices,
+                        'profile_pic': dt.profile_pic if dt else None,
+                        'dob': dt.dob if dt else '15-08-1998',
+                        'pan_number': dt.pan_number if dt else 'ABCDE1234F',
+                        'gender': dt.gender if dt else 'Male',
+                        'marital_status': dt.marital_status if dt else 'Single',
+                        'occupation': dt.occupation if dt else 'Professional',
+                        'income_range': dt.income_range if dt else '5-10 Lakhs',
+                        'father_name': dt.father_name if dt else 'Rajesh Sharma'
+                    })
+                with open(USERS_BACKUP_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+        except Exception as e:
+            print(f"Async backup error: {e}")
+    threading.Thread(target=_do_backup, daemon=True).start()
 
 def restore_users_from_file():
     try:
