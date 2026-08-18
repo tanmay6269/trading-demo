@@ -69,8 +69,9 @@ class UserLogin(UserMixin, db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # One-to-One Relationship to UserDetails
+    # Relational Links to UserDetails (One-to-One) and Trade (One-to-Many)
     details = db.relationship('UserDetails', backref='login_user', uselist=False, cascade="all, delete-orphan")
+    trades = db.relationship('Trade', backref='login_user', cascade="all, delete-orphan")
 
     @property
     def demo_balance(self):

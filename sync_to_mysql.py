@@ -82,6 +82,22 @@ try:
         );
     ''')
 
+    # 3. Table 3: trade (User Trades & Portfolio Linked via Foreign Key)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS trade (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            symbol VARCHAR(20) NOT NULL,
+            trade_type VARCHAR(10) NOT NULL,
+            quantity INT NOT NULL,
+            price DOUBLE NOT NULL,
+            trade_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            status VARCHAR(20) DEFAULT 'OPEN',
+            pnl DOUBLE DEFAULT 0.0,
+            FOREIGN KEY (user_id) REFERENCES user_login(id) ON DELETE CASCADE
+        );
+    ''')
+
     # 3. Populate user_login and user_details
     for item in users_data:
         username = item.get('username')
