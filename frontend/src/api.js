@@ -5,7 +5,18 @@ const defaultHeaders = {
 };
 
 const handleResponse = async (response) => {
-    const data = await response.json();
+    let data;
+    try {
+        const text = await response.text();
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            data = { error: text.includes('Proxy error') || text.includes('502') || text.includes('503') ? '⏳ Server is waking up... Please wait 5 seconds and try again.' : 'Server response error. Please try again.' };
+        }
+    } catch (e) {
+        data = { error: 'Connection lost. Please check your internet connection.' };
+    }
+
     if (!response.ok) {
         throw new Error(data.error || data.message || 'API request failed');
     }
