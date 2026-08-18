@@ -839,7 +839,7 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                     {mpinPhase === 'create' ? 'Create 4-Digit Security PIN' : 'Confirm 4-Digit Security PIN'}
                                 </h3>
                                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                                    {mpinPhase === 'create' ? 'Set a 4-digit PIN to secure your Groww account' : 'Re-enter your 4-digit PIN to confirm'}
+                                    {mpinPhase === 'create' ? 'Set a 4-digit PIN to secure your BullX account' : 'Re-enter your 4-digit PIN to confirm'}
                                 </div>
 
                                 {/* 4 PIN Dots Display */}

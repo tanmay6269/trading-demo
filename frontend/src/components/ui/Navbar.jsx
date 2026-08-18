@@ -161,7 +161,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                     <button
                         onClick={onLockApp}
                         className="soft-btn"
-                        title="Lock Groww Terminal with 4-Digit Security PIN"
+                        title="Lock BullX Terminal with 4-Digit Security PIN"
                         style={{
                             background: '#111927',
                             border: '1px solid var(--border-color)',

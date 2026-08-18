@@ -297,7 +297,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                     <input
                         type="text"
                         className="soft-input"
-                        placeholder="🔍 Search Groww stocks & indices (e.g., RELIANCE, TCS, HDFCBANK, INFY, SBIN, NIFTY 50...)"
+                        placeholder="🔍 Search BullX stocks & indices (e.g., RELIANCE, TCS, HDFCBANK, INFY, SBIN, NIFTY 50...)"
                         value={searchQuery}
                         onChange={(e) => handleSearch(e.target.value)}
                         onFocus={() => searchQuery.length >= 1 && setShowSearchResults(true)}

@@ -602,7 +602,7 @@ def set_mpin():
 
         return jsonify({
             'success': True,
-            'message': '4-Digit Security PIN created successfully! Welcome to Groww Terminal.',
+            'message': '4-Digit Security PIN created successfully! Welcome to BullX Terminal.',
             'user': user.username,
             'balance': user.demo_balance
         })
