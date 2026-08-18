@@ -561,11 +561,12 @@ def verify_otp():
             return jsonify({'error': 'OTP code has expired. Please request a new one.'}), 400
 
         otp_rec.is_used = True
-        user = User.query.filter_by(email=identifier).first()
+        user = UserLogin.query.filter((UserLogin.email == identifier) | (UserLogin.username == identifier)).first()
         if user:
             user.is_verified = True
-
-        db.session.commit()
+            get_or_create_user_details(user)
+            db.session.commit()
+            backup_users_to_file()
 
         return jsonify({
             'success': True,
