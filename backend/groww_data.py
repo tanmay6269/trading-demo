@@ -1117,7 +1117,9 @@ GLOBAL_INDICES_DETAILED = {
 
 # Cache for price data
 price_cache = {}
-cache_timeout = 2 # 2-second real-time live price cache timeout
+cache_timeout = 15 # 15-second real-time live price cache timeout
+quote_cache = {}
+quote_cache_timeout = 15
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -1131,11 +1133,18 @@ def format_symbol(symbol):
     return f"{symbol}.NS"
 
 def fetch_direct_quote(symbol):
-    """Fetch real-time price & change via direct Yahoo Chart API"""
+    """Fetch real-time price & change via direct Yahoo Chart API with 15s memory cache"""
     try:
-        encoded_sym = requests.utils.quote(symbol)
+        clean_sym = symbol.strip().upper()
+        cache_key = f"quote_{clean_sym}"
+        if cache_key in quote_cache:
+            data, timestamp = quote_cache[cache_key]
+            if time.time() - timestamp < quote_cache_timeout:
+                return data
+
+        encoded_sym = requests.utils.quote(clean_sym)
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded_sym}?interval=1d&range=5d"
-        r = requests.get(url, headers=HEADERS, timeout=4)
+        r = requests.get(url, headers=HEADERS, timeout=3)
         if r.status_code == 200:
             data = r.json()
             if 'chart' in data and 'result' in data['chart'] and data['chart']['result']:
@@ -1145,26 +1154,21 @@ def fetch_direct_quote(symbol):
                 closes = [c for c in quote.get('close', []) if c is not None]
                 
                 price = meta.get('regularMarketPrice') or (closes[-1] if closes else None)
-                
-                prev_close = None
-                if len(closes) >= 2:
-                    prev_close = closes[-2]
-                elif meta.get('previousClose'):
-                    prev_close = meta.get('previousClose')
-                elif meta.get('chartPreviousClose'):
-                    prev_close = meta.get('chartPreviousClose')
+                prev_close = meta.get('chartPreviousClose') or meta.get('previousClose') or (closes[-2] if len(closes) >= 2 else (closes[-1] if closes else None))
                     
                 if price and prev_close and prev_close > 0:
                     price_val = round(float(price), 2)
                     prev_val = round(float(prev_close), 2)
                     change = round(price_val - prev_val, 2)
                     pct = round((change / prev_val) * 100, 2)
-                    return {
+                    res_quote = {
                         'price': price_val,
                         'prev_close': prev_val,
                         'change': change,
                         'change_percent': pct
                     }
+                    quote_cache[cache_key] = (res_quote, time.time())
+                    return res_quote
     except Exception as e:
         print(f"Direct quote fetch error for {symbol}: {e}")
     return None
