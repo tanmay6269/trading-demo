@@ -244,7 +244,7 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                 onLoginSuccess({ username: res.user, balance: res.balance });
             }
         } catch (err) {
-            setErrorMsg('Incorrect 4-digit Security PIN. Please try again.');
+            setErrorMsg(err.message || 'Incorrect 4-digit Security PIN. Please try again.');
             setMpin(['', '', '', '']);
         }
         setLoading(false);

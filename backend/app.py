@@ -685,7 +685,7 @@ def verify_mpin():
     """Unlock website with 4-Digit Security PIN (MPIN)"""
     try:
         data = request.get_json() or {}
-        identifier = data.get('identifier')
+        identifier = str(data.get('identifier') or '').strip()
         mpin = data.get('mpin')
 
         if not mpin or len(str(mpin)) != 4 or not str(mpin).isdigit():
@@ -693,17 +693,21 @@ def verify_mpin():
 
         user = None
         if identifier:
-            user = User.query.filter((User.email == identifier) | (User.username == identifier)).first()
+            user = UserLogin.query.filter(
+                (db.func.lower(UserLogin.email) == identifier.lower()) | 
+                (UserLogin.phone == identifier) |
+                (db.func.lower(UserLogin.username) == identifier.lower())
+            ).first()
         elif session.get('_user_id'):
             try:
-                user = User.query.get(int(session['_user_id']))
+                user = UserLogin.query.get(int(session['_user_id']))
             except Exception:
                 pass
 
         if not user:
-            user = User.query.filter_by(username='DemoTrader').first() or User.query.first()
+            return jsonify({'error': 'Account not found. Please Sign In with your password first.'}), 404
 
-        if user and user.check_mpin(mpin):
+        if user.check_mpin(mpin):
             # Max 2 Devices Login Enforcement
             device_id = data.get('device_id') or request.headers.get('X-Device-Id') or request.remote_addr
             ok, device_msg = user.register_device_session(device_id)
