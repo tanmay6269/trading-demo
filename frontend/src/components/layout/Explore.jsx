@@ -55,9 +55,11 @@ const SEE_MORE_STOCKS_DEFINITIONS = [
 
 const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = () => {} }) => {
     const formatChangeAndPct = (change, pct) => {
-        const isPos = (change || 0) >= 0;
-        const absChange = Math.abs(change || 0).toFixed(2);
-        const absPct = Math.abs(pct || 0).toFixed(2);
+        const changeNum = typeof change === 'number' ? change : (parseFloat(change) || 0);
+        const pctNum = typeof pct === 'number' ? pct : (parseFloat(pct) || 0);
+        const isPos = changeNum >= 0;
+        const absChange = Math.abs(changeNum).toFixed(2);
+        const absPct = Math.abs(pctNum).toFixed(2);
         const sign = isPos ? '+' : '-';
         return `${sign}${absChange} (${sign}${absPct}%)`;
     };

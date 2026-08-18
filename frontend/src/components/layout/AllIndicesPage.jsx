@@ -176,13 +176,21 @@ const AllIndicesPage = ({ onBack, onSelectStock = () => {} }) => {
 
                                         {/* Day Change & % */}
                                         <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                                            <div style={{ 
-                                                fontWeight: '800', 
-                                                fontSize: '14px', 
-                                                color: isPos ? 'var(--accent-emerald)' : 'var(--accent-rose)' 
-                                            }}>
-                                                {isPos ? '+' : ''}{row.change ? row.change.toFixed(2) : '0.00'} ({isPos ? '+' : ''}{row.change_percent ? row.change_percent.toFixed(2) : '0.00'}%)
-                                            </div>
+                                            {(() => {
+                                                const changeNum = typeof row.change === 'number' ? row.change : (parseFloat(row.change) || 0);
+                                                const pctNum = typeof row.change_percent === 'number' ? row.change_percent : (parseFloat(row.change_percent) || 0);
+                                                const isPos = changeNum >= 0;
+                                                const sign = isPos ? '+' : '-';
+                                                return (
+                                                    <div style={{ 
+                                                        fontWeight: '800', 
+                                                        fontSize: '14px', 
+                                                        color: isPos ? 'var(--accent-emerald)' : 'var(--accent-rose)' 
+                                                    }}>
+                                                        {sign}₹{Math.abs(changeNum).toFixed(2)} ({sign}{Math.abs(pctNum).toFixed(2)}%)
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
 
                                         {/* High */}
