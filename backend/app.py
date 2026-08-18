@@ -61,45 +61,57 @@ login_manager.init_app(app)
 class UserLogin(UserMixin, db.Model):
     __tablename__ = 'user_login'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    phone = db.Column(db.String(120), nullable=True)
-    password_hash = db.Column(db.String(200), nullable=False)
-    mpin_hash = db.Column(db.String(200), nullable=True)
+    username = db.Column(db.String(80), unique=True, nullable=False) # Full Name
+    email = db.Column(db.String(120), unique=True, nullable=False)   # Email Address
+    phone = db.Column(db.String(120), nullable=True)                  # Mobile Number
+    password_hash = db.Column(db.String(200), nullable=False)        # Hidden Password
+    mpin_hash = db.Column(db.String(200), nullable=True)            # Hidden 4-Digit PIN
     is_verified = db.Column(db.Boolean, default=False)
-    demo_balance = db.Column(db.Float, default=100000.0)
-    watchlist = db.Column(db.Text, default='[]')
-    active_devices = db.Column(db.Text, default='[]')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # One-to-One Relationship to UserDetails
     details = db.relationship('UserDetails', backref='login_user', uselist=False, cascade="all, delete-orphan")
 
+    @property
+    def demo_balance(self):
+        return self.details.demo_balance if self.details else 100000.0
+
+    @demo_balance.setter
+    def demo_balance(self, val):
+        if self.details:
+            self.details.demo_balance = val
+
+    @property
+    def watchlist(self):
+        return self.details.watchlist if self.details else '[]'
+
+    @watchlist.setter
+    def watchlist(self, val):
+        if self.details:
+            self.details.watchlist = val
+
+    @property
+    def active_devices(self):
+        return self.details.active_devices if self.details else '[]'
+
+    @active_devices.setter
+    def active_devices(self, val):
+        if self.details:
+            self.details.active_devices = val
+
     def get_active_devices(self):
-        try:
-            return json.loads(self.active_devices) if self.active_devices else []
-        except Exception:
-            return []
+        if self.details:
+            return self.details.get_active_devices()
+        return []
 
     def register_device_session(self, device_id):
-        if not device_id:
-            return True, "OK"
-        devices = self.get_active_devices()
-        if device_id in devices:
-            return True, "Device active"
-        if len(devices) >= 2:
-            return False, "🔒 Security Limit: Your account is logged in on maximum 2 devices (e.g. Phone + Laptop). Please log out from another device first."
-        devices.append(device_id)
-        self.active_devices = json.dumps(devices)
-        return True, "Device registered"
+        if self.details:
+            return self.details.register_device_session(device_id)
+        return True, "OK"
 
     def unregister_device_session(self, device_id):
-        if not device_id:
-            return
-        devices = self.get_active_devices()
-        if device_id in devices:
-            devices.remove(device_id)
-            self.active_devices = json.dumps(devices)
+        if self.details:
+            self.details.unregister_device_session(device_id)
 
     def set_password(self, password):
         salt = bcrypt.gensalt()
@@ -131,6 +143,13 @@ class UserDetails(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user_login.id'), nullable=False, unique=True)
     email = db.Column(db.String(120), nullable=False)
+    
+    # Wallet & Trading Data
+    demo_balance = db.Column(db.Float, default=100000.0)
+    watchlist = db.Column(db.Text, default='[]')
+    active_devices = db.Column(db.Text, default='[]')
+    
+    # Personal & KYC Profile Details
     dob = db.Column(db.String(20), default='15-08-1998')
     pan_number = db.Column(db.String(20), default='ABCDE1234F')
     gender = db.Column(db.String(20), default='Male')
@@ -140,6 +159,32 @@ class UserDetails(db.Model):
     father_name = db.Column(db.String(80), default='Rajesh Sharma')
     profile_pic = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def get_active_devices(self):
+        try:
+            return json.loads(self.active_devices) if self.active_devices else []
+        except Exception:
+            return []
+
+    def register_device_session(self, device_id):
+        if not device_id:
+            return True, "OK"
+        devices = self.get_active_devices()
+        if device_id in devices:
+            return True, "Device active"
+        if len(devices) >= 2:
+            return False, "🔒 Security Limit: Your account is logged in on maximum 2 devices (e.g. Phone + Laptop). Please log out from another device first."
+        devices.append(device_id)
+        self.active_devices = json.dumps(devices)
+        return True, "Device registered"
+
+    def unregister_device_session(self, device_id):
+        if not device_id:
+            return
+        devices = self.get_active_devices()
+        if device_id in devices:
+            devices.remove(device_id)
+            self.active_devices = json.dumps(devices)
 
 class OTPRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)

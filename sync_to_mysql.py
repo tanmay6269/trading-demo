@@ -29,7 +29,14 @@ try:
     )
     cursor = conn.cursor()
 
-    # 1. Create clean tables if not exist
+    # Drop old legacy tables to ensure clean schema update
+    cursor.execute("SET FOREIGN_KEY_CHECKS=0;")
+    cursor.execute("DROP TABLE IF EXISTS user;")
+    cursor.execute("DROP TABLE IF EXISTS user_details;")
+    cursor.execute("DROP TABLE IF EXISTS user_login;")
+    cursor.execute("SET FOREIGN_KEY_CHECKS=1;")
+
+    # 1. Table 1: user_login (Strict Account Credentials & Authentication Only)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_login (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -39,18 +46,19 @@ try:
             password_hash VARCHAR(200) NOT NULL,
             mpin_hash VARCHAR(200),
             is_verified BOOLEAN DEFAULT TRUE,
-            demo_balance DOUBLE DEFAULT 100000.0,
-            watchlist TEXT,
-            active_devices TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     ''')
 
+    # 2. Table 2: user_details (All Extended Wallet & Profile KYC Details)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_details (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT UNIQUE NOT NULL,
             email VARCHAR(120) NOT NULL,
+            demo_balance DOUBLE DEFAULT 100000.0,
+            watchlist TEXT,
+            active_devices TEXT,
             dob VARCHAR(20) DEFAULT '15-08-1998',
             pan_number VARCHAR(20) DEFAULT 'ABCDE1234F',
             gender VARCHAR(20) DEFAULT 'Male',
@@ -64,7 +72,7 @@ try:
         );
     ''')
 
-    # 2. Sync every user into user_login and user_details
+    # 3. Populate user_login and user_details
     for item in users_data:
         username = item.get('username')
         email = item.get('email')
@@ -80,15 +88,15 @@ try:
 
         if not row:
             cursor.execute('''
-                INSERT INTO user_login (username, email, phone, password_hash, mpin_hash, is_verified, demo_balance, watchlist, active_devices)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
-            ''', (username, email, phone, pwd, mpin, True, balance, watchlist, devices))
+                INSERT INTO user_login (username, email, phone, password_hash, mpin_hash, is_verified)
+                VALUES (%s, %s, %s, %s, %s, %s);
+            ''', (username, email, phone, pwd, mpin, True))
             user_id = cursor.lastrowid
         else:
             user_id = row[0]
             cursor.execute('''
-                UPDATE user_login SET phone=%s, password_hash=%s, mpin_hash=%s, demo_balance=%s WHERE id=%s;
-            ''', (phone, pwd, mpin, balance, user_id))
+                UPDATE user_login SET phone=%s, password_hash=%s, mpin_hash=%s WHERE id=%s;
+            ''', (phone, pwd, mpin, user_id))
 
         # Sync user_details
         cursor.execute("SELECT id FROM user_details WHERE user_id = %s;", (user_id,))
@@ -96,10 +104,10 @@ try:
 
         if not dt_row:
             cursor.execute('''
-                INSERT INTO user_details (user_id, email, dob, pan_number, gender, marital_status, occupation, income_range, father_name, profile_pic)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                INSERT INTO user_details (user_id, email, demo_balance, watchlist, active_devices, dob, pan_number, gender, marital_status, occupation, income_range, father_name, profile_pic)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
             ''', (
-                user_id, email,
+                user_id, email, balance, watchlist, devices,
                 item.get('dob', '15-08-1998'),
                 item.get('pan_number', 'ABCDE1234F'),
                 item.get('gender', 'Male'),
@@ -111,11 +119,24 @@ try:
             ))
 
     print("\n[SUCCESS] All live account records synced into local MySQL database bullx_trading!")
-    cursor.execute("SELECT id, username, email, phone FROM user_login;")
+    
+    cursor.execute("SELECT id, username, email, phone, password_hash, mpin_hash FROM user_login;")
     logins = cursor.fetchall()
-    print("\n=== MYSQL user_login TABLE CONTENTS ===")
+    print("\n=== TABLE 1: user_login (STRICT CREDENTIALS & AUTH ONLY) ===")
     for l in logins:
-        print(f"ID: {l[0]} | Name: {l[1]} | Email: {l[2]} | Phone: {l[3]}")
+        pwd_preview = l[4][:25] + "..." if l[4] else "None"
+        mpin_preview = l[5][:25] + "..." if l[5] else "None"
+        print(f"ID: {l[0]} | Full Name: {l[1]} | Email: {l[2]} | Mobile: {l[3]}")
+        print(f"  Hidden Password: {pwd_preview} | Hidden MPIN: {mpin_preview}")
+        print("-" * 65)
+
+    cursor.execute("SELECT id, user_id, email, demo_balance, dob, pan_number, gender FROM user_details;")
+    details = cursor.fetchall()
+    print("\n=== TABLE 2: user_details (EXTENDED WALLET & PROFILE DETAILS) ===")
+    for d in details:
+        print(f"ID: {d[0]} | User ID Link: {d[1]} | Email: {d[2]} | Balance: RS {d[3]:,.2f}")
+        print(f"  DOB: {d[4]} | PAN: {d[5]} | Gender: {d[6]}")
+        print("-" * 65)
 
     cursor.close()
     conn.close()
