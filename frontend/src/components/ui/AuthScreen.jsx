@@ -326,29 +326,29 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                 borderRadius: '20px',
                 textAlign: 'center'
             }}>
-                {/* Groww Logo & Header */}
+                {/* ZenithX Logo & Header */}
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                     <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #00d09c 0%, #0284c7 100%)',
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '14px',
+                        background: 'linear-gradient(135deg, #00d09c 0%, #38bdf8 100%)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '22px',
+                        fontSize: '24px',
                         color: '#ffffff',
-                        boxShadow: '0 4px 14px rgba(0, 208, 156, 0.4)'
+                        boxShadow: '0 4px 16px rgba(0, 208, 156, 0.4)'
                     }}>
-                        🌱
+                        ⚡
                     </div>
-                    <span style={{ fontSize: '26px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-                        Groww<span style={{ color: 'var(--accent-emerald)' }}>.</span>
+                    <span style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
+                        Zenith<span style={{ color: '#00d09c' }}>X</span>
                     </span>
                 </div>
 
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', fontWeight: '600' }}>
-                    Secure Stock Trading & Investments
+                    Next-Gen Stock & F&O Trading Terminal
                 </div>
 
                 {/* Groww Tab Mode Switcher: Sign In vs Create Account */}

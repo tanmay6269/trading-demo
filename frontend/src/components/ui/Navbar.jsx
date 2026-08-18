@@ -46,29 +46,28 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                         onClick={() => setActiveTab('explore')}
                     >
                         <div style={{
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #38bdf8 0%, #10b981 100%)',
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '12px',
+                            background: 'linear-gradient(135deg, #00d09c 0%, #38bdf8 100%)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: '#ffffff',
-                            fontWeight: '800',
-                            fontSize: '18px',
-                            boxShadow: '0 4px 12px rgba(56, 189, 248, 0.3)'
+                            fontWeight: '900',
+                            fontSize: '20px',
+                            boxShadow: '0 4px 14px rgba(0, 208, 156, 0.4)'
                         }}>
-                            📈
+                            ⚡
                         </div>
                         <h2 style={{ 
                             margin: 0, 
-                            fontSize: '20px', 
-                            fontWeight: '800', 
-                            background: 'linear-gradient(90deg, #38bdf8, #10b981)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent'
+                            fontSize: '22px', 
+                            fontWeight: '900', 
+                            letterSpacing: '-0.5px',
+                            color: 'var(--text-primary)'
                         }}>
-                            Groww Demo
+                            Zenith<span style={{ color: '#00d09c' }}>X</span>
                         </h2>
                     </div>
 
