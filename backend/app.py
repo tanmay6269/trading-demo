@@ -224,6 +224,9 @@ def get_or_create_user_details(user):
             dt = UserDetails(
                 user_id=user.id,
                 email=user.email,
+                demo_balance=100000.0,
+                watchlist='[]',
+                active_devices='[]',
                 dob='15-08-1998',
                 pan_number='ABCDE1234F',
                 gender='Male',
@@ -274,6 +277,7 @@ def restore_users_from_file():
         db.create_all()
         try:
             UserLogin.query.first()
+            UserDetails.query.first()
         except Exception:
             db.session.rollback()
             db.drop_all()
@@ -292,18 +296,17 @@ def restore_users_from_file():
                             phone=item.get('phone', ''),
                             password_hash=item['password_hash'],
                             mpin_hash=item.get('mpin_hash'),
-                            is_verified=item.get('is_verified', True),
-                            demo_balance=item.get('demo_balance', 100000.0),
-                            watchlist=item.get('watchlist', '[]'),
-                            active_devices=item.get('active_devices', '[]')
+                            is_verified=item.get('is_verified', True)
                         )
                         db.session.add(u)
-                        db.session.flush()
-
-                    if u and not u.details:
+                        db.session.commit()
+                        
                         dt = UserDetails(
                             user_id=u.id,
                             email=u.email,
+                            demo_balance=item.get('demo_balance', 100000.0),
+                            watchlist=item.get('watchlist', '[]'),
+                            active_devices=item.get('active_devices', '[]'),
                             profile_pic=item.get('profile_pic'),
                             dob=item.get('dob', '15-08-1998'),
                             pan_number=item.get('pan_number', 'ABCDE1234F'),
@@ -314,12 +317,11 @@ def restore_users_from_file():
                             father_name=item.get('father_name', 'Rajesh Sharma')
                         )
                         db.session.add(dt)
+                        db.session.commit()
                 except Exception as ex:
-                    print("Restore item error:", ex)
                     db.session.rollback()
+                    print(f"Restore single user error: {ex}")
 
-            db.session.commit()
-            
         # Ensure default DemoTrader account exists
         demo = UserLogin.query.filter((UserLogin.email == 'demotrader@groww.com') | (UserLogin.username == 'DemoTrader')).first()
         if not demo:
@@ -327,17 +329,17 @@ def restore_users_from_file():
                 username='DemoTrader',
                 email='demotrader@groww.com',
                 phone='9876543210',
-                is_verified=True,
-                demo_balance=100000.0
+                is_verified=True
             )
             demo.set_password('Password123')
             demo.set_mpin('1234')
             db.session.add(demo)
-            db.session.flush()
+            db.session.commit()
             
             dt = UserDetails(
                 user_id=demo.id,
                 email=demo.email,
+                demo_balance=100000.0,
                 dob='15-08-1998',
                 pan_number='ABCDE1234F',
                 gender='Male',
@@ -352,9 +354,23 @@ def restore_users_from_file():
     except Exception as e:
         print(f"Error restoring users: {e}")
 
-# Run automatic database restore on startup
+def auto_heal_db_schema():
+    with app.app_context():
+        try:
+            db.create_all()
+            UserDetails.query.first()
+        except Exception:
+            db.session.rollback()
+            try:
+                db.drop_all()
+                db.create_all()
+                restore_users_from_file()
+                print("[AUTO-HEAL] Database schema auto-healed successfully!")
+            except Exception as e:
+                print(f"[AUTO-HEAL ERROR]: {e}")
+
 with app.app_context():
-    restore_users_from_file()
+    auto_heal_db_schema()
 
 @app.route('/api/admin/reset-db', methods=['GET', 'POST'])
 def force_reset_db():
