@@ -493,11 +493,19 @@ def login_password():
         if not identifier or not password:
             return jsonify({'error': 'Email / Username and Password are required'}), 400
 
-        # Case-insensitive query for email or username
-        user = User.query.filter(
-            (db.func.lower(User.email) == identifier.lower()) | 
-            (db.func.lower(User.username) == identifier.lower())
-        ).first()
+        # Case-insensitive query for email or username with auto-healing retry
+        try:
+            user = User.query.filter(
+                (db.func.lower(User.email) == identifier.lower()) | 
+                (db.func.lower(User.username) == identifier.lower())
+            ).first()
+        except Exception:
+            db.session.rollback()
+            restore_users_from_file()
+            user = User.query.filter(
+                (db.func.lower(User.email) == identifier.lower()) | 
+                (db.func.lower(User.username) == identifier.lower())
+            ).first()
 
         if not user:
             return jsonify({'error': f'No account found for "{identifier}". Please click "Create Account" to register.'}), 404

@@ -34,5 +34,23 @@
     "occupation": "Professional",
     "income_range": "5-10 Lakhs",
     "father_name": "Rajesh Sharma"
+  },
+  {
+    "username": "Tanmay Agrawal",
+    "email": "tanmayagrawal1712@gmail.com",
+    "phone": "tanmayagrawal1712@gmail.com",
+    "password_hash": "$2b$12$5vHOBJsOwkeDnu3oKNLMneadFzZk9Lq9QKpqKJ/6tMl7B/SX4Iota",
+    "mpin_hash": "$2b$12$WWZ5zo2yB.xZfkE4hjEw9uyR7dstDOJOTe0k/72M0n33ALR.UxrDi",
+    "is_verified": true,
+    "demo_balance": 100000.0,
+    "watchlist": "[]",
+    "profile_pic": null,
+    "dob": "15-08-1998",
+    "pan_number": "ABCDE1234F",
+    "gender": "Male",
+    "marital_status": "Single",
+    "occupation": "Professional",
+    "income_range": "5-10 Lakhs",
+    "father_name": "Rajesh Sharma"
   }
 ]
