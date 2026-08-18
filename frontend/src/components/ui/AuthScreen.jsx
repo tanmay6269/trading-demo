@@ -266,7 +266,7 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                 newPin[emptyIdx] = val;
                 setMpin(newPin);
                 if (emptyIdx === 3) {
-                    handleUnlockMpin(newPin);
+                    setTimeout(() => handleUnlockMpin(newPin), 60);
                 }
             }
         } else if (step === 3) {

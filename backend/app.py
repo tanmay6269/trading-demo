@@ -132,7 +132,7 @@ class UserLogin(UserMixin, db.Model):
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
 
     def set_mpin(self, mpin):
-        salt = bcrypt.gensalt()
+        salt = bcrypt.gensalt(10)
         self.mpin_hash = bcrypt.hashpw(str(mpin).encode('utf-8'), salt).decode('utf-8')
 
     def check_mpin(self, mpin):
