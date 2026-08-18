@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
+import StockLogo from '../ui/StockLogo';
 
 const Positions = () => {
     const [positions, setPositions] = useState([]);
@@ -58,7 +59,12 @@ const Positions = () => {
                         const isPos = item.pnl >= 0;
                         return (
                             <tr key={item.symbol} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                <td style={{ padding: '14px 12px', fontWeight: '700', color: 'var(--text-primary)' }}>{item.symbol}</td>
+                                <td style={{ padding: '14px 12px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <StockLogo symbol={item.symbol} size={32} />
+                                        <span>{item.symbol}</span>
+                                    </div>
+                                </td>
                                 <td style={{ padding: '14px 12px', textAlign: 'right', fontWeight: '600' }}>{item.quantity}</td>
                                 <td style={{ padding: '14px 12px', textAlign: 'right', color: 'var(--text-secondary)' }}>
                                     ₹{item.avg_price ? item.avg_price.toFixed(2) : '0.00'}

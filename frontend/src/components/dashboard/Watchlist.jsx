@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
+import StockLogo from '../ui/StockLogo';
 
 const Watchlist = ({ onSelectStock }) => {
     const [watchlist, setWatchlist] = useState([]);
@@ -116,9 +117,12 @@ const Watchlist = ({ onSelectStock }) => {
                                 e.currentTarget.style.transform = 'translateX(0)';
                             }}
                         >
-                            <div>
-                                <div style={{ fontWeight: '800', fontSize: '15px', color: 'var(--text-primary)' }}>{item.symbol}</div>
-                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{item.name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <StockLogo symbol={item.symbol} name={item.name} size={36} />
+                                <div>
+                                    <div style={{ fontWeight: '800', fontSize: '15px', color: 'var(--text-primary)' }}>{item.symbol}</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{item.name}</div>
+                                </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                                 <span style={{ fontWeight: '800', fontSize: '15px', color: 'var(--accent-emerald)' }}>

@@ -1,4 +1,5 @@
 import React from 'react';
+import StockLogo from '../ui/StockLogo';
 
 const HoldingsTable = ({ holdings }) => {
     if (!holdings || holdings.length === 0) {
@@ -37,8 +38,8 @@ const HoldingsTable = ({ holdings }) => {
                         return (
                             <tr key={item.symbol} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s' }}>
                                 <td style={{ padding: '14px 12px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ color: 'var(--accent-primary)' }}>📈</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <StockLogo symbol={item.symbol} size={32} />
                                         <span>{item.symbol}</span>
                                     </div>
                                 </td>

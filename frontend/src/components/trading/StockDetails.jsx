@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api';
 import PriceChart from './PriceChart';
+import StockLogo from '../ui/StockLogo';
 
 const INDEX_COMPANIES = {
     '^NSEI': [
@@ -511,20 +512,7 @@ const StockDetails = ({
             {/* 1. TOP HEADER TOOLBAR ROW (Symbol, Price, Change Badge, Action Buttons) */}
             <div className="soft-card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #38bdf8 0%, #10b981 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '22px',
-                        color: '#ffffff',
-                        boxShadow: 'var(--shadow-soft)'
-                    }}>
-                        📈
-                    </div>
+                    <StockLogo symbol={symbol} name={displaySymbol} size={48} />
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>

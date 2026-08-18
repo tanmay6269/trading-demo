@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../api';
+import StockLogo from '../ui/StockLogo';
 
 const CATEGORY_DEFINITIONS = {
     'large': [
@@ -375,6 +376,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                                         >
                                             {isStarred ? '⭐' : '☆'}
                                         </button>
+                                        <StockLogo symbol={stock.symbol} name={stock.name} size={36} />
                                         <div>
                                             <div style={{ fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)' }}>
                                                 {stock.symbol}
@@ -491,21 +493,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                                         onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{
-                                                width: '30px',
-                                                height: '30px',
-                                                borderRadius: '8px',
-                                                background: '#111927',
-                                                border: '1px solid var(--border-color)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontWeight: '800',
-                                                color: 'var(--accent-emerald)',
-                                                fontSize: '12px'
-                                            }}>
-                                                📈
-                                            </div>
+                                            <StockLogo symbol={stk.symbol} name={stk.name} size={36} />
                                             <button
                                                 onClick={(e) => toggleWatchlist(e, stk.symbol)}
                                                 style={{
@@ -640,7 +628,13 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                                                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             >
                                                 <td style={{ padding: '12px 16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                                    {row.name} ({row.symbol})
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        <StockLogo symbol={row.symbol} name={row.name} size={32} />
+                                                        <div>
+                                                            <div>{row.name}</div>
+                                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>{row.symbol}</div>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                                 <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '800', color: 'var(--text-primary)' }}>
                                                     {row.price ? `₹${row.price.toFixed(2)}` : 'Loading...'}
