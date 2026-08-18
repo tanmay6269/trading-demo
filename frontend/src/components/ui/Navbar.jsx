@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import BullMarketIcon from './BullMarketIcon';
 
 const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTab, activeTab, onOpenProfile = () => {}, profilePic }) => {
     const [topCategory, setTopCategory] = useState('stocks'); // 'stocks' | 'fno' | 'mf'
@@ -45,21 +46,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                         style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
                         onClick={() => setActiveTab('explore')}
                     >
-                        <div style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '12px',
-                            background: 'linear-gradient(135deg, #f59e0b 0%, #00d09c 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ffffff',
-                            fontWeight: '900',
-                            fontSize: '22px',
-                            boxShadow: '0 4px 16px rgba(245, 158, 11, 0.4)'
-                        }}>
-                            🐂
-                        </div>
+                        <BullMarketIcon size={42} />
                         <h2 style={{ 
                             margin: 0, 
                             fontSize: '22px', 

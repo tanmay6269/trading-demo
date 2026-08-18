@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
+import BullMarketIcon from './BullMarketIcon';
 
 const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
     const [mode, setMode] = useState('login'); // 'login' | 'register' | 'pin_unlock'
@@ -327,22 +328,9 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                 textAlign: 'center'
             }}>
                 {/* BullX Logo & Header */}
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <div style={{
-                        width: '46px',
-                        height: '46px',
-                        borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #f59e0b 0%, #00d09c 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '26px',
-                        color: '#ffffff',
-                        boxShadow: '0 4px 18px rgba(245, 158, 11, 0.45)'
-                    }}>
-                        🐂
-                    </div>
-                    <span style={{ fontSize: '30px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <BullMarketIcon size={50} />
+                    <span style={{ fontSize: '32px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
                         Bull<span style={{ color: '#00d09c' }}>X</span>
                     </span>
                 </div>
