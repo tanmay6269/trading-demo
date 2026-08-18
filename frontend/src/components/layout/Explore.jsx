@@ -141,7 +141,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
             try { setRecentlyViewed(JSON.parse(saved)); } catch (e) {}
         }
 
-        const interval = setInterval(loadAllLiveData, 10000);
+        const interval = setInterval(loadAllLiveData, 3000);
 
         const handleClickOutside = (event) => {
             if (searchRef.current && !searchRef.current.contains(event.target)) {

@@ -354,7 +354,7 @@ const StockDetails = ({
             setLoading(true);
             fetchStockDetails();
             fetchWatchlist();
-            const interval = setInterval(fetchStockDetails, 5000);
+            const interval = setInterval(fetchStockDetails, 2000);
             return () => clearInterval(interval);
         }
     }, [symbol, fetchStockDetails, fetchWatchlist]);
