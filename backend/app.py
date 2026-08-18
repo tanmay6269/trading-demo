@@ -199,12 +199,11 @@ class UserDetails(db.Model):
         if not device_id:
             return True, "OK"
         devices = self.get_active_devices()
-        if device_id in devices:
-            return True, "Device active"
-        if len(devices) >= 2:
-            return False, "🔒 Security Limit: Your account is logged in on maximum 2 devices (e.g. Phone + Laptop). Please log out from another device first."
-        devices.append(device_id)
-        self.active_devices = json.dumps(devices)
+        if device_id not in devices:
+            devices.append(device_id)
+            if len(devices) > 5:
+                devices = devices[-2:]
+            self.active_devices = json.dumps(devices)
         return True, "Device registered"
 
     def unregister_device_session(self, device_id):
