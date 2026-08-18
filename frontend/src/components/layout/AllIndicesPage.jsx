@@ -139,7 +139,6 @@ const AllIndicesPage = ({ onBack, onSelectStock = () => {} }) => {
                         </thead>
                         <tbody>
                             {currentRows.map((row, idx) => {
-                                const isPos = (row.change || 0) >= 0;
                                 const flag = activeTab === 'global' ? (flagMap[row.name] || '🌐') : '📈';
 
                                 return (
