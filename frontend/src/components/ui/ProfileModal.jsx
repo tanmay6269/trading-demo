@@ -23,6 +23,43 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
         father_name: userInfo?.father_name || 'Rajesh Sharma'
     });
 
+    // Reset Security PIN State
+    const [resetEmail, setResetEmail] = useState(userInfo?.email || '');
+    const [resetPassword, setResetPassword] = useState('');
+    const [resetNewPin, setResetNewPin] = useState('');
+    const [resetConfirmPin, setResetConfirmPin] = useState('');
+    const [resetLoading, setResetLoading] = useState(false);
+    const [resetMsg, setResetMsg] = useState(null);
+
+    const handleResetPinSubmit = async (e) => {
+        e.preventDefault();
+        setResetMsg(null);
+        if (!resetEmail || !resetPassword) {
+            setResetMsg({ type: 'error', text: 'Please enter your registered Email/Mobile and Password.' });
+            return;
+        }
+        if (!resetNewPin || resetNewPin.length !== 4 || !/^\d+$/.test(resetNewPin)) {
+            setResetMsg({ type: 'error', text: 'Please enter a valid 4-digit Security PIN.' });
+            return;
+        }
+        if (resetNewPin !== resetConfirmPin) {
+            setResetMsg({ type: 'error', text: 'New PINs do not match. Please verify.' });
+            return;
+        }
+        setResetLoading(true);
+        try {
+            const res = await api.resetMPIN(resetEmail, resetPassword, resetNewPin);
+            setResetMsg({ type: 'success', text: '🎉 ' + (res.message || 'Security PIN reset successfully!') });
+            setResetPassword('');
+            setResetNewPin('');
+            setResetConfirmPin('');
+        } catch (err) {
+            setResetMsg({ type: 'error', text: '❌ ' + (err.message || 'Failed to reset PIN') });
+        } finally {
+            setResetLoading(false);
+        }
+    };
+
     if (!isOpen) return null;
 
     const handlePhotoChange = (e) => {
@@ -242,6 +279,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                     { id: 'orders', label: 'Orders & Trades', icon: '📦' },
                                     { id: 'banks', label: 'Add Banks & Funds', icon: '🏦' },
                                     { id: 'support', label: 'Customer Support', icon: '🎧' },
+                                    { id: 'reset_pin', label: 'Reset Security PIN', icon: '🔑' },
                                 ].map((menu) => (
                                     <button
                                         key={menu.id}
@@ -545,6 +583,155 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                         <div style={{ fontSize: '12px', color: '#00d09c', marginTop: '4px' }}>support@zenithx.com</div>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Reset Security PIN Tab */}
+                        {activeTab === 'reset_pin' && (
+                            <div>
+                                <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', fontSize: '18px', fontWeight: '800' }}>
+                                    🔑 Reset 4-Digit Security PIN
+                                </h3>
+                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                                    Verify your registered Email and Password to update your 4-Digit Security PIN.
+                                </p>
+
+                                {resetMsg && (
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        borderRadius: '8px',
+                                        background: resetMsg.type === 'success' ? 'rgba(0, 208, 156, 0.15)' : 'rgba(235, 91, 86, 0.15)',
+                                        border: `1px solid ${resetMsg.type === 'success' ? '#00d09c' : '#eb5b56'}`,
+                                        color: resetMsg.type === 'success' ? '#00d09c' : '#eb5b56',
+                                        fontSize: '13px',
+                                        fontWeight: '700',
+                                        marginBottom: '16px'
+                                    }}>
+                                        {resetMsg.text}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleResetPinSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '450px' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                            Registered Email / Mobile Number
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            value={resetEmail} 
+                                            onChange={(e) => setResetEmail(e.target.value)}
+                                            placeholder="Enter email or mobile"
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 14px',
+                                                borderRadius: '8px',
+                                                background: '#182234',
+                                                border: '1px solid var(--border-color)',
+                                                color: '#ffffff',
+                                                fontSize: '14px',
+                                                outline: 'none'
+                                            }}
+                                            required 
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                            Account Password
+                                        </label>
+                                        <input 
+                                            type="password" 
+                                            value={resetPassword} 
+                                            onChange={(e) => setResetPassword(e.target.value)}
+                                            placeholder="Enter account password"
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 14px',
+                                                borderRadius: '8px',
+                                                background: '#182234',
+                                                border: '1px solid var(--border-color)',
+                                                color: '#ffffff',
+                                                fontSize: '14px',
+                                                outline: 'none'
+                                            }}
+                                            required 
+                                        />
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                                New 4-Digit PIN
+                                            </label>
+                                            <input 
+                                                type="password" 
+                                                maxLength={4}
+                                                value={resetNewPin} 
+                                                onChange={(e) => setResetNewPin(e.target.value)}
+                                                placeholder="••••"
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '8px',
+                                                    background: '#182234',
+                                                    border: '1px solid var(--border-color)',
+                                                    color: '#ffffff',
+                                                    fontSize: '16px',
+                                                    letterSpacing: '4px',
+                                                    textAlign: 'center',
+                                                    outline: 'none'
+                                                }}
+                                                required 
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                                Confirm New PIN
+                                            </label>
+                                            <input 
+                                                type="password" 
+                                                maxLength={4}
+                                                value={resetConfirmPin} 
+                                                onChange={(e) => setResetConfirmPin(e.target.value)}
+                                                placeholder="••••"
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '8px',
+                                                    background: '#182234',
+                                                    border: '1px solid var(--border-color)',
+                                                    color: '#ffffff',
+                                                    fontSize: '16px',
+                                                    letterSpacing: '4px',
+                                                    textAlign: 'center',
+                                                    outline: 'none'
+                                                }}
+                                                required 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={resetLoading}
+                                        style={{
+                                            marginTop: '10px',
+                                            padding: '12px',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: '#00d09c',
+                                            color: '#ffffff',
+                                            fontSize: '14px',
+                                            fontWeight: '800',
+                                            cursor: 'pointer',
+                                            opacity: resetLoading ? 0.7 : 1,
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        {resetLoading ? 'Verifying & Updating...' : 'Reset Security PIN ➔'}
+                                    </button>
+                                </form>
                             </div>
                         )}
                     </div>

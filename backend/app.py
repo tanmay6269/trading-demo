@@ -792,6 +792,49 @@ def verify_mpin():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/auth/reset-mpin', methods=['POST'])
+def reset_mpin():
+    """Reset 4-Digit Security PIN with Email & Password verification"""
+    try:
+        data = request.get_json() or {}
+        identifier = str(data.get('email') or data.get('identifier') or '').strip()
+        password = str(data.get('password') or '').strip()
+        new_mpin = str(data.get('new_mpin') or data.get('mpin') or '').strip()
+
+        if not identifier or not password:
+            return jsonify({'error': 'Email and Account Password are required'}), 400
+
+        if not new_mpin or len(new_mpin) != 4 or not new_mpin.isdigit():
+            return jsonify({'error': 'Please enter a valid 4-digit Security PIN'}), 400
+
+        # Case-insensitive query for email, phone, or username
+        user = UserLogin.query.filter(
+            (db.func.lower(UserLogin.email) == identifier.lower()) | 
+            (UserLogin.phone == identifier) |
+            (db.func.lower(UserLogin.username) == identifier.lower())
+        ).first()
+
+        if not user:
+            return jsonify({'error': f'No registered account found for "{identifier}".'}), 404
+
+        if not user.check_password(password):
+            return jsonify({'error': 'Incorrect password. Password does not match registered account.'}), 401
+
+        # Set new MPIN and persist across database & backup files
+        user.set_mpin(new_mpin)
+        db.session.commit()
+        backup_users_to_file()
+
+        print(f"🔒 [PIN RESET SUCCESS] User: {user.username} ({user.email}) set new PIN")
+
+        return jsonify({
+            'success': True,
+            'message': 'Security PIN reset successfully! Your new 4-digit PIN is active.'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/guest-login', methods=['POST'])
 def guest_login():
     try:
