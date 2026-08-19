@@ -110,13 +110,32 @@ export const api = {
     },
 
     resetMPIN: async (email, password, new_mpin) => {
-        const res = await fetch(`${API_BASE_URL}/auth/reset-mpin`, {
-            method: 'POST',
-            headers: defaultHeaders,
-            credentials: 'include',
-            body: JSON.stringify({ email, password, new_mpin })
-        });
-        return handleResponse(res);
+        try {
+            const res = await fetch(`${API_BASE_URL}/auth/reset-mpin`, {
+                method: 'POST',
+                headers: defaultHeaders,
+                credentials: 'include',
+                body: JSON.stringify({ email, password, new_mpin })
+            });
+            if (res.status === 404) {
+                const res2 = await fetch(`${API_BASE_URL}/reset-mpin`, {
+                    method: 'POST',
+                    headers: defaultHeaders,
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password, new_mpin })
+                });
+                return handleResponse(res2);
+            }
+            return handleResponse(res);
+        } catch (e) {
+            const res3 = await fetch(`${API_BASE_URL}/user/reset-pin`, {
+                method: 'POST',
+                headers: defaultHeaders,
+                credentials: 'include',
+                body: JSON.stringify({ email, password, new_mpin })
+            });
+            return handleResponse(res3);
+        }
     },
 
     login: async (username, password) => {

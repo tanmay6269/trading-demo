@@ -664,6 +664,10 @@ def set_mpin():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/user/reset-pin', methods=['POST'])
+def reset_pin_alt():
+    return reset_mpin()
+
 @app.route('/api/auth/login-password', methods=['POST'])
 def login_password():
     """Step 1 Login: Verify Email + Password -> Triggers 4-Digit PIN Unlock Screen"""
