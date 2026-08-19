@@ -332,8 +332,8 @@ def restore_users_from_file():
                         if item.get('mpin_hash'):
                             u.mpin_hash = item.get('mpin_hash')
                         u.is_verified = item.get('is_verified', True)
-                    db.session.commit()
-                        
+                    dt = u.details
+                    if not dt:
                         dt = UserDetails(
                             user_id=u.id,
                             email=u.email,
