@@ -387,9 +387,7 @@ def force_reset_db():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/routes', methods=['GET'])
-def list_routes():
-    return jsonify([str(rule) for rule in app.url_map.iter_rules()])
+@app.route('/api/admin/get-all-users', methods=['GET'])
 def get_all_users_export():
     try:
         users = UserLogin.query.all()
