@@ -1117,9 +1117,9 @@ GLOBAL_INDICES_DETAILED = {
 
 # Cache for price data
 price_cache = {}
-cache_timeout = 15 # 15-second real-time live price cache timeout
+cache_timeout = 60 # 60-second high-speed real-time live price cache timeout
 quote_cache = {}
-quote_cache_timeout = 15
+quote_cache_timeout = 60
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -1133,7 +1133,7 @@ def format_symbol(symbol):
     return f"{symbol}.NS"
 
 def fetch_direct_quote(symbol):
-    """Fetch real-time price & change via direct Yahoo Chart API with 15s memory cache"""
+    """Fetch real-time price & change via direct Yahoo Chart API with 60s memory cache"""
     try:
         clean_sym = symbol.strip().upper()
         cache_key = f"quote_{clean_sym}"
@@ -1154,7 +1154,7 @@ def fetch_direct_quote(symbol):
                 closes = [c for c in quote.get('close', []) if c is not None]
                 
                 price = meta.get('regularMarketPrice') or (closes[-1] if closes else None)
-                prev_close = meta.get('chartPreviousClose') or meta.get('previousClose') or (closes[-2] if len(closes) >= 2 else (closes[-1] if closes else None))
+                prev_close = closes[-2] if len(closes) >= 2 else (meta.get('previousClose') or meta.get('chartPreviousClose'))
                     
                 if price and prev_close and prev_close > 0:
                     price_val = round(float(price), 2)
@@ -1182,17 +1182,19 @@ def fetch_detailed_ohlc(name, symbol):
         if r.status_code == 200:
             res = r.json()['chart']['result'][0]
             meta = res['meta']
-            price = meta.get('regularMarketPrice')
-            prev = meta.get('chartPreviousClose') or meta.get('previousClose')
+            quote = res['indicators']['quote'][0]
+            closes = [c for c in quote.get('close', []) if c is not None]
+
+            price = meta.get('regularMarketPrice') or (closes[-1] if closes else None)
+            prev = closes[-2] if len(closes) >= 2 else (meta.get('previousClose') or meta.get('chartPreviousClose') or price)
             high = meta.get('regularMarketDayHigh')
             low = meta.get('regularMarketDayLow')
             open_p = meta.get('regularMarketOpen')
             
-            if price:
+            if price and prev:
                 high = high if high is not None else price
                 low = low if low is not None else price
-                open_p = open_p if open_p is not None else (prev or price)
-                prev = prev if prev is not None else price
+                open_p = open_p if open_p is not None else prev
 
                 change = round(price - prev, 2)
                 pct = round((change / prev) * 100, 2) if prev != 0 else 0.0

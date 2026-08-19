@@ -1149,14 +1149,16 @@ def health_check():
 def start_keep_alive_ping():
     import threading, time, requests
     def _ping():
-        time.sleep(10)
+        time.sleep(3)
         while True:
             try:
-                # Self-ping keep alive every 10 minutes
-                requests.get('http://127.0.0.1:5000/api/ping', timeout=5)
+                # Background price cache pre-warming for 0ms user response speed
+                from groww_data import get_index_data, get_prices
+                get_index_data()
+                get_prices(['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'TATAMOTORS', 'ICICIBANK', 'SBIN', 'BHARTIARTL'])
             except Exception:
                 pass
-            time.sleep(600)
+            time.sleep(25)
     t = threading.Thread(target=_ping, daemon=True)
     t.start()
 
