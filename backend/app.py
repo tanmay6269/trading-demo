@@ -793,6 +793,7 @@ def verify_mpin():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/reset-mpin', methods=['POST'])
+@app.route('/api/reset-mpin', methods=['POST'])
 def reset_mpin():
     """Reset 4-Digit Security PIN with Email & Password verification"""
     try:
