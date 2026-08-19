@@ -811,12 +811,13 @@ def verify_mpin():
             db.session.add(user)
             db.session.commit()
 
-        # Zero-Error PIN Unlock Auto-Heal:
-        if not user.mpin_hash or user.check_mpin(mpin) or mpin == '1234' or len(str(mpin)) == 4:
-            if not user.mpin_hash:
-                user.set_mpin(mpin)
-                db.session.commit()
+        # Strict MPIN Check: Must match user.check_mpin(mpin)!
+        if not user.mpin_hash:
+            user.set_mpin(mpin)
+            db.session.commit()
+            backup_users_to_file()
 
+        if user.check_mpin(mpin):
             device_id = data.get('device_id') or request.headers.get('X-Device-Id') or request.remote_addr
             ok, device_msg = user.register_device_session(device_id)
             if not ok:
@@ -833,7 +834,7 @@ def verify_mpin():
                 'message': 'PIN Verified! Terminal Unlocked.'
             })
 
-        return jsonify({'error': 'Incorrect 4-digit Security PIN'}), 401
+        return jsonify({'error': 'Incorrect 4-digit Security PIN. Please enter your correct PIN or reset it.'}), 401
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
