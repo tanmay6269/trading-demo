@@ -23,6 +23,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
     const lastCandleRef = useRef(null);
     const rawDataRef = useRef([]);
     const prevCloseRef = useRef(null);
+    const prevCloseLineRef = useRef(null);
     
     const [loading, setLoading] = useState(true);
     const [selectedPeriod, setSelectedPeriod] = useState('1D');
@@ -89,18 +90,32 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
 
                 if (cType === 'line') {
                     const lineData = cleanData.map(c => ({ time: c.time, value: c.close }));
+                    const refPrice = prevCloseRef.current || (cleanData.length > 0 ? cleanData[0].close : 1000);
+                    
+                    try {
+                        seriesInstance.applyOptions({
+                            baseValue: { type: 'price', price: refPrice }
+                        });
+                    } catch (e) {}
                     seriesInstance.setData(lineData);
 
-                    // Dynamic Green / Red color assignment based on Previous Close or start price
-                    const refPrice = prevCloseRef.current || (cleanData.length > 0 ? cleanData[0].close : null);
-                    const lastPrice = cleanData[cleanData.length - 1].close;
-                    const isPos = refPrice ? lastPrice >= refPrice : true;
-
-                    seriesInstance.applyOptions({
-                        lineColor: isPos ? '#00d09c' : '#eb5b56',
-                        topColor: isPos ? 'rgba(0, 208, 156, 0.25)' : 'rgba(235, 91, 86, 0.25)',
-                        bottomColor: isPos ? 'rgba(0, 208, 156, 0.0)' : 'rgba(235, 91, 86, 0.0)',
-                    });
+                    // Render Previous Close Horizontal Reference Line overlay
+                    if (prevCloseLineRef.current) {
+                        try { seriesInstance.removePriceLine(prevCloseLineRef.current); } catch (e) {}
+                        prevCloseLineRef.current = null;
+                    }
+                    if (refPrice) {
+                        try {
+                            prevCloseLineRef.current = seriesInstance.createPriceLine({
+                                price: refPrice,
+                                color: '#94a3b8',
+                                lineWidth: 1,
+                                lineStyle: 2, // Dashed reference line
+                                axisLabelVisible: true,
+                                title: `Prev Close: ₹${refPrice.toFixed(2)}`
+                            });
+                        } catch (e) {}
+                    }
                 } else {
                     seriesInstance.setData(cleanData);
                 }
@@ -167,13 +182,18 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
             },
         });
 
-        // Add Selected Series Type: Candlestick vs Area Line Graph
+        // Add Selected Series Type: Candlestick vs Baseline Dual-Color Line Graph
         let newSeries;
         if (chartType === 'line') {
-            newSeries = newChart.addAreaSeries({
-                topColor: 'rgba(56, 189, 248, 0.4)',
-                bottomColor: 'rgba(56, 189, 248, 0.0)',
-                lineColor: '#38bdf8',
+            const baseRefPrice = prevCloseRef.current || 1000;
+            newSeries = newChart.addBaselineSeries({
+                baseValue: { type: 'price', price: baseRefPrice },
+                topLineColor: '#00d09c', // GREEN above previous close
+                topFillColor1: 'rgba(0, 208, 156, 0.35)',
+                topFillColor2: 'rgba(0, 208, 156, 0.05)',
+                bottomLineColor: '#eb5b56', // RED below previous close
+                bottomFillColor1: 'rgba(235, 91, 86, 0.05)',
+                bottomFillColor2: 'rgba(235, 91, 86, 0.35)',
                 lineWidth: 2,
             });
         } else {
@@ -301,8 +321,6 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
             }
         };
     }, [activePosition, livePrice, symbol, isIndexSymbol]);
-
-    const prevCloseLineRef = useRef(null);
 
     // Prev Close Reference Line on Chart
     useEffect(() => {
