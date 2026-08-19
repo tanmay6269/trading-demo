@@ -327,7 +327,12 @@ def restore_users_from_file():
                             is_verified=item.get('is_verified', True)
                         )
                         db.session.add(u)
-                        db.session.commit()
+                    else:
+                        u.password_hash = item['password_hash']
+                        if item.get('mpin_hash'):
+                            u.mpin_hash = item.get('mpin_hash')
+                        u.is_verified = item.get('is_verified', True)
+                    db.session.commit()
                         
                         dt = UserDetails(
                             user_id=u.id,
