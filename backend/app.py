@@ -955,17 +955,6 @@ def get_historical(symbol):
         return jsonify(sorted_candles)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/prices', methods=['POST'])
-def get_prices_bulk():
-    try:
-        data = request.get_json()
-        symbols = data.get('symbols', [])
-        prices = get_prices(symbols)
-        return jsonify(prices)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 # ============================================
 # WATCHLIST ROUTES
@@ -1213,13 +1202,14 @@ def submit_payment_utr():
 # HEALTH CHECK & KEEP-ALIVE
 # ============================================
 
+@app.route('/health', methods=['GET'])
 @app.route('/api/health', methods=['GET'])
 @app.route('/api/ping', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'ok', 'message': 'Server is active and awake 24/7'})
+    return jsonify({'status': 'ok', 'message': 'BullX Trading Backend is active and fast 24/7'}), 200
 
 def start_keep_alive_ping():
-    import threading, time, requests
+    import threading, time
     def _ping():
         time.sleep(3)
         while True:
@@ -1235,10 +1225,6 @@ def start_keep_alive_ping():
     t.start()
 
 start_keep_alive_ping()
-
-# ============================================
-# CREATE DATABASE AND RUN
-# ============================================
 
 if __name__ == '__main__':
     import sys
