@@ -9,59 +9,40 @@
 
 .main-content {
   flex: 1;
-  padding: 24px;
-  max-width: 1440px;
+  padding: 20px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+@media (max-width: 768px) {
+  .main-content {
+    padding: 12px;
   }
 }
 
-.fade-in {
-  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes pulseGlow {
-  0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(56, 189, 248, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
-}
-
-.pulse {
-  animation: pulseGlow 2s infinite;
-}
-
-/* Glass & Card Styles */
+/* Minimalist Card & UI Elements */
 .soft-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-soft);
-  transition: all 0.2s ease;
+  box-shadow: var(--shadow-subtle);
+  transition: border-color 0.2s ease, transform 0.15s ease;
 }
 
 .soft-card:hover {
-  border-color: #334666;
+  border-color: #374151;
 }
 
 .soft-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: -0.2px;
 }
 
 .soft-badge.positive {
@@ -74,62 +55,59 @@
   color: var(--accent-rose);
 }
 
-/* Interactive elements */
+/* Minimalist Buttons */
 .soft-btn {
-  padding: 8px 18px;
+  padding: 8px 16px;
   border-radius: var(--radius-sm);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, opacity 0.15s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .soft-btn-primary {
-  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
+  background: var(--accent-primary);
+  color: #000000;
+  font-weight: 700;
 }
 
 .soft-btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
+  opacity: 0.9;
 }
 
 .soft-btn-success {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  background: #00d09c;
+  color: #000000;
+  font-weight: 700;
 }
 
 .soft-btn-success:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  opacity: 0.9;
 }
 
 .soft-btn-danger {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  background: #eb5b56;
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.3);
+  font-weight: 700;
 }
 
 .soft-btn-danger:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.4);
+  opacity: 0.9;
 }
 
 .soft-input {
-  background: #111a2e;
+  background: #0b0f19;
   border: 1px solid var(--border-color);
   color: var(--text-primary);
-  padding: 10px 14px;
+  padding: 9px 12px;
   border-radius: var(--radius-sm);
   outline: none;
-  font-size: 14px;
+  font-size: 13px;
   transition: border-color 0.2s ease;
 }
 
@@ -140,17 +118,27 @@
 /* Toast alert notification */
 .toast-banner {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: #1e2c45;
+  bottom: 20px;
+  right: 20px;
+  background: #111827;
   color: #ffffff;
-  padding: 14px 22px;
+  padding: 12px 18px;
   border-radius: var(--radius-md);
-  border: 1px solid #38bdf8;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-  z-index: 1000;
+  border: 1px solid #00d09c;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  z-index: 99999;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 12px;
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 10px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@media (max-width: 480px) {
+  .toast-banner {
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+  }
 }

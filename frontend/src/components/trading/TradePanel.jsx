@@ -12,21 +12,20 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
     return (
         <div className="soft-card fade-in" style={{ padding: '24px' }}>
             {/* Buy / Sell Tab Toggle */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: '#111927', padding: '4px', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: '#0b0f19', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <button
                     onClick={() => setTradeType('BUY')}
                     style={{
                         flex: 1,
-                        padding: '12px',
-                        background: tradeType === 'BUY' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
-                        color: '#ffffff',
+                        padding: '10px',
+                        background: tradeType === 'BUY' ? '#00d09c' : 'transparent',
+                        color: tradeType === 'BUY' ? '#000000' : 'var(--text-secondary)',
                         border: 'none',
-                        borderRadius: '8px',
+                        borderRadius: '6px',
                         cursor: 'pointer',
                         fontWeight: '700',
-                        fontSize: '15px',
-                        transition: 'all 0.2s',
-                        boxShadow: tradeType === 'BUY' ? '0 4px 14px rgba(16, 185, 129, 0.3)' : 'none'
+                        fontSize: '14px',
+                        transition: 'all 0.15s ease'
                     }}
                 >
                     BUY {symbol}
@@ -35,16 +34,15 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
                     onClick={() => setTradeType('SELL')}
                     style={{
                         flex: 1,
-                        padding: '12px',
-                        background: tradeType === 'SELL' ? 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)' : 'transparent',
-                        color: '#ffffff',
+                        padding: '10px',
+                        background: tradeType === 'SELL' ? '#eb5b56' : 'transparent',
+                        color: tradeType === 'SELL' ? '#ffffff' : 'var(--text-secondary)',
                         border: 'none',
-                        borderRadius: '8px',
+                        borderRadius: '6px',
                         cursor: 'pointer',
                         fontWeight: '700',
-                        fontSize: '15px',
-                        transition: 'all 0.2s',
-                        boxShadow: tradeType === 'SELL' ? '0 4px 14px rgba(244, 63, 94, 0.3)' : 'none'
+                        fontSize: '14px',
+                        transition: 'all 0.15s ease'
                     }}
                 >
                     SELL {symbol}
