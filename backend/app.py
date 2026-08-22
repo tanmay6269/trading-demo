@@ -665,18 +665,25 @@ def register_step1():
 
         existing_user = User.query.filter(
             (db.func.lower(User.email) == email.strip().lower()) | 
-            (db.func.lower(User.username) == username.strip().lower())
+            (db.func.lower(User.full_name) == username.strip().lower())
         ).first()
 
         if not existing_user:
-            user = User(username=username, email=email, phone=phone, is_verified=False)
-            user.set_password(password)
+            user = User(
+                full_name=username, 
+                email=email, 
+                phone_number=phone or f"91{random.randint(1000000000, 9999999999)}", 
+                is_email_verified=False,
+                is_phone_verified=False
+            )
             db.session.add(user)
+            db.session.flush()
+            user.set_password(password)
         else:
-            # Overwrite draft/existing account with new password and send fresh OTP
-            existing_user.username = username
+            existing_user.full_name = username
             existing_user.email = email
-            existing_user.phone = phone
+            if phone:
+                existing_user.phone_number = phone
             existing_user.set_password(password)
             user = existing_user
 
