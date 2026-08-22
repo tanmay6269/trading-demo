@@ -205,7 +205,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
             </div>
 
             {/* Sub Navigation Bar */}
-            <div style={{
+            <div className="desktop-subtabs" style={{
                 display: 'flex',
                 padding: '0 24px',
                 gap: '24px',

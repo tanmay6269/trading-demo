@@ -1,4 +1,4 @@
-/* App Layout Utilities - Minimalist & Asymmetric */
+/* App Layout Utilities - Minimalist, Asymmetric & Device-Adaptive */
 .app-container {
   min-height: 100vh;
   background-color: var(--bg-dark);
@@ -17,7 +17,7 @@
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 16px;
+    padding: 16px 12px 72px 12px; /* Bottom padding so bottom nav doesn't overlap content */
   }
 }
 
@@ -138,6 +138,51 @@
   .toast-banner {
     left: 12px;
     right: 12px;
-    bottom: 16px;
+    bottom: 68px; /* Above mobile bottom bar */
   }
+}
+
+/* Mobile Bottom Navigation Bar (Phone view only) */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: #14161d;
+  border-top: 1px solid #222531;
+  z-index: 9000;
+  justify-content: space-around;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex;
+  }
+  
+  .desktop-subtabs {
+    display: none !important;
+  }
+}
+
+.mobile-nav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  padding: 6px 0;
+  flex: 1;
+}
+
+.mobile-nav-btn.active {
+  color: #6C5CE7;
+  font-weight: 700;
 }

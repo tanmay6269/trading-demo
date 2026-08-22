@@ -271,6 +271,29 @@ function App() {
         {renderContent()}
       </main>
 
+      {/* Mobile Bottom Navigation Bar (Phone view) */}
+      <div className="mobile-bottom-nav">
+        {[
+          { id: 'explore', icon: '📈', label: 'Explore' },
+          { id: 'holdings', icon: '💼', label: 'Holdings' },
+          { id: 'positions', icon: '⚡', label: 'Positions' },
+          { id: 'orders', icon: '📋', label: 'Orders' },
+          { id: 'watchlist', icon: '⭐', label: 'Watchlist' },
+        ].map((item) => {
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`mobile-nav-btn ${isActive ? 'active' : ''}`}
+            >
+              <span style={{ fontSize: '16px' }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* User Profile & KYC Modal */}
       <ProfileModal
         isOpen={isProfileOpen}
@@ -285,7 +308,7 @@ function App() {
       {toastMsg && (
         <div className="toast-banner fade-in">
           <span>🔔</span>
-          <span style={{ fontWeight: '600', fontSize: '14px' }}>{toastMsg}</span>
+          <span style={{ fontWeight: '600', fontSize: '13px' }}>{toastMsg}</span>
         </div>
       )}
     </div>
