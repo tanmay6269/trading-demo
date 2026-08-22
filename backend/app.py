@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.ext.hybrid import hybrid_property
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import bcrypt
 from datetime import datetime, timedelta
@@ -93,11 +94,11 @@ class User(UserMixin, db.Model):
         return self.user_id
 
     # Backward compatibility properties
-    @property
+    @hybrid_property
     def id(self):
         return self.user_id
 
-    @property
+    @hybrid_property
     def username(self):
         return self.full_name
 
@@ -105,7 +106,7 @@ class User(UserMixin, db.Model):
     def username(self, val):
         self.full_name = val
 
-    @property
+    @hybrid_property
     def phone(self):
         return self.phone_number
 
