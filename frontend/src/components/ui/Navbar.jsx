@@ -49,12 +49,12 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                         <BullMarketIcon size={42} />
                         <h2 style={{ 
                             margin: 0, 
-                            fontSize: '22px', 
-                            fontWeight: '900', 
+                            fontSize: '20px', 
+                            fontWeight: '800', 
                             letterSpacing: '-0.5px',
                             color: 'var(--text-primary)'
                         }}>
-                            Bull<span style={{ color: '#00d09c' }}>X</span>
+                            Bull<span style={{ color: '#6C5CE7' }}>X</span>
                         </h2>
                     </div>
 
@@ -70,11 +70,11 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                                     style={{
                                         background: 'transparent',
                                         border: 'none',
-                                        color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                        fontSize: '15px',
-                                        fontWeight: isActive ? '800' : '600',
+                                        color: isActive ? '#6C5CE7' : 'var(--text-secondary)',
+                                        fontSize: '14px',
+                                        fontWeight: isActive ? '700' : '500',
                                         cursor: 'pointer',
-                                        transition: 'color 0.2s ease'
+                                        transition: 'color 0.15s ease'
                                     }}
                                 >
                                     {label}
@@ -87,7 +87,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                 {/* User & Balance Bar */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
 
-                    {/* Theme Switcher Toggle (☀️ Light / 🌙 Dark) */}
+                    {/* Theme Switcher Toggle */}
                     <button
                         onClick={toggleTheme}
                         title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
@@ -96,45 +96,44 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                             border: '1px solid var(--border-color)',
                             color: 'var(--text-primary)',
                             padding: '6px 12px',
-                            borderRadius: '20px',
+                            borderRadius: '6px',
                             cursor: 'pointer',
                             fontSize: '12px',
-                            fontWeight: '700',
+                            fontWeight: '600',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px'
                         }}
                     >
-                        <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
                         <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
                     </button>
 
                     {/* Notification Bell Badge */}
                     <div style={{
                         position: 'relative',
-                        background: '#111927',
-                        padding: '8px',
-                        borderRadius: '50%',
+                        background: '#14161d',
+                        padding: '6px',
+                        borderRadius: '6px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: '36px',
-                        height: '36px',
+                        width: '34px',
+                        height: '34px',
                         border: '1px solid var(--border-color)'
                     }}>
-                        <span style={{ fontSize: '15px' }}>🔔</span>
+                        <span style={{ fontSize: '14px' }}>🔔</span>
                         <span style={{
                             position: 'absolute',
-                            top: '-2px',
-                            right: '-2px',
-                            background: 'var(--accent-rose)',
+                            top: '-3px',
+                            right: '-3px',
+                            background: '#6C5CE7',
                             color: '#ffffff',
-                            fontSize: '10px',
-                            fontWeight: '800',
+                            fontSize: '9px',
+                            fontWeight: '700',
                             borderRadius: '50%',
-                            width: '16px',
-                            height: '16px',
+                            width: '14px',
+                            height: '14px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
@@ -143,16 +142,16 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
 
                     {/* Live Balance Pill */}
                     <div style={{
-                        background: 'var(--accent-emerald-soft)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
-                        padding: '6px 14px',
-                        borderRadius: '20px',
+                        background: 'rgba(108, 92, 231, 0.08)',
+                        border: '1px solid rgba(108, 92, 231, 0.2)',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px'
                     }}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>💰 Demo</span>
-                        <span style={{ fontWeight: '800', color: 'var(--accent-emerald)', fontSize: '14px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Demo Balance:</span>
+                        <span style={{ fontWeight: '700', color: '#6C5CE7', fontSize: '13px' }}>
                             ₹{(balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                     </div>
@@ -161,43 +160,39 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                     <button
                         onClick={onLockApp}
                         className="soft-btn"
-                        title="Lock BullX Terminal with 4-Digit Security PIN"
+                        title="Lock Terminal"
                         style={{
-                            background: '#111927',
+                            background: '#14161d',
                             border: '1px solid var(--border-color)',
                             color: 'var(--text-primary)',
                             padding: '6px 12px',
-                            borderRadius: '8px',
+                            borderRadius: '6px',
                             fontSize: '12px',
-                            fontWeight: '700',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
+                            fontWeight: '600',
+                            cursor: 'pointer'
                         }}
                     >
-                        🔒 Lock
+                        Lock
                     </button>
 
                     {/* User Avatar */}
                     <div 
                         style={{
-                            width: '38px',
-                            height: '38px',
-                            borderRadius: '50%',
-                            background: profilePic ? 'none' : 'linear-gradient(135deg, #818cf8 0%, #00d09c 100%)',
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '6px',
+                            background: '#6C5CE7',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: '#ffffff',
-                            fontWeight: '800',
-                            fontSize: '15px',
+                            fontWeight: '700',
+                            fontSize: '14px',
                             cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(0, 208, 156, 0.3)',
                             overflow: 'hidden',
-                            border: '2px solid #00d09c'
+                            border: '1px solid #6C5CE7'
                         }} 
-                        title={`Logged in as ${username} · Click to View & Edit Profile`} 
+                        title={`Logged in as ${username}`} 
                         onClick={onOpenProfile}
                     >
                         {profilePic ? (
@@ -209,10 +204,10 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                 </div>
             </div>
 
-            {/* Sub Navigation Bar: Explore | Holdings | Positions | Orders | Watchlist | Terminal */}
+            {/* Sub Navigation Bar */}
             <div style={{
                 display: 'flex',
-                padding: '0 28px',
+                padding: '0 24px',
                 gap: '24px',
                 background: 'var(--bg-surface)',
                 overflowX: 'auto'
@@ -224,15 +219,15 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             style={{
-                                padding: '12px 0',
+                                padding: '10px 0',
                                 background: 'transparent',
-                                color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                color: isActive ? '#6C5CE7' : 'var(--text-secondary)',
                                 border: 'none',
-                                borderBottom: isActive ? '3px solid var(--accent-primary)' : '3px solid transparent',
+                                borderBottom: isActive ? '2px solid #6C5CE7' : '2px solid transparent',
                                 cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: isActive ? '700' : '600',
-                                transition: 'all 0.2s ease',
+                                fontSize: '13px',
+                                fontWeight: isActive ? '700' : '500',
+                                transition: 'all 0.15s ease',
                                 whiteSpace: 'nowrap'
                             }}
                         >

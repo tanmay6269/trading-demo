@@ -1,55 +1,55 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-dark: #0b0f19;
-  --bg-surface: #111827;
-  --bg-surface-hover: #1f2937;
-  --bg-card: #111827;
-  --border-color: #1f2937;
-  --border-focus: #00d09c;
+  /* Strict 1 Accent Color Minimalist Palette */
+  --accent-primary: #6C5CE7;
+  --accent-soft: rgba(108, 92, 231, 0.12);
+  --border-focus: #6C5CE7;
   
-  --accent-primary: #00d09c;
-  --accent-secondary: #3b82f6;
+  --bg-dark: #0d0e12;
+  --bg-surface: #14161d;
+  --bg-surface-hover: #1c1f2b;
+  --bg-card: #14161d;
+  --border-color: #222531;
+  
+  /* Market Prices Indicators */
   --accent-emerald: #00d09c;
   --accent-emerald-soft: rgba(0, 208, 156, 0.1);
   --accent-rose: #eb5b56;
   --accent-rose-soft: rgba(235, 91, 86, 0.1);
-  --accent-amber: #f59e0b;
   
-  --text-primary: #f9fafb;
+  --text-primary: #f3f4f6;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
   
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 
-  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="light"] {
+  --accent-primary: #6C5CE7;
+  --accent-soft: rgba(108, 92, 231, 0.1);
+  --border-focus: #6C5CE7;
+  
   --bg-dark: #f8fafc;
   --bg-surface: #ffffff;
   --bg-surface-hover: #f1f5f9;
   --bg-card: #ffffff;
   --border-color: #e2e8f0;
-  --border-focus: #00d09c;
   
-  --accent-primary: #00d09c;
-  --accent-secondary: #2563eb;
   --accent-emerald: #00d09c;
   --accent-emerald-soft: rgba(0, 208, 156, 0.1);
   --accent-rose: #dc2626;
   --accent-rose-soft: rgba(220, 38, 38, 0.1);
-  --accent-amber: #d97706;
   
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-muted: #9ca3af;
 
-  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 * {
@@ -69,13 +69,12 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Minimalist Scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -83,8 +82,8 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1f2937;
-  border-radius: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

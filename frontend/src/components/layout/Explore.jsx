@@ -291,30 +291,25 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                     )}
                 </div>
 
-                {/* 🌐 All Indices Button */}
+                {/* All Indices Button */}
                 <button
                     onClick={onOpenAllIndices}
                     title="View All Indian & Global Indices"
                     style={{
-                        background: 'linear-gradient(135deg, #182234 0%, #26354d 100%)',
-                        border: '1px solid var(--accent-primary)',
-                        color: '#ffffff',
+                        background: '#14161d',
+                        border: '1px solid #6C5CE7',
+                        color: '#6C5CE7',
                         padding: '6px 14px',
-                        borderRadius: '20px',
+                        borderRadius: '6px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        fontSize: '13px',
-                        fontWeight: '700',
-                        whiteSpace: 'nowrap',
-                        boxShadow: 'var(--shadow-soft)',
-                        transition: 'transform 0.2s ease'
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        whiteSpace: 'nowrap'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.04)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1.0)'}
                 >
-                    <span style={{ fontSize: '16px' }}>🌐</span>
                     <span>All Indices</span>
                 </button>
             </div>

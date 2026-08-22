@@ -319,33 +319,32 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
         }}>
             <div className="soft-card fade-in" style={{
                 width: '100%',
-                maxWidth: '440px',
-                padding: '32px 28px',
-                background: '#182234',
+                maxWidth: '400px',
+                padding: '36px 32px',
+                background: '#14161d',
                 border: '1px solid var(--border-color)',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
-                borderRadius: '20px',
-                textAlign: 'center'
+                borderRadius: '8px',
+                textAlign: 'left'
             }}>
-                {/* BullX Logo & Header */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <BullMarketIcon size={96} />
-                    <span style={{ fontSize: '32px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-                        Bull<span style={{ color: '#00d09c' }}>X</span>
+                {/* Logo & Asymmetric Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <BullMarketIcon size={32} />
+                    <span style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
+                        Bull<span style={{ color: '#6C5CE7' }}>X</span>
                     </span>
                 </div>
 
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', fontWeight: '600' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', fontWeight: '500' }}>
                     BSE & NSE Stock Trading Platform
                 </div>
 
-                {/* Groww Tab Mode Switcher: Sign In vs Create Account */}
+                {/* Tab Switcher: Sign In vs Create Account */}
                 {mode !== 'pin_unlock' && step === 1 && (
                     <div style={{
                         display: 'flex',
-                        background: '#111927',
-                        padding: '4px',
-                        borderRadius: '12px',
+                        background: '#0d0e12',
+                        padding: '3px',
+                        borderRadius: '6px',
                         marginBottom: '24px',
                         border: '1px solid var(--border-color)'
                     }}>
@@ -353,15 +352,15 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                             onClick={() => { setMode('login'); setErrorMsg(''); }}
                             style={{
                                 flex: 1,
-                                padding: '9px',
-                                borderRadius: '8px',
+                                padding: '8px',
+                                borderRadius: '4px',
                                 border: 'none',
-                                background: mode === 'login' ? 'var(--accent-primary)' : 'transparent',
+                                background: mode === 'login' ? '#6C5CE7' : 'transparent',
                                 color: mode === 'login' ? '#ffffff' : 'var(--text-secondary)',
-                                fontWeight: '800',
+                                fontWeight: '600',
                                 fontSize: '13px',
                                 cursor: 'pointer',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.15s'
                             }}
                         >
                             Sign In
@@ -370,15 +369,15 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                             onClick={() => { setMode('register'); setErrorMsg(''); }}
                             style={{
                                 flex: 1,
-                                padding: '9px',
-                                borderRadius: '8px',
+                                padding: '8px',
+                                borderRadius: '4px',
                                 border: 'none',
-                                background: mode === 'register' ? 'var(--accent-emerald)' : 'transparent',
+                                background: mode === 'register' ? '#6C5CE7' : 'transparent',
                                 color: mode === 'register' ? '#ffffff' : 'var(--text-secondary)',
-                                fontWeight: '800',
+                                fontWeight: '600',
                                 fontSize: '13px',
                                 cursor: 'pointer',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.15s'
                             }}
                         >
                             Create Account
@@ -407,41 +406,41 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                 {mode === 'pin_unlock' && (
                     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{
-                            width: '64px',
-                            height: '64px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #818cf8 0%, #38bdf8 100%)',
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '6px',
+                            background: '#6C5CE7',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '28px',
-                            marginBottom: '12px',
-                            boxShadow: '0 8px 24px rgba(56, 189, 248, 0.3)'
+                            color: '#ffffff',
+                            fontSize: '20px',
+                            fontWeight: '700',
+                            marginBottom: '16px'
                         }}>
-                            👤
+                            {authenticatedUser ? authenticatedUser.charAt(0).toUpperCase() : 'U'}
                         </div>
 
-                        <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                            Welcome Back, {authenticatedUser || 'Trader'}
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                            Welcome back, {authenticatedUser || 'Trader'}
                         </h3>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-                            🔒 Enter 4-digit Security PIN to unlock Groww Terminal
+                            Enter 4-digit Security PIN to unlock Terminal
                         </div>
 
                         {/* 4 PIN Dots Display */}
-                        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '20px' }}>
                             {[0, 1, 2, 3].map((idx) => {
                                 const filled = mpin[idx] !== '';
                                 return (
                                     <div
                                         key={idx}
                                         style={{
-                                            width: '18px',
-                                            height: '18px',
+                                            width: '14px',
+                                            height: '14px',
                                             borderRadius: '50%',
-                                            background: filled ? 'var(--accent-emerald)' : 'transparent',
-                                            border: filled ? '2px solid var(--accent-emerald)' : '2px solid var(--border-color)',
-                                            boxShadow: filled ? '0 0 12px rgba(0, 208, 156, 0.6)' : 'none',
+                                            background: filled ? '#6C5CE7' : 'transparent',
+                                            border: filled ? '1.5px solid #6C5CE7' : '1.5px solid var(--border-color)',
                                             transition: 'all 0.15s ease'
                                         }}
                                     />

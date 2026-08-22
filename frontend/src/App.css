@@ -1,4 +1,4 @@
-/* App Layout Utilities */
+/* App Layout Utilities - Minimalist & Asymmetric */
 .app-container {
   min-height: 100vh;
   background-color: var(--bg-dark);
@@ -9,36 +9,36 @@
 
 .main-content {
   flex: 1;
-  padding: 20px;
-  max-width: 1400px;
+  padding: 32px 24px;
+  max-width: 1360px;
   margin: 0 auto;
   width: 100%;
 }
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 12px;
+    padding: 16px;
   }
 }
 
-/* Minimalist Card & UI Elements */
+/* Minimalist Flat Card */
 .soft-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-subtle);
-  transition: border-color 0.2s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
 .soft-card:hover {
-  border-color: #374151;
+  border-color: #2e3346;
 }
 
 .soft-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 2px 8px;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
@@ -55,7 +55,7 @@
   color: var(--accent-rose);
 }
 
-/* Minimalist Buttons */
+/* Minimalist Buttons - Single Accent #6C5CE7 */
 .soft-btn {
   padding: 8px 16px;
   border-radius: var(--radius-sm);
@@ -63,7 +63,7 @@
   font-size: 13px;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s ease, opacity 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -71,13 +71,13 @@
 }
 
 .soft-btn-primary {
-  background: var(--accent-primary);
-  color: #000000;
-  font-weight: 700;
+  background: #6C5CE7;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .soft-btn-primary:hover {
-  opacity: 0.9;
+  background: #5b4bc4;
 }
 
 .soft-btn-success {
@@ -101,38 +101,37 @@
 }
 
 .soft-input {
-  background: #0b0f19;
+  background: #0d0e12;
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   padding: 9px 12px;
   border-radius: var(--radius-sm);
   outline: none;
   font-size: 13px;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 
 .soft-input:focus {
-  border-color: var(--border-focus);
+  border-color: #6C5CE7;
 }
 
-/* Toast alert notification */
+/* Toast alert notification - Minimalist */
 .toast-banner {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #111827;
+  bottom: 24px;
+  right: 24px;
+  background: #14161d;
   color: #ffffff;
-  padding: 12px 18px;
+  padding: 12px 20px;
   border-radius: var(--radius-md);
-  border: 1px solid #00d09c;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border: 1px solid #6C5CE7;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   z-index: 99999;
   font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
-  animation: fadeIn 0.2s ease-out;
 }
 
 @media (max-width: 480px) {
