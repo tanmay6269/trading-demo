@@ -21,7 +21,8 @@ from groww_data import (
     get_stock_info,
     INDIAN_STOCKS,
     get_all_stocks,
-    get_prices
+    get_prices,
+    get_option_chain
 )
 
 # Load environment variables
@@ -1121,6 +1122,15 @@ def get_historical(symbol):
         # Ensure candles are sorted strictly ascending by timestamp
         sorted_candles = sorted(candles, key=lambda x: x['time'])
         return jsonify(sorted_candles)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/option-chain/<symbol>', methods=['GET'])
+def get_option_chain_route(symbol):
+    try:
+        expiry = request.args.get('expiry')
+        data = get_option_chain(symbol, expiry)
+        return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

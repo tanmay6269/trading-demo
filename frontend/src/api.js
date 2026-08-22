@@ -211,6 +211,12 @@ export const api = {
         return handleResponse(res);
     },
 
+    getOptionChain: async (symbol, expiry = '') => {
+        const query = expiry ? `?expiry=${encodeURIComponent(expiry)}` : '';
+        const res = await fetch(`${API_BASE_URL}/option-chain/${symbol}${query}`);
+        return handleResponse(res);
+    },
+
     // Watchlist & Trading
     getWatchlist: async () => {
         const res = await fetch(`${API_BASE_URL}/watchlist`, { credentials: 'include' });

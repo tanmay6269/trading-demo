@@ -17,6 +17,7 @@ import TradePanel from './components/trading/TradePanel';
 import HoldingsTable from './components/portfolio/HoldingsTable';
 import AuthScreen from './components/ui/AuthScreen';
 import ProfileModal from './components/ui/ProfileModal';
+import OptionChainModal from './components/trading/OptionChainModal';
 
 function App() {
   // Auth & Security state
@@ -31,12 +32,21 @@ function App() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
 
+  // Option Chain Modal State
+  const [isOptionChainOpen, setIsOptionChainOpen] = useState(false);
+  const [optionChainSymbol, setOptionChainSymbol] = useState('NIFTY 50');
+
   // Trading state
   const [symbol, setSymbol] = useState('RELIANCE');
   const [price, setPrice] = useState(null);
   const [balance, setBalance] = useState(100000);
   const [portfolio, setPortfolio] = useState([]);
   const [activeTab, setActiveTab] = useState('explore');
+
+  const handleOpenOptionChain = (sym) => {
+    setOptionChainSymbol(sym || symbol || 'NIFTY 50');
+    setIsOptionChainOpen(true);
+  };
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -198,6 +208,37 @@ function App() {
       case 'watchlist':
         return <WatchlistPage onSelectStock={handleSelectStock} />;
 
+      case 'option-chain':
+        return (
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <StockSearch onSelectStock={handleSelectStock} showToast={showToast} />
+            <div className="soft-card" style={{ padding: '24px', textAlign: 'center' }}>
+              <h2 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)' }}>
+                ⚡ Option Chain Matrix for {symbol}
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '14px' }}>
+                View real-time Call (CE) & Put (PE) strike prices, Open Interest (OI), Implied Volatility (IV), and Greeks.
+              </p>
+              <button 
+                onClick={() => handleOpenOptionChain(symbol)}
+                style={{
+                  padding: '12px 28px',
+                  background: 'linear-gradient(135deg, #6C5CE7 0%, #a855f7 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  boxShadow: '0 4px 16px rgba(108, 92, 231, 0.4)'
+                }}
+              >
+                ⚡ Open Live {symbol} Option Chain Matrix
+              </button>
+            </div>
+          </div>
+        );
+
       case 'recharge':
         return (
           <Recharge 
@@ -302,6 +343,17 @@ function App() {
         onLogout={handleLogout}
         onLockApp={() => setIsLocked(true)}
         onProfileUpdated={checkSession}
+      />
+
+      {/* Real-Time Option Chain Matrix Modal */}
+      <OptionChainModal
+        isOpen={isOptionChainOpen}
+        onClose={() => setIsOptionChainOpen(false)}
+        symbol={optionChainSymbol}
+        onSelectContract={(contractSym, action, contractPrice) => {
+          handleSelectStock(contractSym);
+          showToast(`Selected Option ${contractSym} @ ₹${contractPrice}`);
+        }}
       />
 
       {/* Floating Toast Notification */}

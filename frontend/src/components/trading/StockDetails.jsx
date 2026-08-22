@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api';
 import PriceChart from './PriceChart';
 import StockLogo from '../ui/StockLogo';
+import OptionChainModal from './OptionChainModal';
 
 const INDEX_COMPANIES = {
     '^NSEI': [
@@ -1118,6 +1119,17 @@ const StockDetails = ({
                 </div>
             )}
 
+            {showOptionChainModal && (
+                <OptionChainModal
+                    isOpen={showOptionChainModal}
+                    onClose={() => setShowOptionChainModal(false)}
+                    symbol={symbol}
+                    onSelectContract={(contractSym, action, contractPrice) => {
+                        if (onSelectStock) onSelectStock(contractSym);
+                        if (showToast) showToast(`Selected ${contractSym} @ ₹${contractPrice}`);
+                    }}
+                />
+            )}
         </div>
     );
 };

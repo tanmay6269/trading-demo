@@ -18,6 +18,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
         { id: 'orders', label: 'Orders' },
         { id: 'watchlist', label: 'Watchlist' },
         { id: 'trading', label: 'Trade & Chart' },
+        { id: 'option-chain', label: 'Option Chain ⚡' },
         { id: 'recharge', label: 'Recharge Funds' },
     ];
 
