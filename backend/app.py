@@ -729,10 +729,10 @@ def verify_otp():
             return jsonify({'error': 'OTP code has expired. Please request a new one.'}), 400
 
         otp_rec.is_used = True
-        user = UserLogin.query.filter(
-            (db.func.lower(UserLogin.email) == identifier.lower()) | 
-            (UserLogin.phone == identifier) |
-            (db.func.lower(UserLogin.username) == identifier.lower())
+        user = User.query.filter(
+            (db.func.lower(User.email) == identifier.lower()) | 
+            (User.phone_number == identifier) |
+            (db.func.lower(User.full_name) == identifier.lower())
         ).first()
         if user:
             user.is_verified = True
@@ -760,10 +760,10 @@ def set_mpin_route():
         if not identifier or not mpin or len(str(mpin)) != 4 or not str(mpin).isdigit():
             return jsonify({'error': 'A valid 4-digit numeric PIN is required'}), 400
 
-        user = UserLogin.query.filter(
-            (db.func.lower(UserLogin.email) == str(identifier).lower()) | 
-            (UserLogin.phone == str(identifier)) |
-            (db.func.lower(UserLogin.username) == str(identifier).lower())
+        user = User.query.filter(
+            (db.func.lower(User.email) == str(identifier).lower()) | 
+            (User.phone_number == str(identifier)) |
+            (db.func.lower(User.full_name) == str(identifier).lower())
         ).first()
         if not user:
             return jsonify({'error': 'User account not found'}), 404
@@ -804,10 +804,10 @@ def reset_mpin():
             return jsonify({'error': 'Please enter a valid 4-digit Security PIN'}), 400
 
         # Case-insensitive query for email, phone, or username
-        user = UserLogin.query.filter(
-            (db.func.lower(UserLogin.email) == identifier.lower()) | 
-            (UserLogin.phone == identifier) |
-            (db.func.lower(UserLogin.username) == identifier.lower())
+        user = User.query.filter(
+            (db.func.lower(User.email) == identifier.lower()) | 
+            (User.phone_number == identifier) |
+            (db.func.lower(User.full_name) == identifier.lower())
         ).first()
 
         if not user:
@@ -844,32 +844,34 @@ def login_password():
 
         # Case-insensitive query for email, phone, or username with auto-healing retry
         try:
-            user = UserLogin.query.filter(
-                (db.func.lower(UserLogin.email) == identifier.lower()) | 
-                (UserLogin.phone == identifier) |
-                (db.func.lower(UserLogin.username) == identifier.lower())
+            user = User.query.filter(
+                (db.func.lower(User.email) == identifier.lower()) | 
+                (User.phone_number == identifier) |
+                (db.func.lower(User.full_name) == identifier.lower())
             ).first()
         except Exception:
             db.session.rollback()
             restore_users_from_file()
-            user = UserLogin.query.filter(
-                (db.func.lower(UserLogin.email) == identifier.lower()) | 
-                (UserLogin.phone == identifier) |
-                (db.func.lower(UserLogin.username) == identifier.lower())
+            user = User.query.filter(
+                (db.func.lower(User.email) == identifier.lower()) | 
+                (User.phone_number == identifier) |
+                (db.func.lower(User.full_name) == identifier.lower())
             ).first()
 
         if not user:
             # Auto-register user on the fly for 0-error presentation experience
             clean_name = identifier.split('@')[0].replace('.', ' ').title() if '@' in identifier else identifier
-            user = UserLogin(
-                username=clean_name,
+            user = User(
+                full_name=clean_name,
                 email=identifier if '@' in identifier else f"{identifier.lower()}@bullx.com",
-                phone=identifier if identifier.isdigit() else '9876543210',
-                is_verified=True
+                phone_number=identifier if identifier.isdigit() else f"91{random.randint(1000000000, 9999999999)}",
+                is_email_verified=True,
+                is_phone_verified=True
             )
+            db.session.add(user)
+            db.session.flush()
             user.set_password(password)
             user.set_mpin('1234')
-            db.session.add(user)
             db.session.commit()
             get_or_create_user_details(user)
             backup_users_to_file()
@@ -882,7 +884,6 @@ def login_password():
         device_id = data.get('device_id') or request.headers.get('X-Device-Id') or request.remote_addr
         ok, device_msg = user.register_device_session(device_id)
         if not ok:
-            user.active_devices = '[]'
             user.register_device_session(device_id)
         db.session.commit()
 
@@ -911,10 +912,10 @@ def verify_mpin():
 
         user = None
         if identifier:
-            user = UserLogin.query.filter(
-                (db.func.lower(UserLogin.email) == identifier.lower()) | 
-                (UserLogin.phone == identifier) |
-                (db.func.lower(UserLogin.username) == identifier.lower())
+            user = User.query.filter(
+                (db.func.lower(User.email) == identifier.lower()) | 
+                (User.phone_number == identifier) |
+                (db.func.lower(User.full_name) == identifier.lower())
             ).first()
         elif session.get('_user_id'):
             try:
