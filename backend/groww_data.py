@@ -1824,7 +1824,20 @@ def get_option_chain(symbol, expiry=None):
         selected_expiry = expiry if (expiry and expiry in expiries) else expiries[0]
 
         # 5. Lot Size Calculation
-        lot_size = 50 if 'NIFTY' in clean_sym else 15 if 'BANK' in clean_sym else 250 if spot_price > 1000 else 500
+        NSE_LOT_SIZES = {
+            'NIFTY 50': 50, 'NIFTY': 50, '^NSEI': 50, 'BANK NIFTY': 15, 'NIFTY BANK': 15, '^NSEBANK': 15,
+            'FINNIFTY': 25, 'SENSEX': 10, '^BSESN': 10, 'RELIANCE': 250, 'TCS': 175, 'HDFCBANK': 550,
+            'INFY': 400, 'ICICIBANK': 700, 'SBIN': 750, 'BHARTIARTL': 475, 'ITC': 1600, 'WIPRO': 1500,
+            'HCLTECH': 350, 'TATAMOTORS': 1425, 'TATASTEEL': 5500, 'SUNPHARMA': 350, 'AXISBANK': 625,
+            'MARUTI': 50, 'BAJFINANCE': 125, 'KOTAKBANK': 400, 'LT': 150, 'ADANIENT': 300, 'TITAN': 175,
+            'ULTRACEMCO': 100, 'ASIANPAINT': 200, 'COALINDIA': 2100, 'NTPC': 1500, 'ONGC': 3850,
+            'POWERGRID': 1800, 'JSWSTEEL': 675, 'HINDUNILVR': 300, 'M&M': 350, 'LTIM': 150,
+            'INDUSINDBK': 500, 'GRASIM': 250, 'TECHM': 600, 'HDFCLIFE': 1100, 'SBILIFE': 375,
+            'HEROMOTOCO': 150, 'BAJAJ-AUTO': 75, 'EICHERMOT': 175, 'BPCL': 1800, 'DIVISLAB': 150,
+            'APOLLOHOSP': 125, 'CIPLA': 650, 'DRREDDY': 125, 'BRITANNIA': 200, 'TATACONSUM': 450,
+            'NESTLEIND': 250, 'BEL': 2700, 'HAL': 300, 'TRENT': 100, 'ZOMATO': 2000, 'JIOFIN': 2400
+        }
+        lot_size = NSE_LOT_SIZES.get(clean_sym, NSE_LOT_SIZES.get(target_sym, 250 if spot_price > 1000 else 500))
 
         # 6. Option Chain Rows & Pricing Model
         chain_rows = []

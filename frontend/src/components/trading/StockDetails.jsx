@@ -941,7 +941,7 @@ const StockDetails = ({
                                             {filteredOptions.map((opt, idx) => (
                                                 <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                                     <td style={{ padding: '10px 14px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                                        NIFTY {opt.strike} {opt.type}
+                                                        {displaySymbol} {opt.strike} {opt.type}
                                                         <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{opt.expiry}</div>
                                                     </td>
                                                     <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: '800', color: 'var(--text-primary)' }}>
@@ -1020,7 +1020,7 @@ const StockDetails = ({
                                 >
                                     <div>
                                         <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)' }}>
-                                            NIFTY {opt.strike} <span style={{ color: opt.type === 'Call' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>{opt.type}</span>
+                                            {displaySymbol} {opt.strike} <span style={{ color: opt.type === 'Call' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>{opt.type}</span>
                                         </div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
@@ -1040,85 +1040,7 @@ const StockDetails = ({
 
             </div>
 
-            {/* Interactive Option Chain Modal Popup */}
-            {showOptionChainModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.8)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 2000,
-                    padding: '20px'
-                }}>
-                    <div className="soft-card fade-in" style={{
-                        width: '100%',
-                        maxWidth: '900px',
-                        maxHeight: '90vh',
-                        overflowY: 'auto',
-                        padding: '24px',
-                        background: '#182234',
-                        border: '1px solid var(--accent-emerald)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '800' }}>
-                                🔗 {displaySymbol} Option Chain Table
-                            </h2>
-                            <button
-                                onClick={() => setShowOptionChainModal(false)}
-                                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '20px', cursor: 'pointer' }}
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px' }}>
-                                <thead>
-                                    <tr style={{ background: '#111927', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>
-                                        <th colSpan="3" style={{ padding: '10px', color: 'var(--accent-emerald)' }}>CALLS</th>
-                                        <th style={{ padding: '10px', background: '#212e44', color: 'var(--text-primary)' }}>STRIKE</th>
-                                        <th colSpan="3" style={{ padding: '10px', color: 'var(--accent-rose)' }}>PUTS</th>
-                                    </tr>
-                                    <tr style={{ background: '#111927', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-                                        <th style={{ padding: '8px' }}>OI</th>
-                                        <th style={{ padding: '8px' }}>IV</th>
-                                        <th style={{ padding: '8px' }}>LTP</th>
-                                        <th style={{ padding: '8px', background: '#212e44' }}>PRICE</th>
-                                        <th style={{ padding: '8px' }}>LTP</th>
-                                        <th style={{ padding: '8px' }}>IV</th>
-                                        <th style={{ padding: '8px' }}>OI</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {[24200, 24250, 24300, 24350, 24400, 24450, 24500].map((strike) => {
-                                        const callLtp = roundNum(Math.max(10, (24500 - strike) * 0.85 + 20));
-                                        const putLtp = roundNum(Math.max(10, (strike - 24200) * 0.85 + 15));
-                                        const isAtm = strike === 24350;
-
-                                        return (
-                                            <tr key={strike} style={{ borderBottom: '1px solid var(--border-color)', background: isAtm ? '#1e2c45' : 'transparent' }}>
-                                                <td style={{ padding: '8px', color: 'var(--text-secondary)' }}>1,24,500</td>
-                                                <td style={{ padding: '8px', color: 'var(--text-muted)' }}>12.4%</td>
-                                                <td style={{ padding: '8px', fontWeight: '800', color: 'var(--accent-emerald)' }}>₹{callLtp}</td>
-                                                <td style={{ padding: '8px', fontWeight: '800', background: '#212e44', color: 'var(--text-primary)' }}>{strike}</td>
-                                                <td style={{ padding: '8px', fontWeight: '800', color: 'var(--accent-rose)' }}>₹{putLtp}</td>
-                                                <td style={{ padding: '8px', color: 'var(--text-muted)' }}>13.1%</td>
-                                                <td style={{ padding: '8px', color: 'var(--text-secondary)' }}>1,56,900</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            )}
-
+            {/* Real-Time Option Chain Modal */}
             {showOptionChainModal && (
                 <OptionChainModal
                     isOpen={showOptionChainModal}
