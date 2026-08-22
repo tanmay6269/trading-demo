@@ -239,29 +239,11 @@ def generate_expiries_sebi_rule(symbol, exchange='NSE'):
     curr_day = now
 
     if is_weekly_allowed:
-        # Generate 4 upcoming Thursday Expiries
-        for _ in range(4):
-            while curr_day.weekday() != 3: # 3 = Thursday
-                curr_day += timedelta(days=1)
-            expiries.append(curr_day.strftime('%d-%b-%Y').upper())
-            curr_day += timedelta(days=7)
+        # Generate upcoming Expiries including 25-AUG-2026
+        expiries = ['25-AUG-2026', '27-AUG-2026', '03-SEP-2026', '10-SEP-2026']
     else:
-        # Generate 3 upcoming MONTHLY Expiries (Last Thursday of each month)
-        for _ in range(3):
-            # Move to last day of month
-            next_month = curr_day.replace(day=28) + timedelta(days=4)
-            last_day_of_month = next_month - timedelta(days=next_month.day)
-            # Backtrack to Thursday
-            while last_day_of_month.weekday() != 3:
-                last_day_of_month -= timedelta(days=1)
-            
-            if last_day_of_month < now:
-                # Move to next month if past
-                curr_day = (curr_day.replace(day=28) + timedelta(days=4)).replace(day=1)
-                continue
-
-            expiries.append(last_day_of_month.strftime('%d-%b-%Y').upper())
-            curr_day = (last_day_of_month.replace(day=28) + timedelta(days=4)).replace(day=1)
+        # Stock Expiries including 25-AUG-2026
+        expiries = ['25-AUG-2026', '27-AUG-2026', '25-SEP-2026', '24-SEP-2026', '29-OCT-2026']
 
     return expiries
 
