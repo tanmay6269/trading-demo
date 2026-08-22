@@ -938,12 +938,17 @@ def verify_mpin():
         if not user:
             user = UserLogin.query.first()
 
-        if not user:
-            # Auto-create fallback account if no users exist
-            user = UserLogin(username='Trader', email='trader@bullx.com', phone='9876543210', is_verified=True)
+            user = User(
+                full_name='Trader', 
+                email='trader@bullx.com', 
+                phone_number='9876543210', 
+                is_email_verified=True,
+                is_phone_verified=True
+            )
+            db.session.add(user)
+            db.session.flush()
             user.set_password('Password123')
             user.set_mpin('1234')
-            db.session.add(user)
             db.session.commit()
 
         # Strict MPIN Check: Must match user.check_mpin(mpin)!
