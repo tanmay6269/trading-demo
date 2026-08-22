@@ -489,8 +489,15 @@ def auto_heal_db_schema():
     with app.app_context():
         try:
             db.create_all()
-        except Exception as e:
-            print(f"[AUTO-HEAL ERROR]: {e}")
+            db.session.query(User.user_id, User.email, User.full_name, User.phone_number).first()
+        except Exception:
+            db.session.rollback()
+            try:
+                db.drop_all()
+                db.create_all()
+                print("[AUTO-HEAL] Database schema auto-healed & recreated successfully!")
+            except Exception as ex:
+                print(f"[AUTO-HEAL ERROR]: {ex}")
 
 with app.app_context():
     auto_heal_db_schema()
