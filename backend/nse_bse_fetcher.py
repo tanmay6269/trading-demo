@@ -126,7 +126,7 @@ OFFICIAL_LOT_SIZES = {
 }
 
 class NSEOptionChainFetcher:
-    """NSE India Browser Proxy Session Handler with cookie auto-refresh"""
+    """NSE India Browser Proxy Session Handler with cookie auto-refresh and retry backoff"""
     def __init__(self):
         self.session = requests.Session()
         self.headers = {
@@ -144,8 +144,9 @@ class NSEOptionChainFetcher:
             now = time.time()
             if now - self.last_cookie_time < 300 and len(self.session.cookies) > 0:
                 return True
-            r = self.session.get('https://www.nseindia.com', timeout=6)
-            if r.status_code == 200:
+            r1 = self.session.get('https://www.nseindia.com', timeout=6)
+            r2 = self.session.get('https://www.nseindia.com/option-chain', timeout=6)
+            if r2.status_code == 200 or r1.status_code == 200:
                 self.last_cookie_time = now
                 return True
         except Exception as e:
@@ -153,19 +154,23 @@ class NSEOptionChainFetcher:
         return False
 
     def fetch_raw_chain(self, symbol, is_index=True):
-        self.refresh_cookies()
         endpoint = 'option-chain-indices' if is_index else 'option-chain-equities'
         url = f"https://www.nseindia.com/api/{endpoint}?symbol={symbol}"
         headers = {
             'Referer': f'https://www.nseindia.com/option-chain?symbol={symbol}',
-            'User-Agent': self.headers['User-Agent']
+            'User-Agent': self.headers['User-Agent'],
+            'X-Requested-With': 'XMLHttpRequest'
         }
-        try:
-            r = self.session.get(url, headers=headers, timeout=6)
-            if r.status_code == 200:
-                return r.json()
-        except Exception as e:
-            print(f"NSE raw fetch error for {symbol}: {e}")
+        
+        for attempt in range(3):
+            self.refresh_cookies()
+            try:
+                r = self.session.get(url, headers=headers, timeout=6)
+                if r.status_code == 200 and r.text.strip().startswith('{'):
+                    return r.json()
+            except Exception as e:
+                print(f"NSE attempt {attempt+1} error for {symbol}: {e}")
+            time.sleep(0.5 * (2 ** attempt))
         return None
 
 class BSEOptionChainFetcher:
