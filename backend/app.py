@@ -628,7 +628,7 @@ def verify_otp():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/set-mpin', methods=['POST'])
-def set_mpin():
+def set_mpin_route():
     """Step 3: Set 4-Digit Security PIN (MPIN)"""
     try:
         data = request.get_json() or {}
@@ -962,7 +962,7 @@ def get_historical(symbol):
 
 @app.route('/api/watchlist', methods=['GET'])
 @login_required
-def get_watchlist():
+def get_watchlist_route():
     try:
         user = User.query.get(current_user.id)
         watchlist = user.get_watchlist()
