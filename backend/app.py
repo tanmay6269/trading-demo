@@ -50,10 +50,7 @@ if db_url:
         db_url = db_url.replace("postgres://", "postgresql://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 else:
-    try:
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:1234@127.0.0.1:3306/bullx_trading'
-    except Exception:
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///trading.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///trading.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
