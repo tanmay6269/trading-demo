@@ -211,9 +211,12 @@ export const api = {
         return handleResponse(res);
     },
 
-    getOptionChain: async (symbol, expiry = '') => {
-        const query = expiry ? `?expiry=${encodeURIComponent(expiry)}` : '';
-        const res = await fetch(`${API_BASE_URL}/option-chain/${symbol}${query}`);
+    getOptionChain: async (symbol, expiry = '', exchange = 'NSE') => {
+        const queryParams = new URLSearchParams();
+        if (expiry) queryParams.append('expiry', expiry);
+        if (exchange) queryParams.append('exchange', exchange);
+        const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+        const res = await fetch(`${API_BASE_URL}/option-chain/${symbol}${queryStr}`);
         return handleResponse(res);
     },
 

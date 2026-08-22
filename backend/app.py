@@ -1129,7 +1129,27 @@ def get_historical(symbol):
 def get_option_chain_route(symbol):
     try:
         expiry = request.args.get('expiry')
-        data = get_option_chain(symbol, expiry)
+        exchange = request.args.get('exchange', 'NSE').upper()
+        
+        # Redis Caching Key with short 3s TTL to avoid rate limiting
+        cache_key = f"optchain:{symbol}:{exchange}:{expiry or 'default'}"
+        if redis_client:
+            try:
+                cached_bytes = redis_client.get(cache_key)
+                if cached_bytes:
+                    return jsonify(json.loads(cached_bytes.decode('utf-8')))
+            except Exception:
+                pass
+
+        from nse_bse_fetcher import get_live_option_chain_advanced
+        data = get_live_option_chain_advanced(symbol, exchange, expiry)
+        
+        if redis_client and data:
+            try:
+                redis_client.setex(cache_key, 3, json.dumps(data))
+            except Exception:
+                pass
+
         return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
