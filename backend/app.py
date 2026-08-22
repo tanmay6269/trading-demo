@@ -377,13 +377,15 @@ with app.app_context():
     auto_heal_db_schema()
 
 @app.route('/api/admin/reset-db', methods=['GET', 'POST'])
+@app.route('/api/admin/wipe-database', methods=['GET', 'POST'])
 def force_reset_db():
     try:
         db.session.rollback()
         db.drop_all()
         db.create_all()
-        restore_users_from_file()
-        return jsonify({'success': True, 'message': 'Database schema reset & auto-healed successfully!'})
+        with open(USERS_BACKUP_FILE, 'w', encoding='utf-8') as f:
+            json.dump([], f)
+        return jsonify({'success': True, 'message': 'Database completely wiped and initialized fresh for new Groww architecture!'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
