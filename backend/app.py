@@ -516,6 +516,7 @@ def get_all_users_export():
         for u in users:
             dt = u.details
             data.append({
+                'user_id': u.user_id,
                 'username': u.username,
                 'email': u.email,
                 'phone': u.phone or '',
