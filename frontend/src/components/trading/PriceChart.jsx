@@ -98,24 +98,6 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                         });
                     } catch (e) {}
                     seriesInstance.setData(lineData);
-
-                    // Render Previous Close Horizontal Reference Line overlay
-                    if (prevCloseLineRef.current) {
-                        try { seriesInstance.removePriceLine(prevCloseLineRef.current); } catch (e) {}
-                        prevCloseLineRef.current = null;
-                    }
-                    if (refPrice) {
-                        try {
-                            prevCloseLineRef.current = seriesInstance.createPriceLine({
-                                price: refPrice,
-                                color: '#94a3b8',
-                                lineWidth: 1,
-                                lineStyle: 2, // Dashed reference line
-                                axisLabelVisible: true,
-                                title: `Prev Close: ₹${refPrice.toFixed(2)}`
-                            });
-                        } catch (e) {}
-                    }
                 } else {
                     seriesInstance.setData(cleanData);
                 }
@@ -185,17 +167,26 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         // Add Selected Series Type: Candlestick vs Baseline Dual-Color Line Graph
         let newSeries;
         if (chartType === 'line') {
-            const baseRefPrice = prevCloseRef.current || 1000;
-            newSeries = newChart.addBaselineSeries({
-                baseValue: { type: 'price', price: baseRefPrice },
-                topLineColor: '#00d09c', // GREEN above previous close
-                topFillColor1: 'rgba(0, 208, 156, 0.35)',
-                topFillColor2: 'rgba(0, 208, 156, 0.05)',
-                bottomLineColor: '#eb5b56', // RED below previous close
-                bottomFillColor1: 'rgba(235, 91, 86, 0.05)',
-                bottomFillColor2: 'rgba(235, 91, 86, 0.35)',
-                lineWidth: 2,
-            });
+            try {
+                const baseRefPrice = prevCloseRef.current || 1000;
+                newSeries = newChart.addBaselineSeries({
+                    baseValue: { type: 'price', price: baseRefPrice },
+                    topLineColor: '#00d09c', // GREEN above previous close
+                    topFillColor1: 'rgba(0, 208, 156, 0.35)',
+                    topFillColor2: 'rgba(0, 208, 156, 0.05)',
+                    bottomLineColor: '#eb5b56', // RED below previous close
+                    bottomFillColor1: 'rgba(235, 91, 86, 0.05)',
+                    bottomFillColor2: 'rgba(235, 91, 86, 0.35)',
+                    lineWidth: 2,
+                });
+            } catch (e) {
+                newSeries = newChart.addAreaSeries({
+                    topColor: 'rgba(108, 92, 231, 0.4)',
+                    bottomColor: 'rgba(108, 92, 231, 0.0)',
+                    lineColor: '#6C5CE7',
+                    lineWidth: 2
+                });
+            }
         } else {
             newSeries = newChart.addCandlestickSeries({
                 upColor: '#10b981',
