@@ -289,8 +289,15 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                     <td style={{ padding: '8px 10px', textAlign: 'right', background: ceItm ? 'rgba(234, 179, 8, 0.08)' : 'transparent', color: 'var(--text-muted)' }}>
                                                         {row.ce.iv}%
                                                     </td>
-                                                    <td style={{ padding: '8px 10px', textAlign: 'right', background: ceItm ? 'rgba(234, 179, 8, 0.08)' : 'transparent', fontWeight: '700', color: '#00d09c' }}>
-                                                        ₹{row.ce.ltp.toFixed(2)}
+                                                    <td 
+                                                        onClick={() => {
+                                                            onSelectContract(row.ce.symbol, 'BUY', row.ce.ltp);
+                                                            onClose();
+                                                        }}
+                                                        style={{ padding: '8px 10px', textAlign: 'right', background: ceItm ? 'rgba(234, 179, 8, 0.08)' : 'transparent', fontWeight: '700', color: '#00d09c', cursor: 'pointer' }}
+                                                        title={`Click to open ${row.ce.symbol} chart & trade panel`}
+                                                    >
+                                                        ₹{row.ce.ltp.toFixed(2)} 📈
                                                     </td>
                                                     <td style={{ padding: '8px 10px', textAlign: 'center', background: ceItm ? 'rgba(234, 179, 8, 0.08)' : 'transparent' }}>
                                                         <button
@@ -316,14 +323,22 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                             )}
 
                                             {/* CENTER STRIKE */}
-                                            <td style={{
-                                                padding: '8px 10px',
-                                                textAlign: 'center',
-                                                background: isAtm ? '#6C5CE7' : '#182234',
-                                                color: '#ffffff',
-                                                fontWeight: '800',
-                                                fontSize: '13px'
-                                            }}>
+                                            <td 
+                                                onClick={() => {
+                                                    onSelectContract(row.ce.symbol, 'BUY', row.ce.ltp);
+                                                    onClose();
+                                                }}
+                                                style={{
+                                                    padding: '8px 10px',
+                                                    textAlign: 'center',
+                                                    background: isAtm ? '#6C5CE7' : '#182234',
+                                                    color: '#ffffff',
+                                                    fontWeight: '800',
+                                                    fontSize: '13px',
+                                                    cursor: 'pointer'
+                                                }}
+                                                title={`Click to view ${row.strike} CE chart & trade panel`}
+                                            >
                                                 {row.strike.toFixed(2)}
                                                 {isAtm && <span style={{ display: 'block', fontSize: '9px', opacity: 0.9 }}>ATM</span>}
                                             </td>
@@ -351,8 +366,15 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                             BUY PE
                                                         </button>
                                                     </td>
-                                                    <td style={{ padding: '8px 10px', textAlign: 'left', background: peItm ? 'rgba(234, 179, 8, 0.08)' : 'transparent', fontWeight: '700', color: '#eb5b56' }}>
-                                                        ₹{row.pe.ltp.toFixed(2)}
+                                                    <td 
+                                                        onClick={() => {
+                                                            onSelectContract(row.pe.symbol, 'BUY', row.pe.ltp);
+                                                            onClose();
+                                                        }}
+                                                        style={{ padding: '8px 10px', textAlign: 'left', background: peItm ? 'rgba(234, 179, 8, 0.08)' : 'transparent', fontWeight: '700', color: '#eb5b56', cursor: 'pointer' }}
+                                                        title={`Click to open ${row.pe.symbol} chart & trade panel`}
+                                                    >
+                                                        📈 ₹{row.pe.ltp.toFixed(2)}
                                                     </td>
                                                     <td style={{ padding: '8px 10px', textAlign: 'left', background: peItm ? 'rgba(234, 179, 8, 0.08)' : 'transparent', color: 'var(--text-muted)' }}>
                                                         {row.pe.iv}%

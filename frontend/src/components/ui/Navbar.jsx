@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import BullMarketIcon from './BullMarketIcon';
 
-const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTab, activeTab, onOpenProfile = () => {}, profilePic }) => {
+const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTab, activeTab, onOpenProfile = () => {}, profilePic, onOpenOptionChain }) => {
     const [topCategory, setTopCategory] = useState('stocks'); // 'stocks' | 'fno' | 'mf'
     const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') || 'dark');
 
@@ -218,7 +218,13 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => {
+                                if (tab.id === 'option-chain' && onOpenOptionChain) {
+                                    onOpenOptionChain();
+                                } else {
+                                    setActiveTab(tab.id);
+                                }
+                            }}
                             style={{
                                 padding: '10px 0',
                                 background: 'transparent',

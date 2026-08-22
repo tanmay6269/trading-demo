@@ -48,6 +48,7 @@ function App() {
     setIsOptionChainOpen(true);
   };
 
+
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 4000);
@@ -212,30 +213,14 @@ function App() {
         return (
           <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <StockSearch onSelectStock={handleSelectStock} showToast={showToast} />
-            <div className="soft-card" style={{ padding: '24px', textAlign: 'center' }}>
-              <h2 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)' }}>
-                ⚡ Option Chain Matrix for {symbol}
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '14px' }}>
-                View real-time Call (CE) & Put (PE) strike prices, Open Interest (OI), Implied Volatility (IV), and Greeks.
-              </p>
-              <button 
-                onClick={() => handleOpenOptionChain(symbol)}
-                style={{
-                  padding: '12px 28px',
-                  background: 'linear-gradient(135deg, #6C5CE7 0%, #a855f7 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  fontSize: '15px',
-                  boxShadow: '0 4px 16px rgba(108, 92, 231, 0.4)'
-                }}
-              >
-                ⚡ Open Live {symbol} Option Chain Matrix
-              </button>
-            </div>
+            <StockDetails 
+              symbol={symbol} 
+              portfolio={portfolio}
+              onSell={handleSell}
+              onBuy={handleBuy}
+              onSelectStock={handleSelectStock}
+              showToast={showToast}
+            />
           </div>
         );
 
@@ -306,6 +291,7 @@ function App() {
         activeTab={activeTab}
         onOpenProfile={() => setIsProfileOpen(true)}
         profilePic={userInfo?.profile_pic}
+        onOpenOptionChain={() => handleOpenOptionChain(symbol)}
       />
 
       <main className="main-content">

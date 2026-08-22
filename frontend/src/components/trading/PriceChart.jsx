@@ -128,8 +128,14 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         if (!chartContainerRef.current) return;
 
         if (chartInstanceRef.current) {
-            chartInstanceRef.current.remove();
+            const chartToDispose = chartInstanceRef.current;
             chartInstanceRef.current = null;
+            seriesInstanceRef.current = null;
+            setTimeout(() => {
+                try {
+                    chartToDispose.remove();
+                } catch (e) {}
+            }, 0);
         }
 
         const isIntraday = selectedPeriod === '1D' || selectedPeriod === '1W';
@@ -262,8 +268,14 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         return () => {
             window.removeEventListener('resize', handleResize);
             if (chartInstanceRef.current) {
-                chartInstanceRef.current.remove();
+                const chartToDispose = chartInstanceRef.current;
                 chartInstanceRef.current = null;
+                seriesInstanceRef.current = null;
+                setTimeout(() => {
+                    try {
+                        chartToDispose.remove();
+                    } catch (e) {}
+                }, 0);
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
