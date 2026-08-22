@@ -971,12 +971,13 @@ def verify_mpin():
 @app.route('/api/guest-login', methods=['POST'])
 def guest_login():
     try:
-        user = User.query.filter_by(username='DemoTrader').first()
+        user = User.query.filter_by(full_name='DemoTrader').first()
         if not user:
-            user = User(username='DemoTrader', email='demo@trader.com', is_verified=True)
+            user = User(full_name='DemoTrader', email='demo@trader.com', phone_number='919999999999', is_email_verified=True, is_phone_verified=True)
+            db.session.add(user)
+            db.session.flush()
             user.set_password('demo123')
             user.set_mpin('1470')
-            db.session.add(user)
             db.session.commit()
         
         login_user(user, remember=True)
