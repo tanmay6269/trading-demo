@@ -95,9 +95,78 @@ button, input, select, textarea {
 }
 
 /* Responsive Utilities */
+/* Mobile Responsive Utilities */
 @media (max-width: 768px) {
   .hide-on-mobile {
     display: none !important;
+  }
+
+  /* Navbar Mobile Optimizations */
+  header > div {
+    padding: 10px 14px !important;
+    gap: 10px !important;
+  }
+
+  .nav-user-bar {
+    gap: 8px !important;
+  }
+
+  .nav-balance-pill {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+
+  .nav-balance-pill span {
+    font-size: 11px !important;
+  }
+
+  /* Profile Modal Mobile Optimizations */
+  .profile-modal-container {
+    padding: 10px !important;
+  }
+
+  .profile-modal-card {
+    max-height: 94vh !important;
+    border-radius: 14px !important;
+  }
+
+  .profile-modal-body {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  .profile-modal-sidebar {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 16px 14px !important;
+  }
+
+  .profile-menu-list {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    gap: 8px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .profile-menu-button {
+    white-space: nowrap !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+
+  .profile-modal-content {
+    padding: 16px 14px !important;
+  }
+
+  .profile-fields-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Mobile General Utilities */
+  .responsive-grid-2 {
+    grid-template-columns: 1fr !important;
   }
 }
 

@@ -59,7 +59,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                     </div>
 
                     {/* Category Selector Tabs: Stocks | F&O | Mutual Funds */}
-                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                    <div className="hide-on-mobile" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                         {['stocks', 'fno', 'mf'].map((cat) => {
                             const label = cat === 'stocks' ? 'Stocks' : cat === 'fno' ? 'F&O' : 'Mutual Funds';
                             const isActive = topCategory === cat;
@@ -85,7 +85,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                 </div>
 
                 {/* User & Balance Bar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="nav-user-bar" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
 
                     {/* Theme Switcher Toggle */}
                     <button
@@ -95,7 +95,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                             background: 'var(--bg-surface-hover)',
                             border: '1px solid var(--border-color)',
                             color: 'var(--text-primary)',
-                            padding: '6px 12px',
+                            padding: '6px 10px',
                             borderRadius: '6px',
                             cursor: 'pointer',
                             fontSize: '12px',
@@ -105,11 +105,11 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                             gap: '6px'
                         }}
                     >
-                        <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+                        <span>{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</span>
                     </button>
 
                     {/* Notification Bell Badge */}
-                    <div style={{
+                    <div className="hide-on-mobile" style={{
                         position: 'relative',
                         background: '#14161d',
                         padding: '6px',
@@ -141,7 +141,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                     </div>
 
                     {/* Live Balance Pill */}
-                    <div style={{
+                    <div className="nav-balance-pill" style={{
                         background: 'rgba(108, 92, 231, 0.08)',
                         border: '1px solid rgba(108, 92, 231, 0.2)',
                         padding: '6px 12px',
@@ -150,7 +150,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                         alignItems: 'center',
                         gap: '6px'
                     }}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Demo Balance:</span>
+                        <span className="hide-on-mobile" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Demo:</span>
                         <span style={{ fontWeight: '700', color: '#6C5CE7', fontSize: '13px' }}>
                             ₹{(balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
@@ -159,7 +159,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                     {/* Lock Terminal Button */}
                     <button
                         onClick={onLockApp}
-                        className="soft-btn"
+                        className="soft-btn hide-on-mobile"
                         title="Lock Terminal"
                         style={{
                             background: '#14161d',

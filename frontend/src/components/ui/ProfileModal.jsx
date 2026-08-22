@@ -97,7 +97,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
     };
 
     return (
-        <div style={{
+        <div className="profile-modal-container" style={{
             position: 'fixed',
             top: 0,
             left: 0,
@@ -111,7 +111,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
             zIndex: 99999,
             padding: '20px'
         }}>
-            <div style={{
+            <div className="profile-modal-card" style={{
                 width: '100%',
                 maxWidth: '900px',
                 maxHeight: '90vh',
@@ -156,9 +156,9 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                 </div>
 
                 {/* Main Body */}
-                <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                <div className="profile-modal-body" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                     {/* Left Sidebar Menu */}
-                    <div style={{
+                    <div className="profile-modal-sidebar" style={{
                         width: '260px',
                         background: '#0d131f',
                         borderRight: '1px solid var(--border-color)',
@@ -272,7 +272,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                             </div>
 
                             {/* Menu Options List */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div className="profile-menu-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 {[
                                     { id: 'account', label: 'Account Details', icon: '📝' },
                                     { id: 'reports', label: 'Reports & Statements', icon: '📊' },
@@ -283,6 +283,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                 ].map((menu) => (
                                     <button
                                         key={menu.id}
+                                        className="profile-menu-button"
                                         onClick={() => setActiveTab(menu.id)}
                                         style={{
                                             display: 'flex',
@@ -349,7 +350,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                     </div>
 
                     {/* Right Content Area */}
-                    <div style={{ flex: 1, padding: '24px', overflowY: 'auto', background: '#111927' }}>
+                    <div className="profile-modal-content" style={{ flex: 1, padding: '24px', overflowY: 'auto', background: '#111927' }}>
                         {msg && (
                             <div style={{
                                 padding: '10px 14px',
@@ -395,7 +396,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                 </div>
 
                                 {/* Profile Fields Grid */}
-                                <div style={{
+                                <div className="profile-fields-grid" style={{
                                     display: 'grid',
                                     gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
                                     gap: '16px'
