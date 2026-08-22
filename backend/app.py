@@ -65,151 +65,275 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 # ============================================
-# ============================================
-# DATABASE MODELS
+# DATABASE MODELS — BullX Security & Login Engine
 # ============================================
 
-class UserLogin(UserMixin, db.Model):
-    __tablename__ = 'user_login'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False) # Full Name
-    email = db.Column(db.String(120), unique=True, nullable=False)   # Email Address
-    phone = db.Column(db.String(120), nullable=True)                  # Mobile Number
-    password_hash = db.Column(db.String(200), nullable=False)        # Hidden Password
-    mpin_hash = db.Column(db.String(200), nullable=True)            # Hidden 4-Digit PIN
-    is_verified = db.Column(db.Boolean, default=False)
+import uuid
+
+# 1. users — Core account
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+    user_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    phone_number = db.Column(db.String(15), unique=True, nullable=False, index=True)
+    is_email_verified = db.Column(db.Boolean, default=False)
+    is_phone_verified = db.Column(db.Boolean, default=False)
+    account_status = db.Column(db.String(20), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relational Links to UserDetails (One-to-One) and Trade (One-to-Many)
-    details = db.relationship('UserDetails', backref='login_user', uselist=False, cascade="all, delete-orphan")
-    trades = db.relationship('Trade', backref='login_user', cascade="all, delete-orphan")
+    # Relational Links (Cascading cleanup)
+    credentials = db.relationship('AuthCredentials', backref='user', uselist=False, cascade="all, delete-orphan")
+    tpin = db.relationship('TransactionPin', backref='user', uselist=False, cascade="all, delete-orphan")
+    two_factor = db.relationship('TwoFactorAuth', backref='user', uselist=False, cascade="all, delete-orphan")
+    devices = db.relationship('Device', backref='user', cascade="all, delete-orphan")
+    audit_logs = db.relationship('LoginAuditLog', backref='user', cascade="all, delete-orphan")
+    wallet = db.relationship('UserWallet', backref='user', uselist=False, cascade="all, delete-orphan")
+    trades = db.relationship('Trade', backref='user', cascade="all, delete-orphan")
+
+    def get_id(self):
+        return self.user_id
+
+    # Backward compatibility properties
+    @property
+    def id(self):
+        return self.user_id
+
+    @property
+    def username(self):
+        return self.full_name
+
+    @username.setter
+    def username(self, val):
+        self.full_name = val
+
+    @property
+    def phone(self):
+        return self.phone_number
+
+    @phone.setter
+    def phone(self, val):
+        self.phone_number = val
+
+    @property
+    def is_verified(self):
+        return self.is_email_verified or self.is_phone_verified
+
+    @is_verified.setter
+    def is_verified(self, val):
+        self.is_email_verified = bool(val)
+        self.is_phone_verified = bool(val)
+
+    @property
+    def password_hash(self):
+        return self.credentials.password_hash if self.credentials else ''
+
+    @password_hash.setter
+    def password_hash(self, val):
+        if not self.credentials:
+            self.credentials = AuthCredentials(user_id=self.user_id, password_hash=val)
+        else:
+            self.credentials.password_hash = val
+
+    @property
+    def mpin_hash(self):
+        return self.credentials.login_pin_hash if self.credentials else None
+
+    @mpin_hash.setter
+    def mpin_hash(self, val):
+        if not self.credentials:
+            self.credentials = AuthCredentials(user_id=self.user_id, password_hash='', login_pin_hash=val)
+        else:
+            self.credentials.login_pin_hash = val
 
     @property
     def demo_balance(self):
-        return self.details.demo_balance if self.details else 100000.0
+        return self.wallet.cash_balance if self.wallet else 100000.0
 
     @demo_balance.setter
     def demo_balance(self, val):
-        if self.details:
-            self.details.demo_balance = val
+        if not self.wallet:
+            self.wallet = UserWallet(user_id=self.user_id, cash_balance=val)
+        else:
+            self.wallet.cash_balance = val
 
     @property
     def watchlist(self):
-        return self.details.watchlist if self.details else '[]'
+        return self.wallet.watchlist if self.wallet else '[]'
 
     @watchlist.setter
     def watchlist(self, val):
-        if self.details:
-            self.details.watchlist = val
+        if not self.wallet:
+            self.wallet = UserWallet(user_id=self.user_id, watchlist=val)
+        else:
+            self.wallet.watchlist = val
 
     @property
     def active_devices(self):
-        return self.details.active_devices if self.details else '[]'
+        devs = [d.device_name for d in self.devices] if self.devices else []
+        return json.dumps(devs)
 
-    @active_devices.setter
-    def active_devices(self, val):
-        if self.details:
-            self.details.active_devices = val
-
-    def get_active_devices(self):
-        if self.details:
-            return self.details.get_active_devices()
-        return []
-
-    def register_device_session(self, device_id):
-        if self.details:
-            return self.details.register_device_session(device_id)
-        return True, "OK"
-
-    def unregister_device_session(self, device_id):
-        if self.details:
-            self.details.unregister_device_session(device_id)
+    @property
+    def details(self):
+        class ProfileDetailsWrapper:
+            def __init__(self, u):
+                self.u = u
+                self.email = u.email
+                self.demo_balance = u.demo_balance
+                self.watchlist = u.watchlist
+                self.active_devices = u.active_devices
+                self.dob = '15-08-1998'
+                self.pan_number = 'ABCDE1234F'
+                self.gender = 'Male'
+                self.marital_status = 'Single'
+                self.occupation = 'Professional'
+                self.income_range = '5-10 Lakhs'
+                self.father_name = 'Rajesh Sharma'
+                self.profile_pic = None
+        return ProfileDetailsWrapper(self)
 
     def set_password(self, password):
         salt = bcrypt.gensalt()
-        self.password_hash = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
-    
+        hashed = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+        if not self.credentials:
+            self.credentials = AuthCredentials(user_id=self.user_id, password_hash=hashed)
+        else:
+            self.credentials.password_hash = hashed
+            self.credentials.failed_login_attempts = 0
+            self.credentials.locked_until = None
+
     def check_password(self, password):
-        if not self.password_hash:
+        if not self.credentials or not self.credentials.password_hash:
+            return False
+        if self.credentials.locked_until and datetime.utcnow() < self.credentials.locked_until:
             return False
         clean_pwd = str(password).strip()
-        if self.password_hash == clean_pwd:
+        if self.credentials.password_hash == clean_pwd:
+            self.credentials.failed_login_attempts = 0
             return True
         try:
-            return bcrypt.checkpw(clean_pwd.encode('utf-8'), self.password_hash.encode('utf-8'))
+            is_valid = bcrypt.checkpw(clean_pwd.encode('utf-8'), self.credentials.password_hash.encode('utf-8'))
+            if is_valid:
+                self.credentials.failed_login_attempts = 0
+                self.credentials.locked_until = None
+            else:
+                self.credentials.failed_login_attempts = (self.credentials.failed_login_attempts or 0) + 1
+                if self.credentials.failed_login_attempts >= 5:
+                    self.credentials.locked_until = datetime.utcnow() + timedelta(minutes=15)
+            return is_valid
         except Exception:
             return False
 
     def set_mpin(self, mpin):
         salt = bcrypt.gensalt(10)
-        self.mpin_hash = bcrypt.hashpw(str(mpin).encode('utf-8'), salt).decode('utf-8')
+        hashed = bcrypt.hashpw(str(mpin).encode('utf-8'), salt).decode('utf-8')
+        if not self.credentials:
+            self.credentials = AuthCredentials(user_id=self.user_id, password_hash='', login_pin_hash=hashed)
+        else:
+            self.credentials.login_pin_hash = hashed
 
     def check_mpin(self, mpin):
-        if not self.mpin_hash:
+        if not self.credentials or not self.credentials.login_pin_hash:
             return False
         clean_pin = str(mpin).strip()
-        if self.mpin_hash == clean_pin:
+        if self.credentials.login_pin_hash == clean_pin:
             return True
         try:
-            return bcrypt.checkpw(clean_pin.encode('utf-8'), self.mpin_hash.encode('utf-8'))
+            return bcrypt.checkpw(clean_pin.encode('utf-8'), self.credentials.login_pin_hash.encode('utf-8'))
         except Exception:
             return False
-    
+
+    def set_tpin(self, tpin):
+        salt = bcrypt.gensalt(10)
+        hashed = bcrypt.hashpw(str(tpin).encode('utf-8'), salt).decode('utf-8')
+        if not self.tpin:
+            self.tpin = TransactionPin(user_id=self.user_id, tpin_hash=hashed)
+        else:
+            self.tpin.tpin_hash = hashed
+
+    def check_tpin(self, tpin):
+        if not self.tpin or not self.tpin.tpin_hash:
+            return False
+        clean_tpin = str(tpin).strip()
+        if self.tpin.tpin_hash == clean_tpin:
+            return True
+        try:
+            return bcrypt.checkpw(clean_tpin.encode('utf-8'), self.tpin.tpin_hash.encode('utf-8'))
+        except Exception:
+            return False
+
     def get_watchlist(self):
         return json.loads(self.watchlist) if self.watchlist else []
-    
+
     def set_watchlist(self, stocks):
         self.watchlist = json.dumps(stocks)
 
-# Alias User to UserLogin for Flask-Login compatibility
-User = UserLogin
-
-class UserDetails(db.Model):
-    __tablename__ = 'user_details'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user_login.id'), nullable=False, unique=True)
-    email = db.Column(db.String(120), nullable=False)
-    
-    # Wallet & Trading Data
-    demo_balance = db.Column(db.Float, default=100000.0)
-    watchlist = db.Column(db.Text, default='[]')
-    active_devices = db.Column(db.Text, default='[]')
-    
-    # Personal & KYC Profile Details
-    dob = db.Column(db.String(20), default='15-08-1998')
-    pan_number = db.Column(db.String(20), default='ABCDE1234F')
-    gender = db.Column(db.String(20), default='Male')
-    marital_status = db.Column(db.String(20), default='Single')
-    occupation = db.Column(db.String(50), default='Professional')
-    income_range = db.Column(db.String(50), default='5-10 Lakhs')
-    father_name = db.Column(db.String(80), default='Rajesh Sharma')
-    profile_pic = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     def get_active_devices(self):
-        try:
-            return json.loads(self.active_devices) if self.active_devices else []
-        except Exception:
-            return []
+        return [d.device_name for d in self.devices] if self.devices else []
 
-    def register_device_session(self, device_id):
-        if not device_id:
+    def register_device_session(self, device_name):
+        if not device_name:
             return True, "OK"
-        devices = self.get_active_devices()
-        if device_id not in devices:
-            devices.append(device_id)
-            if len(devices) > 5:
-                devices = devices[-2:]
-            self.active_devices = json.dumps(devices)
+        if not self.user_id:
+            self.user_id = str(uuid.uuid4())
+        existing = Device.query.filter_by(user_id=self.user_id, device_name=device_name).first()
+        if not existing:
+            dev = Device(user_id=self.user_id, device_name=device_name, is_trusted=True)
+            db.session.add(dev)
+        else:
+            existing.last_active_at = datetime.utcnow()
         return True, "Device registered"
 
-    def unregister_device_session(self, device_id):
-        if not device_id:
-            return
-        devices = self.get_active_devices()
-        if device_id in devices:
-            devices.remove(device_id)
-            self.active_devices = json.dumps(devices)
+    def unregister_device_session(self, device_name):
+        Device.query.filter_by(user_id=self.user_id, device_name=device_name).delete()
+
+# Alias User to UserLogin for Flask compatibility
+UserLogin = User
+
+# 2. auth_credentials — Passwords, login PIN, biometric flag
+class AuthCredentials(db.Model):
+    __tablename__ = 'auth_credentials'
+    credential_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    login_pin_hash = db.Column(db.String(255), nullable=True)
+    biometric_enabled = db.Column(db.Boolean, default=False)
+    auth_type = db.Column(db.String(20), default='password')
+    provider_id = db.Column(db.String(255), nullable=True)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True)
+    last_password_change = db.Column(db.DateTime, default=datetime.utcnow)
+
+# 3. transaction_pin — Trade PIN (Groww TPIN)
+class TransactionPin(db.Model):
+    __tablename__ = 'transaction_pin'
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), primary_key=True)
+    tpin_hash = db.Column(db.String(255), nullable=False)
+    failed_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True)
+    set_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# 4. two_factor_auth — 2FA TOTP Vault
+class TwoFactorAuth(db.Model):
+    __tablename__ = 'two_factor_auth'
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), primary_key=True)
+    is_enabled = db.Column(db.Boolean, default=False)
+    method = db.Column(db.String(20), default='sms')
+    secret_key_encrypted = db.Column(db.String(255), nullable=True)
+
+# 5. otp_verification — OTP Verification Table
+class OTPVerification(db.Model):
+    __tablename__ = 'otp_verification'
+    otp_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=True)
+    target = db.Column(db.String(255), nullable=False, index=True)
+    otp_code_hash = db.Column(db.String(255), nullable=False)
+    purpose = db.Column(db.String(20), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    is_used = db.Column(db.Boolean, default=False)
+    attempt_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class OTPRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -218,9 +342,43 @@ class OTPRecord(db.Model):
     expires_at = db.Column(db.DateTime, nullable=False)
     is_used = db.Column(db.Boolean, default=False)
 
+# 6. devices — Logged-in device tracking
+class Device(db.Model):
+    __tablename__ = 'devices'
+    device_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False, index=True)
+    device_name = db.Column(db.String(100), default='Web Terminal')
+    fcm_token = db.Column(db.String(255), nullable=True)
+    is_trusted = db.Column(db.Boolean, default=False)
+    first_login_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_active_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# 7. login_audit_log — Full security trail
+class LoginAuditLog(db.Model):
+    __tablename__ = 'login_audit_log'
+    log_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=True, index=True)
+    event_type = db.Column(db.String(30), nullable=False)
+    ip_address = db.Column(db.String(45), default='127.0.0.1')
+    device_info = db.Column(db.String(255), default='Web Terminal')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+# 8. user_wallets — Cash ledger & watchlist
+class UserWallet(db.Model):
+    __tablename__ = 'user_wallets'
+    wallet_id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), unique=True, nullable=False)
+    cash_balance = db.Column(db.Float, default=100000.0)
+    margin_used = db.Column(db.Float, default=0.0)
+    reserved_balance = db.Column(db.Float, default=0.0)
+    watchlist = db.Column(db.Text, default='[]')
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# 9. trades — Order book execution table
 class Trade(db.Model):
+    __tablename__ = 'trades'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user_login.id'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
     symbol = db.Column(db.String(20), nullable=False)
     trade_type = db.Column(db.String(10), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
@@ -235,64 +393,48 @@ class Trade(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return User.query.get(str(user_id))
 
 import random
 
 USERS_BACKUP_FILE = os.path.join(os.path.dirname(__file__), 'users_backup.json')
 
+def log_audit_event(user_id, event_type, ip_address='127.0.0.1', device_info='Web Terminal'):
+    try:
+        log = LoginAuditLog(user_id=user_id, event_type=event_type, ip_address=ip_address, device_info=device_info)
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Audit log error: {e}")
+
 def get_or_create_user_details(user):
     if not user:
         return None
-    try:
-        if not user.details:
-            dt = UserDetails(
-                user_id=user.id,
-                email=user.email,
-                demo_balance=100000.0,
-                watchlist='[]',
-                active_devices='[]',
-                dob='15-08-1998',
-                pan_number='ABCDE1234F',
-                gender='Male',
-                marital_status='Single',
-                occupation='Professional',
-                income_range='5-10 Lakhs',
-                father_name='Rajesh Sharma'
-            )
-            db.session.add(dt)
-            db.session.commit()
-        return user.details
-    except Exception:
-        db.session.rollback()
-        return None
+    if not user.wallet:
+        w = UserWallet(user_id=user.user_id, cash_balance=100000.0, watchlist='[]')
+        db.session.add(w)
+        db.session.commit()
+    return user.details
 
 def backup_users_to_file():
     def _do_backup():
         try:
             with app.app_context():
-                users = UserLogin.query.all()
+                users = User.query.all()
                 data = []
                 for u in users:
-                    dt = u.details
                     data.append({
-                        'username': u.username,
+                        'user_id': u.user_id,
+                        'username': u.full_name,
                         'email': u.email,
-                        'phone': u.phone,
+                        'phone': u.phone_number,
                         'password_hash': u.password_hash,
                         'mpin_hash': u.mpin_hash,
                         'is_verified': u.is_verified,
                         'demo_balance': u.demo_balance,
                         'watchlist': u.watchlist,
-                        'active_devices': u.active_devices,
-                        'profile_pic': dt.profile_pic if dt else None,
-                        'dob': dt.dob if dt else '15-08-1998',
-                        'pan_number': dt.pan_number if dt else 'ABCDE1234F',
-                        'gender': dt.gender if dt else 'Male',
-                        'marital_status': dt.marital_status if dt else 'Single',
-                        'occupation': dt.occupation if dt else 'Professional',
-                        'income_range': dt.income_range if dt else '5-10 Lakhs',
-                        'father_name': dt.father_name if dt else 'Rajesh Sharma'
+                        'active_devices': u.active_devices
                     })
                 with open(USERS_BACKUP_FILE, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2)
@@ -303,58 +445,43 @@ def backup_users_to_file():
 def restore_users_from_file():
     try:
         db.create_all()
-        try:
-            UserLogin.query.first()
-            UserDetails.query.first()
-        except Exception:
-            db.session.rollback()
-            db.drop_all()
-            db.create_all()
-
         if os.path.exists(USERS_BACKUP_FILE):
             with open(USERS_BACKUP_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             for item in data:
                 try:
-                    u = UserLogin.query.filter((UserLogin.email == item['email']) | (UserLogin.username == item['username'])).first()
+                    u = User.query.filter((User.email == item['email']) | (User.full_name == item['username'])).first()
                     if not u:
-                        u = UserLogin(
-                            username=item['username'],
+                        u = User(
+                            user_id=item.get('user_id', str(uuid.uuid4())),
+                            full_name=item['username'],
                             email=item['email'],
-                            phone=item.get('phone', ''),
-                            password_hash=item['password_hash'],
-                            mpin_hash=item.get('mpin_hash'),
-                            is_verified=item.get('is_verified', True)
+                            phone_number=item.get('phone', f"91{random.randint(1000000000, 9999999999)}"),
+                            is_email_verified=True,
+                            is_phone_verified=True
                         )
                         db.session.add(u)
-                    else:
-                        u.password_hash = item['password_hash']
-                        if item.get('mpin_hash'):
-                            u.mpin_hash = item.get('mpin_hash')
-                        u.is_verified = item.get('is_verified', True)
-                    dt = u.details
-                    if not dt:
-                        dt = UserDetails(
-                            user_id=u.id,
-                            email=u.email,
-                            demo_balance=item.get('demo_balance', 100000.0),
-                            watchlist=item.get('watchlist', '[]'),
-                            active_devices=item.get('active_devices', '[]'),
-                            profile_pic=item.get('profile_pic'),
-                            dob=item.get('dob', '15-08-1998'),
-                            pan_number=item.get('pan_number', 'ABCDE1234F'),
-                            gender=item.get('gender', 'Male'),
-                            marital_status=item.get('marital_status', 'Single'),
-                            occupation=item.get('occupation', 'Professional'),
-                            income_range=item.get('income_range', '5-10 Lakhs'),
-                            father_name=item.get('father_name', 'Rajesh Sharma')
+                        db.session.flush()
+
+                    if not u.credentials:
+                        creds = AuthCredentials(
+                            user_id=u.user_id,
+                            password_hash=item['password_hash'],
+                            login_pin_hash=item.get('mpin_hash')
                         )
-                        db.session.add(dt)
-                        db.session.commit()
+                        db.session.add(creds)
+
+                    if not u.wallet:
+                        wallet = UserWallet(
+                            user_id=u.user_id,
+                            cash_balance=item.get('demo_balance', 100000.0),
+                            watchlist=item.get('watchlist', '[]')
+                        )
+                        db.session.add(wallet)
+                    db.session.commit()
                 except Exception as ex:
                     db.session.rollback()
                     print(f"Restore single user error: {ex}")
-
     except Exception as e:
         print(f"Error restoring users: {e}")
 
@@ -362,16 +489,8 @@ def auto_heal_db_schema():
     with app.app_context():
         try:
             db.create_all()
-            UserDetails.query.first()
-        except Exception:
-            db.session.rollback()
-            try:
-                db.drop_all()
-                db.create_all()
-                restore_users_from_file()
-                print("[AUTO-HEAL] Database schema auto-healed successfully!")
-            except Exception as e:
-                print(f"[AUTO-HEAL ERROR]: {e}")
+        except Exception as e:
+            print(f"[AUTO-HEAL ERROR]: {e}")
 
 with app.app_context():
     auto_heal_db_schema()
@@ -798,12 +917,12 @@ def verify_mpin():
             ).first()
         elif session.get('_user_id'):
             try:
-                user = UserLogin.query.get(int(session['_user_id']))
+                user = UserLogin.query.get(str(session['_user_id']))
             except Exception:
                 pass
 
         if not user:
-            user = UserLogin.query.order_by(UserLogin.id.desc()).first() or UserLogin.query.first()
+            user = UserLogin.query.first()
 
         if not user:
             # Auto-create fallback account if no users exist
