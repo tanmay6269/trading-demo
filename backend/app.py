@@ -1347,7 +1347,11 @@ def submit_payment_utr():
 @app.route('/api/health', methods=['GET'])
 @app.route('/api/ping', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'ok', 'message': 'BullX Trading Backend is active and fast 24/7'}), 200
+    return jsonify({
+        'status': 'ok',
+        'message': 'BullX Trading Backend is active and fast 24/7',
+        'commit': 'fa15a3ca-v2'
+    }), 200
 
 def start_keep_alive_ping():
     import threading, time
