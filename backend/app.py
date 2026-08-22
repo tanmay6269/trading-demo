@@ -63,6 +63,46 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 # ============================================
+# REDIS SESSION ENGINE (Sessions & OTP Cache)
+# ============================================
+redis_url = os.getenv('REDIS_URL') or os.getenv('REDIS_TLS_URL')
+redis_client = None
+try:
+    import redis
+    if redis_url:
+        redis_client = redis.Redis.from_url(redis_url, decode_responses=True)
+    else:
+        redis_client = redis.Redis(host='localhost', port=6379, db=0, socket_timeout=1, decode_responses=True)
+    redis_client.ping()
+    print("[REDIS CONNECTED] Session store active!")
+except Exception:
+    redis_client = None
+    print("[REDIS FALLBACK] Standard session store active.")
+
+def save_redis_session(user_id, data_dict, expire_seconds=86400):
+    if redis_client:
+        try:
+            redis_client.setex(f"session:{user_id}", expire_seconds, json.dumps(data_dict))
+        except Exception as e:
+            print(f"Redis session save error: {e}")
+
+def get_redis_session(user_id):
+    if redis_client:
+        try:
+            val = redis_client.get(f"session:{user_id}")
+            return json.loads(val) if val else None
+        except Exception as e:
+            print(f"Redis session get error: {e}")
+    return None
+
+def delete_redis_session(user_id):
+    if redis_client:
+        try:
+            redis_client.delete(f"session:{user_id}")
+        except Exception as e:
+            print(f"Redis session delete error: {e}")
+
+# ============================================
 # DATABASE MODELS — BullX Security & Login Engine
 # ============================================
 
