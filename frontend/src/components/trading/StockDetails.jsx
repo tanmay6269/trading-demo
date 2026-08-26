@@ -305,16 +305,6 @@ const INDEX_COMPANIES = {
     ]
 };
 
-const TOP_OPTIONS_MOCK = [
-    { type: 'Put', strike: 24300, price: 36.60, change: -23.19, oi: '1,56,999', oiChange: '+23.66%', volume: '85,661', expiry: "18 Aug '26" },
-    { type: 'Put', strike: 24350, price: 51.55, change: -18.69, oi: '1,04,561', oiChange: '+34.03%', volume: '75,852', expiry: "18 Aug '26" },
-    { type: 'Call', strike: 24400, price: 96.85, change: -20.94, oi: '1,24,690', oiChange: '+13.30%', volume: '69,928', expiry: "18 Aug '26" },
-    { type: 'Put', strike: 24400, price: 71.35, change: -13.41, oi: '1,11,826', oiChange: '+10.70%', volume: '64,234', expiry: "18 Aug '26" },
-    { type: 'Call', strike: 24350, price: 126.50, change: -17.24, oi: '98,420', oiChange: '+15.20%', volume: '58,120', expiry: "18 Aug '26" },
-    { type: 'Call', strike: 24300, price: 161.40, change: -13.76, oi: '87,310', oiChange: '+8.40%', volume: '52,400', expiry: "18 Aug '26" },
-    { type: 'Call', strike: 24500, price: 51.95, change: -29.18, oi: '1,42,100', oiChange: '+19.50%', volume: '91,200', expiry: "18 Aug '26" }
-];
-
 const StockDetails = ({ 
     symbol = 'RELIANCE', 
     portfolio = [], 
@@ -323,6 +313,11 @@ const StockDetails = ({
     onSelectStock = () => {},
     showToast = () => {} 
 }) => {
+    // Parse if current symbol is a derivative / option contract (e.g. INFY29SEP1140CE, RELIANCE29SEPFUT)
+    const isDerivative = symbol && (symbol.endsWith('CE') || symbol.endsWith('PE') || symbol.endsWith('FUT'));
+    const derivativeMatch = isDerivative ? symbol.match(/^([A-Z\s^]+?)([0-9]{2}[A-Z]{3})?([0-9.]+)?(CE|PE|FUT)$/) : null;
+    const underlyingSymbol = derivativeMatch ? derivativeMatch[1].trim() : symbol;
+
     const [stockInfo, setStockInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'fno' | 'etfs'
@@ -344,14 +339,14 @@ const StockDetails = ({
     }, [symbol]);
 
     const fetchFnoChain = useCallback(async () => {
-        if (!symbol) return;
+        if (!underlyingSymbol) return;
         try {
-            const data = await api.getOptionChain(symbol, '', 'NSE');
+            const data = await api.getOptionChain(underlyingSymbol, '', 'NSE');
             if (data && data.chain) {
                 setFnoChainData(data);
             }
         } catch (e) {}
-    }, [symbol]);
+    }, [underlyingSymbol]);
 
     const fetchWatchlist = useCallback(async () => {
         try {
@@ -517,8 +512,11 @@ const StockDetails = ({
         'BSE-100.BO': 'BSE 100'
     };
 
-    const displaySymbol = INDEX_DISPLAY_TITLE_MAP[actualIndexKey] || INDEX_DISPLAY_TITLE_MAP[symbol] || stockInfo?.name || symbol;
-    const companies = INDEX_COMPANIES[actualIndexKey] || INDEX_COMPANIES[symbol] || INDEX_COMPANIES['^NSEI'];
+    const baseTitle = INDEX_DISPLAY_TITLE_MAP[underlyingSymbol] || stockInfo?.name || underlyingSymbol;
+    const displaySymbol = isDerivative && derivativeMatch
+        ? `${baseTitle} ${derivativeMatch[2] || ''} ${derivativeMatch[3] ? derivativeMatch[3] + ' ' : ''}${derivativeMatch[4] === 'CE' ? 'Call' : derivativeMatch[4] === 'PE' ? 'Put' : 'Future'}`
+        : (INDEX_DISPLAY_TITLE_MAP[actualIndexKey] || INDEX_DISPLAY_TITLE_MAP[symbol] || stockInfo?.name || symbol);
+    const companies = INDEX_COMPANIES[actualIndexKey] || INDEX_COMPANIES[underlyingSymbol] || INDEX_COMPANIES['^NSEI'];
 
     // Dynamic F&O Contracts computed directly from real fnoChainData or spot price
     const getTopOptionsData = () => {
@@ -571,7 +569,7 @@ const StockDetails = ({
                 oiChange: '+12.4%',
                 volume: (Math.round(p * 18)).toLocaleString(),
                 expiry: fallbackExp,
-                symbol: `${symbol}${fallbackExpCode}${s}CE`
+                symbol: `${underlyingSymbol}${fallbackExpCode}${s}CE`
             });
             list.push({
                 type: 'Put',
@@ -582,7 +580,7 @@ const StockDetails = ({
                 oiChange: '+14.1%',
                 volume: (Math.round(p * 22)).toLocaleString(),
                 expiry: fallbackExp,
-                symbol: `${symbol}${fallbackExpCode}${s}PE`
+                symbol: `${underlyingSymbol}${fallbackExpCode}${s}PE`
             });
         });
         return list;
@@ -1055,15 +1053,19 @@ const StockDetails = ({
                                         </thead>
                                         <tbody>
                                             {filteredOptions.map((opt, idx) => (
-                                                <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                                <tr 
+                                                    key={idx} 
+                                                    onClick={() => onSelectStock && onSelectStock(opt.symbol)}
+                                                    style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                                                >
                                                     <td style={{ padding: '10px 14px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                                        {displaySymbol} {opt.strike} {opt.type}
+                                                        {baseTitle} {opt.strike} <span style={{ color: opt.type === 'Call' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>{opt.type}</span>
                                                         <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{opt.expiry}</div>
                                                     </td>
                                                     <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: '800', color: 'var(--text-primary)' }}>
                                                         ₹{opt.price.toFixed(2)}
-                                                        <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--accent-rose)' }}>
-                                                            {opt.change.toFixed(2)}%
+                                                        <div style={{ fontSize: '10px', fontWeight: '700', color: opt.change >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                                                            {opt.change >= 0 ? '+' : ''}{opt.change.toFixed(2)}%
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: '600', color: 'var(--text-secondary)' }}>
@@ -1086,7 +1088,7 @@ const StockDetails = ({
                     {activeTab === 'etfs' && (
                         <div className="soft-card" style={{ padding: '24px' }}>
                             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                                Popular ETFs Tracking {displaySymbol}
+                                Popular ETFs Tracking {baseTitle}
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {[
@@ -1111,19 +1113,37 @@ const StockDetails = ({
                     )}
                 </div>
 
-                {/* Right Sidebar Column: Top NIFTY 50 Options Card */}
+                {/* Right Sidebar Column: Top Options Card */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
                     
                     {/* Top Options Widget Card */}
                     <div className="soft-card" style={{ padding: '20px' }}>
-                        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                            Top {displaySymbol} Options
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                Top {baseTitle} Options
+                            </h3>
+                            <button
+                                onClick={() => setShowOptionChainModal(true)}
+                                style={{
+                                    background: 'rgba(108, 92, 231, 0.15)',
+                                    color: 'var(--accent-primary)',
+                                    border: '1px solid var(--accent-primary)',
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
+                                    fontWeight: '700',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                View Chain ❯
+                            </button>
+                        </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {TOP_OPTIONS_MOCK.map((opt, idx) => (
+                            {topOptionsData.slice(0, 7).map((opt, idx) => (
                                 <div
                                     key={idx}
+                                    onClick={() => onSelectStock && onSelectStock(opt.symbol)}
                                     style={{
                                         padding: '12px 14px',
                                         background: '#111927',
@@ -1131,20 +1151,23 @@ const StockDetails = ({
                                         display: 'flex',
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
-                                        border: '1px solid var(--border-color)'
+                                        border: '1px solid var(--border-color)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease'
                                     }}
                                 >
                                     <div>
                                         <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)' }}>
-                                            {displaySymbol} {opt.strike} <span style={{ color: opt.type === 'Call' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>{opt.type}</span>
+                                            {baseTitle} {opt.strike} <span style={{ color: opt.type === 'Call' ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>{opt.type}</span>
                                         </div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{opt.expiry}</div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-primary)' }}>
                                             ₹{opt.price.toFixed(2)}
                                         </div>
-                                        <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-rose)' }}>
-                                            {opt.change.toFixed(2)}%
+                                        <div style={{ fontSize: '11px', fontWeight: '700', color: opt.change >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                                            {opt.change >= 0 ? '+' : ''}{opt.change.toFixed(2)}%
                                         </div>
                                     </div>
                                 </div>
@@ -1161,7 +1184,7 @@ const StockDetails = ({
                 <OptionChainModal
                     isOpen={showOptionChainModal}
                     onClose={() => setShowOptionChainModal(false)}
-                    symbol={symbol}
+                    symbol={underlyingSymbol}
                     onSelectContract={(contractSym, action, contractPrice) => {
                         if (onSelectStock) onSelectStock(contractSym);
                         if (showToast) showToast(`Selected ${contractSym} @ ₹${contractPrice}`);
