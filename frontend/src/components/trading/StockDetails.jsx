@@ -533,7 +533,7 @@ const StockDetails = ({
                     oi: row.ce.oi.toLocaleString(),
                     oiChange: `${row.ce.oi_change >= 0 ? '+' : ''}${row.ce.oi_change}`,
                     volume: row.ce.volume.toLocaleString(),
-                    expiry: fnoChainData.selected_expiry || "27 Aug '26",
+                    expiry: fnoChainData.selected_expiry || "29 Sep '26",
                     symbol: row.ce.symbol
                 });
                 list.push({
@@ -544,7 +544,7 @@ const StockDetails = ({
                     oi: row.pe.oi.toLocaleString(),
                     oiChange: `${row.pe.oi_change >= 0 ? '+' : ''}${row.pe.oi_change}`,
                     volume: row.pe.volume.toLocaleString(),
-                    expiry: fnoChainData.selected_expiry || "27 Aug '26",
+                    expiry: fnoChainData.selected_expiry || "29 Sep '26",
                     symbol: row.pe.symbol
                 });
             });
@@ -557,6 +557,8 @@ const StockDetails = ({
         const atm = Math.round(p / step) * step;
         const strikes = [atm - step * 2, atm - step, atm, atm + step, atm + step * 2];
         const list = [];
+        const fallbackExp = "29 Sep '26";
+        const fallbackExpCode = "29SEP";
         strikes.forEach(s => {
             const ceLtp = roundNum(Math.max(2, Math.abs(p - s) * 0.05 + p * 0.015));
             const peLtp = roundNum(Math.max(2, Math.abs(s - p) * 0.05 + p * 0.015));
@@ -568,8 +570,8 @@ const StockDetails = ({
                 oi: (Math.round(p * 12)).toLocaleString(),
                 oiChange: '+12.4%',
                 volume: (Math.round(p * 18)).toLocaleString(),
-                expiry: "27 Aug '26",
-                symbol: `${symbol}27AUG${s}CE`
+                expiry: fallbackExp,
+                symbol: `${symbol}${fallbackExpCode}${s}CE`
             });
             list.push({
                 type: 'Put',
@@ -579,8 +581,8 @@ const StockDetails = ({
                 oi: (Math.round(p * 15)).toLocaleString(),
                 oiChange: '+14.1%',
                 volume: (Math.round(p * 22)).toLocaleString(),
-                expiry: "27 Aug '26",
-                symbol: `${symbol}27AUG${s}PE`
+                expiry: fallbackExp,
+                symbol: `${symbol}${fallbackExpCode}${s}PE`
             });
         });
         return list;
@@ -964,42 +966,52 @@ const StockDetails = ({
                                     {displaySymbol} Futures
                                 </h3>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                                    <div 
-                                        onClick={() => onSelectStock(`${symbol}27AUGFUT`)}
-                                        className="soft-card" 
-                                        style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                                    >
-                                        <div>
-                                            <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>{displaySymbol} Near Fut</div>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>27 Aug '26</div>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontWeight: '800', fontSize: '15px', color: 'var(--text-primary)' }}>
-                                                ₹{((price || 1500) * 1.0022).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                            </div>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: isPositive ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                                                {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div 
-                                        onClick={() => onSelectStock(`${symbol}24SEPFUT`)}
-                                        className="soft-card" 
-                                        style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                                    >
-                                        <div>
-                                            <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>{displaySymbol} Far Fut</div>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>24 Sept '26</div>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontWeight: '800', fontSize: '15px', color: 'var(--text-primary)' }}>
-                                                ₹{((price || 1500) * 1.0058).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                            </div>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: isPositive ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
-                                                {isPositive ? '+' : ''}{(change * 1.003).toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {(() => {
+                                        const nearExp = fnoChainData?.expiries?.[0] || "29-Sep-2026";
+                                        const farExp = fnoChainData?.expiries?.[1] || "27-Oct-2026";
+                                        const nearCode = nearExp.slice(0, 2) + nearExp.slice(3, 6).toUpperCase();
+                                        const farCode = farExp.slice(0, 2) + farExp.slice(3, 6).toUpperCase();
+                                        return (
+                                            <>
+                                                <div 
+                                                    onClick={() => onSelectStock(`${symbol}${nearCode}FUT`)}
+                                                    className="soft-card" 
+                                                    style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                                                >
+                                                    <div>
+                                                        <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>{displaySymbol} Near Fut</div>
+                                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{nearExp}</div>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ fontWeight: '800', fontSize: '15px', color: 'var(--text-primary)' }}>
+                                                            ₹{((price || 1500) * 1.0022).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                        </div>
+                                                        <div style={{ fontSize: '11px', fontWeight: '700', color: isPositive ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                                                            {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div 
+                                                    onClick={() => onSelectStock(`${symbol}${farCode}FUT`)}
+                                                    className="soft-card" 
+                                                    style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                                                >
+                                                    <div>
+                                                        <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>{displaySymbol} Far Fut</div>
+                                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{farExp}</div>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ fontWeight: '800', fontSize: '15px', color: 'var(--text-primary)' }}>
+                                                            ₹{((price || 1500) * 1.0058).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                        </div>
+                                                        <div style={{ fontSize: '11px', fontWeight: '700', color: isPositive ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                                                            {isPositive ? '+' : ''}{(change * 1.003).toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
                             </div>
 

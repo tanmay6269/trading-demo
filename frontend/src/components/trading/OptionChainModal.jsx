@@ -24,8 +24,8 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
 
                 if (res && res.chain && res.chain.length > 0) {
                     setData(res);
-                    if (!selectedExpiry && res.expiries && res.expiries.length > 0) {
-                        setSelectedExpiry(res.expiries[0]);
+                    if (!selectedExpiry || !res.expiries?.includes(selectedExpiry)) {
+                        setSelectedExpiry(res.selected_expiry || res.expiries?.[0] || '');
                     }
                 } else {
                     setErrorMsg(`Option chain data temporarily unavailable for ${symbol} on ${exchange}.`);
