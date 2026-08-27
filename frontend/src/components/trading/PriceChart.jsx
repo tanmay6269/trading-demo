@@ -416,7 +416,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         };
     }, [activePosition, livePrice, symbol, isIndexSymbol]);
 
-    // Prev Close Reference Line on Chart
+    // Prev Close Reference Line on Chart (Visible on both Candlestick & Line Charts)
     useEffect(() => {
         if (prevCloseLineRef.current && seriesInstanceRef.current) {
             try {
@@ -425,15 +425,16 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
             prevCloseLineRef.current = null;
         }
 
-        if (prevClose && seriesInstanceRef.current && (selectedPeriod === '1D' || selectedPeriod === '1W')) {
+        const effectivePrevClose = prevClose || prevCloseRef.current;
+        if (effectivePrevClose && seriesInstanceRef.current && (selectedPeriod === '1D' || selectedPeriod === '1W')) {
             try {
                 prevCloseLineRef.current = seriesInstanceRef.current.createPriceLine({
-                    price: prevClose,
-                    color: '#64748b',
-                    lineWidth: 1,
+                    price: effectivePrevClose,
+                    color: '#94a3b8',
+                    lineWidth: 1.5,
                     lineStyle: 2, // Dashed line
                     axisLabelVisible: true,
-                    title: `Prev Close \u20B9${prevClose.toFixed(2)}`
+                    title: `Prev Close \u20B9${effectivePrevClose.toFixed(2)}`
                 });
             } catch (e) {}
         }
@@ -446,7 +447,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                 prevCloseLineRef.current = null;
             }
         };
-    }, [prevClose, selectedPeriod]);
+    }, [prevClose, selectedPeriod, chartType]);
 
     // Real-Time Live Candle Tick Updating every 5 seconds
     useEffect(() => {
