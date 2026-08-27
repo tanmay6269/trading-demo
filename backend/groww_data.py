@@ -1132,13 +1132,20 @@ GLOBAL_INDICES_DETAILED = {
 
 # Cache for price data
 price_cache = {}
-cache_timeout = 60 # 60-second high-speed real-time live price cache timeout
+cache_timeout = 15 # 15-second high-speed real-time live price cache timeout
 quote_cache = {}
-quote_cache_timeout = 60
+quote_cache_timeout = 15
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 }
+
+# High-Performance HTTP Session with Persistent Connection Pooling
+HTTP_SESSION = requests.Session()
+adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=200, max_retries=1)
+HTTP_SESSION.mount('https://', adapter)
+HTTP_SESSION.mount('http://', adapter)
+HTTP_SESSION.headers.update(HEADERS)
 
 def format_symbol(symbol):
     """Ensure symbol has proper NSE/BSE extension if missing"""
@@ -1148,7 +1155,7 @@ def format_symbol(symbol):
     return f"{symbol}.NS"
 
 def fetch_direct_quote(symbol):
-    """Fetch real-time price & change via direct Yahoo Chart API with 60s memory cache"""
+    """Fetch real-time price & change via direct Yahoo Chart API with connection pool and memory cache"""
     try:
         clean_sym = symbol.strip().upper()
         cache_key = f"quote_{clean_sym}"
@@ -1159,7 +1166,7 @@ def fetch_direct_quote(symbol):
 
         encoded_sym = requests.utils.quote(clean_sym)
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded_sym}?interval=1d&range=5d"
-        r = requests.get(url, headers=HEADERS, timeout=3)
+        r = HTTP_SESSION.get(url, timeout=3)
         if r.status_code == 200:
             data = r.json()
             if 'chart' in data and 'result' in data['chart'] and data['chart']['result']:
@@ -1201,7 +1208,7 @@ def fetch_detailed_ohlc(name, symbol):
     try:
         encoded_sym = requests.utils.quote(symbol)
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded_sym}?interval=1d&range=5d"
-        r = requests.get(url, headers=HEADERS, timeout=4)
+        r = HTTP_SESSION.get(url, timeout=3)
         if r.status_code == 200:
             res = r.json()['chart']['result'][0]
             meta = res['meta']
@@ -1483,7 +1490,7 @@ def get_prices(symbols):
     def _fetch_one(s):
         return s, fetch_stock_quote(s)
         
-    with ThreadPoolExecutor(max_workers=min(10, len(symbols))) as executor:
+    with ThreadPoolExecutor(max_workers=min(20, len(symbols))) as executor:
         futures = [executor.submit(_fetch_one, s) for s in symbols]
         for f in futures:
             try:
