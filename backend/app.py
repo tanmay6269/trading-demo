@@ -1179,17 +1179,24 @@ def get_option_chain_route(symbol):
         expiry = request.args.get('expiry')
         exchange = request.args.get('exchange', 'NSE').upper()
         
-        # 1. High-Speed Redis Option Chain Cache Lookup (2s TTL)
+        # 1. High-Speed Redis Option Chain Cache Lookup (1s TTL)
         cached_data = redis_manager.get_option_chain(exchange, symbol, expiry)
         if cached_data:
             return jsonify(cached_data)
 
-        # 2. Get Real Option Chain from Groww API
-        from nse_bse_fetcher import get_real_option_chain
-        data = get_real_option_chain(symbol, exchange, expiry)
+        # 2. Get Real Option Chain directly from Official Groww Trade SDK
+        from real_option_chain import get_live_groww_option_chain, normalize_underlying
+        clean_u = normalize_underlying(symbol)
         
+        try:
+            data = get_live_groww_option_chain(clean_u, exchange, expiry)
+        except Exception as sdk_err:
+            # Fallback to nse_bse_fetcher resolver if token is not configured on local env
+            from nse_bse_fetcher import get_real_option_chain
+            data = get_real_option_chain(clean_u, exchange, expiry)
+
         if data and data.get("chain"):
-            redis_manager.set_option_chain(exchange, symbol, expiry, data, ttl_seconds=2)
+            redis_manager.set_option_chain(exchange, symbol, expiry, data, ttl_seconds=1)
             return jsonify(data)
 
         return jsonify({
@@ -1199,40 +1206,32 @@ def get_option_chain_route(symbol):
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
-@app.route('/api/debug/option-chain/<symbol>', methods=['GET'])
-def debug_option_chain(symbol):
+@app.route('/api/debug/groww-option-chain/<symbol>', methods=['GET'])
+def debug_groww_option_chain(symbol):
     try:
         expiry = request.args.get('expiry')
         exchange = request.args.get('exchange', 'NSE').upper()
-        from nse_bse_fetcher import get_real_option_chain, normalize_underlying
+        from real_option_chain import get_live_groww_option_chain, normalize_underlying
         clean_u = normalize_underlying(symbol)
-        data = get_real_option_chain(symbol, exchange, expiry)
+        data = get_live_groww_option_chain(clean_u, exchange, expiry)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route('/api/debug/groww-quote', methods=['GET'])
+def debug_groww_quote():
+    try:
+        exchange = request.args.get('exchange', 'NSE').upper()
+        segment = request.args.get('segment', 'FNO').upper()
+        trading_symbol = request.args.get('trading_symbol')
         
-        if not data:
-            return jsonify({
-                "status": "error",
-                "error": "Live market data unavailable",
-                "exchange": exchange,
-                "underlying": clean_u,
-                "expiry": expiry
-            }), 503
+        if not trading_symbol:
+            return jsonify({"status": "error", "error": "trading_symbol query param is required"}), 400
 
-        chain = data.get("chain", [])
-        mid_idx = len(chain) // 2 if chain else 0
-        sample_row = chain[mid_idx] if chain else {}
-
-        return jsonify({
-            "data_source": data.get("data_source"),
-            "data_timestamp": data.get("data_timestamp"),
-            "exchange": exchange,
-            "underlying": clean_u,
-            "expiry": data.get("selected_expiry"),
-            "spot_price": data.get("spot_price"),
-            "pcr": data.get("pcr"),
-            "max_pain": data.get("max_pain"),
-            "sample_contract": sample_row,
-            "total_strikes": len(chain)
-        })
+        from groww_market_data import GrowwMarketData
+        market = GrowwMarketData()
+        quote = market.get_quote(exchange=exchange, segment=segment, trading_symbol=trading_symbol)
+        return jsonify({"status": "success", "quote": quote})
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
