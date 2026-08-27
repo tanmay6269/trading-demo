@@ -18,7 +18,6 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
         { id: 'orders', label: 'Orders' },
         { id: 'watchlist', label: 'Watchlist' },
         { id: 'trading', label: 'Trade & Chart' },
-        { id: 'option-chain', label: 'Option Chain ⚡' },
         { id: 'recharge', label: 'Recharge Funds' },
     ];
 
@@ -218,13 +217,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => {
-                                if (tab.id === 'option-chain' && onOpenOptionChain) {
-                                    onOpenOptionChain();
-                                } else {
-                                    setActiveTab(tab.id);
-                                }
-                            }}
+                            onClick={() => setActiveTab(tab.id)}
                             style={{
                                 padding: '10px 0',
                                 background: 'transparent',

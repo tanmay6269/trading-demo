@@ -1169,7 +1169,12 @@ def fetch_direct_quote(symbol):
                 closes = [c for c in quote.get('close', []) if c is not None]
                 
                 price = meta.get('regularMarketPrice') or (closes[-1] if closes else None)
-                prev_close = closes[-2] if len(closes) >= 2 else (meta.get('previousClose') or meta.get('chartPreviousClose'))
+                # Accurate Previous Close: Use official meta chartPreviousClose / previousClose first
+                prev_close = meta.get('chartPreviousClose') or meta.get('previousClose') or meta.get('regularMarketPreviousClose')
+                if not prev_close and len(closes) >= 2:
+                    prev_close = closes[-2]
+                elif not prev_close and closes:
+                    prev_close = closes[0]
                     
                 if price and prev_close and prev_close > 0:
                     price_val = round(float(price), 2)
@@ -1201,7 +1206,7 @@ def fetch_detailed_ohlc(name, symbol):
             closes = [c for c in quote.get('close', []) if c is not None]
 
             price = meta.get('regularMarketPrice') or (closes[-1] if closes else None)
-            prev = closes[-2] if len(closes) >= 2 else (meta.get('previousClose') or meta.get('chartPreviousClose') or price)
+            prev = meta.get('chartPreviousClose') or meta.get('previousClose') or meta.get('regularMarketPreviousClose') or (closes[-2] if len(closes) >= 2 else price)
             high = meta.get('regularMarketDayHigh')
             low = meta.get('regularMarketDayLow')
             open_p = meta.get('regularMarketOpen')
@@ -1266,14 +1271,15 @@ def get_live_price(symbol):
             if time.time() - timestamp < cache_timeout:
                 return data
         
-        target = format_symbol(clean_symbol)
+        target_sym = SYMBOL_MAP.get(clean_symbol, clean_symbol)
+        target = format_symbol(target_sym)
         quote = fetch_direct_quote(target)
         
-        if not quote and not clean_symbol.endswith('.BO'):
+        if not quote and not target_sym.endswith('.BO'):
             # Fallback to BSE
-            quote = fetch_direct_quote(f"{clean_symbol}.BO")
+            quote = fetch_direct_quote(f"{target_sym}.BO")
             
-        if quote and quote['price']:
+        if quote and quote.get('price'):
             price_cache[cache_key] = (quote['price'], time.time())
             return quote['price']
 
@@ -1321,12 +1327,12 @@ DEFAULT_STOCK_FALLBACKS = {
     'DIXON': {'price': 12850.00, 'prev_close': 12600.00, 'change': 250.00, 'change_percent': 1.98},
     'PERSISTENT': {'price': 5200.00, 'prev_close': 5128.00, 'change': 72.00, 'change_percent': 1.40},
     'BHEL': {'price': 285.40, 'prev_close': 281.00, 'change': 4.40, 'change_percent': 1.57},
-    'NIFTY 50': {'symbol': '^NSEI', 'value': 24053.15, 'change': -101.75, 'change_percent': -0.42},
-    'SENSEX': {'symbol': '^BSESN', 'value': 76893.63, 'change': -341.83, 'change_percent': -0.44},
-    'BANK NIFTY': {'symbol': '^NSEBANK', 'value': 57071.05, 'change': -191.35, 'change_percent': -0.33},
-    'INDIA VIX': {'symbol': '^INDIAVIX', 'value': 11.51, 'change': 0.12, 'change_percent': 1.05},
-    'FIN NIFTY': {'symbol': 'NIFTY_FIN_SERVICE.NS', 'value': 25979.65, 'change': -128.35, 'change_percent': -0.49},
-    'MIDCAP NIFTY': {'symbol': 'NIFTY_MID_SELECT.NS', 'value': 14859.05, 'change': 18.30, 'change_percent': 0.12}
+    'NIFTY 50': {'symbol': '^NSEI', 'value': 24053.15, 'price': 24053.15, 'prev_close': 24154.90, 'change': -101.75, 'change_percent': -0.42},
+    'SENSEX': {'symbol': '^BSESN', 'value': 76893.63, 'price': 76893.63, 'prev_close': 77235.46, 'change': -341.83, 'change_percent': -0.44},
+    'BANK NIFTY': {'symbol': '^NSEBANK', 'value': 57071.05, 'price': 57071.05, 'prev_close': 57262.40, 'change': -191.35, 'change_percent': -0.33},
+    'INDIA VIX': {'symbol': '^INDIAVIX', 'value': 11.51, 'price': 11.51, 'prev_close': 11.39, 'change': 0.12, 'change_percent': 1.05},
+    'FIN NIFTY': {'symbol': 'NIFTY_FIN_SERVICE.NS', 'value': 25979.65, 'price': 25979.65, 'prev_close': 26108.00, 'change': -128.35, 'change_percent': -0.49},
+    'MIDCAP NIFTY': {'symbol': 'NIFTY_MID_SELECT.NS', 'value': 14859.05, 'price': 14859.05, 'prev_close': 14840.75, 'change': 18.30, 'change_percent': 0.12}
 }
 
 def get_index_data():
@@ -1348,11 +1354,22 @@ def get_index_data():
             indices[name] = {
                 'symbol': symbol,
                 'value': q['price'],
+                'price': q['price'],
+                'prev_close': q.get('prev_close', q['price']),
                 'change': q['change'],
                 'change_percent': q['change_percent']
             }
         elif name in DEFAULT_STOCK_FALLBACKS:
-            indices[name] = DEFAULT_STOCK_FALLBACKS[name]
+            fb = DEFAULT_STOCK_FALLBACKS[name]
+            p = fb.get('value') or fb.get('price')
+            indices[name] = {
+                'symbol': symbol,
+                'value': p,
+                'price': p,
+                'prev_close': fb.get('prev_close', p),
+                'change': fb.get('change', 0.0),
+                'change_percent': fb.get('change_percent', 0.0)
+            }
     
     return indices
 
@@ -1382,7 +1399,7 @@ def fetch_stock_quote(symbol):
         # Handle Option Contracts (e.g. RELIANCE27AUG1320CE, TATAMOTORS27AUG320PE)
         if clean_sym.endswith('CE') or clean_sym.endswith('PE'):
             is_ce = clean_sym.endswith('CE')
-            m = re.match(r'^([A-Z\s\^]+?)([0-9]{2}[A-Z]{3})?([0-9\.]+)(CE|PE)$', clean_sym)
+            m = re.match(r'^([A-Z\s^]+?)([0-9]{2}[A-Z]{3})?([0-9.]+)(CE|PE)$', clean_sym)
             if m:
                 underlying = m.group(1).strip()
                 strike = float(m.group(3))
@@ -1396,32 +1413,52 @@ def fetch_stock_quote(symbol):
                 pct = round((chg / max(1.0, opt_price - chg)) * 100, 2)
                 return {
                     'price': opt_price,
+                    'prev_close': round(opt_price - chg, 2),
                     'change': chg,
                     'change_percent': pct
                 }
 
-        target = format_symbol(clean_sym)
+        # Check SYMBOL_MAP first for indices & special tickers
+        target_sym = SYMBOL_MAP.get(clean_sym, clean_sym)
+        target = format_symbol(target_sym)
         q = fetch_direct_quote(target)
-        if not q and not clean_sym.endswith('.BO'):
-            q = fetch_direct_quote(f"{clean_sym}.BO")
+        if not q and not target_sym.endswith('.BO'):
+            q = fetch_direct_quote(f"{target_sym}.BO")
         if q and q.get('price'):
             return q
         
         # Check instant fallback dictionary
         if clean_sym in DEFAULT_STOCK_FALLBACKS:
-            return DEFAULT_STOCK_FALLBACKS[clean_sym]
+            fb = DEFAULT_STOCK_FALLBACKS[clean_sym]
+            p = fb.get('price') or fb.get('value')
+            chg = fb.get('change', 0.0)
+            pct = fb.get('change_percent', 0.0)
+            prev_c = fb.get('prev_close') or (round(p - chg, 2) if p and chg else p)
+            return {
+                'price': p,
+                'prev_close': prev_c,
+                'change': chg,
+                'change_percent': pct
+            }
 
         # Fallback to single price lookup
         p = get_live_price(symbol)
         if p:
-            return {'price': p, 'change': 0.0, 'change_percent': 0.0}
+            return {'price': p, 'prev_close': p, 'change': 0.0, 'change_percent': 0.0}
     except Exception as e:
         print(f"Error fetching stock quote for {symbol}: {e}")
 
     # Final fallback guarantee
     if clean_sym in DEFAULT_STOCK_FALLBACKS:
-        return DEFAULT_STOCK_FALLBACKS[clean_sym]
-    return {'price': 1000.0, 'change': 0.0, 'change_percent': 0.0}
+        fb = DEFAULT_STOCK_FALLBACKS[clean_sym]
+        p = fb.get('price') or fb.get('value', 1000.0)
+        return {
+            'price': p,
+            'prev_close': fb.get('prev_close', p),
+            'change': fb.get('change', 0.0),
+            'change_percent': fb.get('change_percent', 0.0)
+        }
+    return {'price': 1000.0, 'prev_close': 1000.0, 'change': 0.0, 'change_percent': 0.0}
 
 from concurrent.futures import ThreadPoolExecutor
 
