@@ -509,7 +509,7 @@ const StockDetails = ({
         'BSE-100.BO': 'BSE 100'
     };
 
-    const m = (symbol || '').match(/^([A-Z\s^]+?)([0-9]{2}[A-Z]{3})?([0-9.]+)?(CE|PE|FUT)$/i);
+    const m = (symbol || '').match(/^([A-Z\s^]+?)(?:([0-9]{2}[A-Z]{3})([0-9.]+)(CE|PE)|([0-9.]+)(CE|PE)|([0-9]{2}[A-Z]{3})?FUT)$/i);
     const underlyingSymbol = m ? m[1].trim() : symbol;
     const baseTitle = INDEX_DISPLAY_TITLE_MAP[actualIndexKey] || INDEX_DISPLAY_TITLE_MAP[underlyingSymbol] || stockInfo?.name || underlyingSymbol;
     const displaySymbol = INDEX_DISPLAY_TITLE_MAP[actualIndexKey] || INDEX_DISPLAY_TITLE_MAP[symbol] || stockInfo?.name || symbol;

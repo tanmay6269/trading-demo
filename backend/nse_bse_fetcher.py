@@ -302,7 +302,7 @@ def get_live_option_chain_advanced(symbol, exchange='NSE', expiry=None, spot_pri
 
     # Extract underlying root symbol if derivative contract symbol is passed (e.g. INFY29SEP1140CE -> INFY)
     clean_sym = raw_sym
-    m = re.match(r'^([A-Z\s\^]+?)([0-9]{2}[A-Z]{3})?([0-9\.]+)?(CE|PE|FUT)$', raw_sym)
+    m = re.match(r'^([A-Z\s\^]+?)(?:([0-9]{2}[A-Z]{3})([0-9\.]+)(CE|PE)|([0-9\.]+)(CE|PE)|([0-9]{2}[A-Z]{3})?FUT)$', raw_sym)
     if m:
         clean_sym = m.group(1).strip()
 
@@ -348,11 +348,46 @@ def get_live_option_chain_advanced(symbol, exchange='NSE', expiry=None, spot_pri
     change = quote.get('change', 0.0)
     change_pct = quote.get('change_percent', 0.0)
 
-    # 2. Determine Strike Interval Step based on actual spot price
-    if spot > 50000:
-        step = 500.0
-    elif spot > 20000:
+    # 2. Determine Strike Interval Step based on exact exchange specifications
+    EXACT_STRIKE_STEPS = {
+        'NIFTY': 50.0,
+        'NIFTY 50': 50.0,
+        '^NSEI': 50.0,
+        'FINNIFTY': 50.0,
+        'FIN NIFTY': 50.0,
+        'BANKNIFTY': 100.0,
+        'BANK NIFTY': 100.0,
+        '^NSEBANK': 100.0,
+        'SENSEX': 100.0,
+        'BSE SENSEX': 100.0,
+        '^BSESN': 100.0,
+        'MIDCPNIFTY': 25.0,
+        'MIDCAP NIFTY': 25.0,
+        'BANKEX': 100.0,
+        'RELIANCE': 20.0,
+        'TCS': 20.0,
+        'INFY': 20.0,
+        'HDFCBANK': 10.0,
+        'ICICIBANK': 10.0,
+        'SBIN': 10.0,
+        'TATAMOTORS': 10.0,
+        'BHARTIARTL': 20.0,
+        'ITC': 5.0,
+        'WIPRO': 5.0,
+        'MARUTI': 100.0,
+        'LT': 50.0,
+        'TITAN': 50.0,
+        'BAJFINANCE': 50.0,
+        'SUNPHARMA': 20.0,
+        'ZOMATO': 5.0,
+    }
+
+    if clean_sym in EXACT_STRIKE_STEPS:
+        step = EXACT_STRIKE_STEPS[clean_sym]
+    elif spot > 50000:
         step = 100.0
+    elif spot > 20000:
+        step = 50.0
     elif spot > 5000:
         step = 50.0
     elif spot > 1000:
