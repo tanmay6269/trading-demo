@@ -1488,12 +1488,113 @@ def get_prices(symbols):
 
     return quotes
 
+FNO_UNDERLYINGS = {
+    'NIFTY 50': {'symbol': 'NIFTY 50', 'clean': 'NIFTY', 'step': 50.0, 'lot': 25, 'weekly': True, 'exchange': 'NSE'},
+    'NIFTY': {'symbol': 'NIFTY 50', 'clean': 'NIFTY', 'step': 50.0, 'lot': 25, 'weekly': True, 'exchange': 'NSE'},
+    '^NSEI': {'symbol': 'NIFTY 50', 'clean': 'NIFTY', 'step': 50.0, 'lot': 25, 'weekly': True, 'exchange': 'NSE'},
+    'BANK NIFTY': {'symbol': 'BANK NIFTY', 'clean': 'BANKNIFTY', 'step': 100.0, 'lot': 15, 'weekly': False, 'exchange': 'NSE'},
+    'BANKNIFTY': {'symbol': 'BANK NIFTY', 'clean': 'BANKNIFTY', 'step': 100.0, 'lot': 15, 'weekly': False, 'exchange': 'NSE'},
+    '^NSEBANK': {'symbol': 'BANK NIFTY', 'clean': 'BANKNIFTY', 'step': 100.0, 'lot': 15, 'weekly': False, 'exchange': 'NSE'},
+    'FIN NIFTY': {'symbol': 'FIN NIFTY', 'clean': 'FINNIFTY', 'step': 50.0, 'lot': 25, 'weekly': False, 'exchange': 'NSE'},
+    'FINNIFTY': {'symbol': 'FIN NIFTY', 'clean': 'FINNIFTY', 'step': 50.0, 'lot': 25, 'weekly': False, 'exchange': 'NSE'},
+    'MIDCAP NIFTY': {'symbol': 'MIDCAP NIFTY', 'clean': 'MIDCPNIFTY', 'step': 25.0, 'lot': 50, 'weekly': False, 'exchange': 'NSE'},
+    'MIDCPNIFTY': {'symbol': 'MIDCAP NIFTY', 'clean': 'MIDCPNIFTY', 'step': 25.0, 'lot': 50, 'weekly': False, 'exchange': 'NSE'},
+    'SENSEX': {'symbol': 'SENSEX', 'clean': 'SENSEX', 'step': 100.0, 'lot': 10, 'weekly': True, 'exchange': 'BSE'},
+    'BSE SENSEX': {'symbol': 'SENSEX', 'clean': 'SENSEX', 'step': 100.0, 'lot': 10, 'weekly': True, 'exchange': 'BSE'},
+    '^BSESN': {'symbol': 'SENSEX', 'clean': 'SENSEX', 'step': 100.0, 'lot': 10, 'weekly': True, 'exchange': 'BSE'},
+    'RELIANCE': {'symbol': 'RELIANCE', 'clean': 'RELIANCE', 'step': 20.0, 'lot': 250, 'weekly': False, 'exchange': 'NSE'},
+    'TCS': {'symbol': 'TCS', 'clean': 'TCS', 'step': 20.0, 'lot': 175, 'weekly': False, 'exchange': 'NSE'},
+    'INFY': {'symbol': 'INFY', 'clean': 'INFY', 'step': 20.0, 'lot': 400, 'weekly': False, 'exchange': 'NSE'},
+    'HDFCBANK': {'symbol': 'HDFCBANK', 'clean': 'HDFCBANK', 'step': 10.0, 'lot': 550, 'weekly': False, 'exchange': 'NSE'},
+    'ICICIBANK': {'symbol': 'ICICIBANK', 'clean': 'ICICIBANK', 'step': 10.0, 'lot': 700, 'weekly': False, 'exchange': 'NSE'},
+    'SBIN': {'symbol': 'SBIN', 'clean': 'SBIN', 'step': 10.0, 'lot': 750, 'weekly': False, 'exchange': 'NSE'},
+    'TATAMOTORS': {'symbol': 'TATAMOTORS', 'clean': 'TATAMOTORS', 'step': 10.0, 'lot': 700, 'weekly': False, 'exchange': 'NSE'},
+    'BHARTIARTL': {'symbol': 'BHARTIARTL', 'clean': 'BHARTIARTL', 'step': 20.0, 'lot': 475, 'weekly': False, 'exchange': 'NSE'},
+    'ITC': {'symbol': 'ITC', 'clean': 'ITC', 'step': 5.0, 'lot': 1600, 'weekly': False, 'exchange': 'NSE'},
+    'WIPRO': {'symbol': 'WIPRO', 'clean': 'WIPRO', 'step': 5.0, 'lot': 1500, 'weekly': False, 'exchange': 'NSE'},
+    'MARUTI': {'symbol': 'MARUTI', 'clean': 'MARUTI', 'step': 100.0, 'lot': 50, 'weekly': False, 'exchange': 'NSE'},
+    'LT': {'symbol': 'LT', 'clean': 'LT', 'step': 50.0, 'lot': 150, 'weekly': False, 'exchange': 'NSE'},
+    'TITAN': {'symbol': 'TITAN', 'clean': 'TITAN', 'step': 50.0, 'lot': 175, 'weekly': False, 'exchange': 'NSE'},
+    'BAJFINANCE': {'symbol': 'BAJFINANCE', 'clean': 'BAJFINANCE', 'step': 50.0, 'lot': 125, 'weekly': False, 'exchange': 'NSE'},
+    'SUNPHARMA': {'symbol': 'SUNPHARMA', 'clean': 'SUNPHARMA', 'step': 20.0, 'lot': 350, 'weekly': False, 'exchange': 'NSE'},
+    'ZOMATO': {'symbol': 'ZOMATO', 'clean': 'ZOMATO', 'step': 5.0, 'lot': 2000, 'weekly': False, 'exchange': 'NSE'},
+}
+
+def _build_option_search_result(underlying_key, strike, opt_type):
+    from nse_bse_fetcher import generate_expiries_sebi_rule
+    fno_info = FNO_UNDERLYINGS.get(underlying_key, {'symbol': underlying_key, 'clean': underlying_key, 'lot': 100, 'exchange': 'NSE'})
+    clean_u = fno_info.get('clean', underlying_key)
+    ex = fno_info.get('exchange', 'NSE')
+    expiries = generate_expiries_sebi_rule(clean_u, ex)
+    near_exp = expiries[0] if expiries else '29-SEP-2026'
+    exp_code = near_exp[:2] + near_exp[3:6].upper()
+    strike_fmt = int(strike) if float(strike).is_integer() else strike
+    contract_sym = f"{clean_u}{exp_code}{strike_fmt}{opt_type}"
+    q = fetch_stock_quote(contract_sym)
+    p_val = q.get('price', 25.0)
+    chg_val = q.get('change', 0.0)
+    pct_val = q.get('change_percent', 0.0)
+    
+    return {
+        'symbol': contract_sym,
+        'name': f"{fno_info.get('symbol', clean_u)} {strike_fmt} {'Call' if opt_type=='CE' else 'Put'}",
+        'display_name': f"{clean_u} {strike_fmt} {opt_type}",
+        'price': p_val,
+        'change': chg_val,
+        'change_percent': pct_val,
+        'type': 'option',
+        'underlying': fno_info.get('symbol', clean_u),
+        'strike': strike,
+        'option_type': opt_type,
+        'expiry': near_exp,
+        'lot_size': fno_info.get('lot', 100),
+        'exchange': ex,
+        'has_option_chain': True
+    }
+
 def search_stocks(query):
-    """Search for stocks by symbol or name with smart priority ranking & parallel price lookup"""
-    query = query.upper().strip()
+    """Search for stocks, indices, and option contracts with smart priority ranking & live quotes"""
+    raw_query = query.strip()
+    query = raw_query.upper()
     if not query:
         return []
     
+    results = []
+
+    # 1. Check for Explicit Option Contract Search (e.g. "NIFTY 24100 CE", "INFY 1120 PE", "RELIANCE 1300", "320 CE")
+    opt_match = re.match(r'^([A-Za-z\s^]+?)\s*(\d+(?:\.\d+)?)\s*(CE|PE|CALL|PUT)?$', raw_query, re.IGNORECASE)
+    if opt_match:
+        target_underlying = opt_match.group(1).strip().upper()
+        strike_val = float(opt_match.group(2))
+        opt_type_raw = (opt_match.group(3) or '').upper()
+        
+        # Match against FNO list or Indian stocks
+        matched_fno = None
+        for k in FNO_UNDERLYINGS:
+            if k == target_underlying or k.startswith(target_underlying) or target_underlying in k:
+                matched_fno = k
+                break
+        
+        if not matched_fno:
+            for sym in INDIAN_STOCKS:
+                if sym == target_underlying or sym.startswith(target_underlying):
+                    matched_fno = sym
+                    break
+
+        if matched_fno:
+            sides = []
+            if opt_type_raw in ['CE', 'CALL']:
+                sides = ['CE']
+            elif opt_type_raw in ['PE', 'PUT']:
+                sides = ['PE']
+            else:
+                sides = ['CE', 'PE']
+            
+            for side in sides:
+                opt_res = _build_option_search_result(matched_fno, strike_val, side)
+                results.append(opt_res)
+
+    # 2. Standard Equity & Index Matches
     exact_matches = []
     prefix_symbol_matches = []
     prefix_name_matches = []
@@ -1512,10 +1613,8 @@ def search_stocks(query):
         elif query in sym_upper or query in name_upper:
             other_matches.append((symbol, name))
             
-    # Combine matches by priority order
-    ranked_matches = (exact_matches + prefix_symbol_matches + prefix_name_matches + other_matches)[:10]
+    ranked_matches = (exact_matches + prefix_symbol_matches + prefix_name_matches + other_matches)[:8]
     
-    results = []
     if ranked_matches:
         symbols_to_fetch = [m[0] for m in ranked_matches]
         price_map = get_prices(symbols_to_fetch)
@@ -1525,16 +1624,28 @@ def search_stocks(query):
             p_val = q.get('price') if isinstance(q, dict) else q
             chg_val = q.get('change') if isinstance(q, dict) else 0.0
             pct_val = q.get('change_percent') if isinstance(q, dict) else 0.0
+            is_fno = symbol in FNO_UNDERLYINGS
 
             results.append({
                 'symbol': symbol,
                 'name': name,
                 'price': p_val,
                 'change': chg_val,
-                'change_percent': pct_val
+                'change_percent': pct_val,
+                'type': 'index' if symbol.startswith('^') or 'NIFTY' in symbol or 'SENSEX' in symbol else 'stock',
+                'has_option_chain': is_fno,
+                'lot_size': FNO_UNDERLYINGS.get(symbol, {}).get('lot', 1)
             })
+
+            # Append top 2 active ATM option contracts for popular F&O stocks/indices
+            if is_fno and p_val and p_val > 1 and len(results) <= 8:
+                fno_info = FNO_UNDERLYINGS[symbol]
+                step = fno_info['step']
+                atm = round(p_val / step) * step
+                results.append(_build_option_search_result(symbol, atm, 'CE'))
+                results.append(_build_option_search_result(symbol, atm, 'PE'))
     
-    if len(results) < 5 and len(query) >= 2:
+    if not opt_match and not results and len(query) >= 2:
         for suffix in ['.NS', '.BO', '']:
             sym_candidate = f"{query}{suffix}" if not (query.endswith('.NS') or query.endswith('.BO') or query.startswith('^')) else query
             q = fetch_stock_quote(sym_candidate)
@@ -1544,7 +1655,8 @@ def search_stocks(query):
                     'name': f"{query} ({'NSE' if suffix=='.NS' else 'BSE' if suffix=='.BO' else 'Equity'})",
                     'price': q['price'],
                     'change': q.get('change', 0.0),
-                    'change_percent': q.get('change_percent', 0.0)
+                    'change_percent': q.get('change_percent', 0.0),
+                    'has_option_chain': query in FNO_UNDERLYINGS
                 })
                 break
     
@@ -1572,9 +1684,48 @@ SYMBOL_MAP = {
 }
 
 def get_historical_data(symbol, period='1d', interval='1m'):
-    """Get historical OHLCV candle data for TradingView Lightweight Charts with instant fallback generator"""
+    """Get historical OHLCV candle data for TradingView Lightweight Charts with synchronous option derivation"""
     try:
         clean_sym = symbol.strip().upper()
+
+        # Handle Option Contracts (e.g. INFY29SEP1120CE, NIFTY01SEP24100CE)
+        m_opt = re.match(r'^([A-Z\s^]+?)([0-9]{2}[A-Z]{3})?([0-9.]+)(CE|PE)$', clean_sym)
+        if m_opt:
+            underlying = m_opt.group(1).strip()
+            strike = float(m_opt.group(3))
+            is_ce = m_opt.group(4) == 'CE'
+            
+            underlying_candles = get_historical_data(underlying, period, interval)
+            if underlying_candles:
+                opt_candles = []
+                for c in underlying_candles:
+                    open_s = c['open']
+                    high_s = c['high']
+                    low_s = c['low']
+                    close_s = c['close']
+                    
+                    def _calc_opt(spot):
+                        dist = abs(strike - spot) / spot
+                        intrinsic = max(0.0, (spot - strike) if is_ce else (strike - spot))
+                        time_val = (spot * 0.025) * math.exp(-dist * 15.0)
+                        return max(0.05, round(intrinsic + time_val, 2))
+                    
+                    o_opt = _calc_opt(open_s)
+                    h_opt = _calc_opt(high_s if is_ce else low_s)
+                    l_opt = _calc_opt(low_s if is_ce else high_s)
+                    c_opt = _calc_opt(close_s)
+                    
+                    opt_candles.append({
+                        'time': c['time'],
+                        'open': o_opt,
+                        'high': max(o_opt, h_opt, l_opt, c_opt),
+                        'low': min(o_opt, h_opt, l_opt, c_opt),
+                        'close': c_opt,
+                        'volume': int(c.get('volume', 1000) * 0.4)
+                    })
+                if len(opt_candles) >= 5:
+                    return opt_candles
+
         mapped_target = SYMBOL_MAP.get(clean_sym)
         
         targets = []
@@ -1636,7 +1787,7 @@ def get_historical_data(symbol, period='1d', interval='1m'):
                     pass
 
         # Smart Fallback Generator if Yahoo Finance candles are missing/offline
-        base_p = DEFAULT_STOCK_FALLBACKS.get(clean_sym, 1500.0)
+        base_p = DEFAULT_STOCK_FALLBACKS.get(clean_sym, {}).get('price', 1500.0) if isinstance(DEFAULT_STOCK_FALLBACKS.get(clean_sym), dict) else 1500.0
         try:
             q = fetch_stock_quote(clean_sym) or {}
             live = q.get('price') or get_live_price(clean_sym)

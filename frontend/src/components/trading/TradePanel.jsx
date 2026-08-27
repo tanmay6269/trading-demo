@@ -1,13 +1,46 @@
 import React, { useState } from 'react';
 
 const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
-    const [quantity, setQuantity] = useState(1);
+    const isOption = symbol && (symbol.endsWith('CE') || symbol.endsWith('PE'));
+    const isFutures = symbol && symbol.endsWith('FUT');
+    const isDerivatives = isOption || isFutures;
+
+    const getLotSize = (sym) => {
+        if (!sym) return 1;
+        const u = sym.toUpperCase();
+        if (u.includes('NIFTY 50') || (u.startsWith('NIFTY') && !u.includes('BANK') && !u.includes('FIN') && !u.includes('MID'))) return 25;
+        if (u.includes('BANKNIFTY') || u.includes('BANK NIFTY')) return 15;
+        if (u.includes('FINNIFTY') || u.includes('FIN NIFTY')) return 25;
+        if (u.includes('MIDCPNIFTY') || u.includes('MIDCAP')) return 50;
+        if (u.includes('SENSEX')) return 10;
+        if (u.startsWith('RELIANCE')) return 250;
+        if (u.startsWith('TCS')) return 175;
+        if (u.startsWith('INFY')) return 400;
+        if (u.startsWith('HDFCBANK')) return 550;
+        if (u.startsWith('ICICIBANK')) return 700;
+        if (u.startsWith('SBIN')) return 750;
+        if (u.startsWith('TATAMOTORS')) return 700;
+        if (u.startsWith('BHARTIARTL')) return 475;
+        if (u.startsWith('ITC')) return 1600;
+        if (u.startsWith('WIPRO')) return 1500;
+        if (u.startsWith('MARUTI')) return 50;
+        if (u.startsWith('LT')) return 150;
+        if (u.startsWith('TITAN')) return 175;
+        if (u.startsWith('BAJFINANCE')) return 125;
+        if (u.startsWith('SUNPHARMA')) return 350;
+        if (u.startsWith('ZOMATO')) return 2000;
+        return isDerivatives ? 100 : 1;
+    };
+
+    const lotSize = isDerivatives ? getLotSize(symbol) : 1;
+    const [quantity, setQuantity] = useState(isDerivatives ? lotSize : 1);
     const [tradeType, setTradeType] = useState('BUY');
     const [orderType, setOrderType] = useState('MARKET');
-    const [tradeMode, setTradeMode] = useState('DELIVERY');
+    const [tradeMode, setTradeMode] = useState(isDerivatives ? 'NRML (Overnight)' : 'DELIVERY (CNC)');
 
     const totalCost = price ? price * quantity : 0;
     const canAfford = (balance || 0) >= totalCost;
+    const numLots = isDerivatives ? Math.max(1, Math.round(quantity / lotSize)) : quantity;
 
     return (
         <div className="soft-card fade-in" style={{ padding: '24px' }}>
@@ -55,7 +88,7 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
                 gap: '8px', 
                 marginBottom: '20px'
             }}>
-                {['DELIVERY (CNC)', 'INTRADAY (MIS)'].map((mode) => (
+                {(isDerivatives ? ['NRML (Overnight)', 'MIS (Intraday)'] : ['DELIVERY (CNC)', 'INTRADAY (MIS)']).map((mode) => (
                     <button
                         key={mode}
                         onClick={() => setTradeMode(mode)}
@@ -76,22 +109,26 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
                 ))}
             </div>
 
-            {/* Quantity Selector with Quick Multipliers */}
+            {/* Quantity Selector with Lot Size Support */}
             <div style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <label style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600' }}>
-                        Quantity (Shares)
+                        Quantity {isDerivatives ? `(${numLots} Lot${numLots > 1 ? 's' : ''} = ${quantity} Qty)` : '(Shares)'}
                     </label>
                     <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                        Live Price: ₹{price ? price.toFixed(2) : '---'}
+                        {isDerivatives ? `Lot Size: ${lotSize} | ` : ''}Live Price: ₹{price ? price.toFixed(2) : '---'}
                     </span>
                 </div>
                 <input
                     type="number"
-                    min="1"
+                    min={lotSize}
+                    step={lotSize}
                     className="soft-input"
                     value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => {
+                        const val = parseInt(e.target.value) || lotSize;
+                        setQuantity(Math.max(lotSize, val));
+                    }}
                     style={{
                         width: '100%',
                         padding: '12px 16px',
@@ -103,25 +140,28 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
 
                 {/* Quick Presets */}
                 <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                    {[1, 5, 10, 50, 100].map((q) => (
-                        <button
-                            key={q}
-                            onClick={() => setQuantity(q)}
-                            style={{
-                                flex: 1,
-                                padding: '5px',
-                                background: quantity === q ? '#212e44' : '#111927',
-                                color: quantity === q ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '12px',
-                                fontWeight: '600'
-                            }}
-                        >
-                            +{q}
-                        </button>
-                    ))}
+                    {(isDerivatives ? [1, 2, 5, 10, 20] : [1, 5, 10, 50, 100]).map((multiplier) => {
+                        const targetQty = isDerivatives ? multiplier * lotSize : multiplier;
+                        return (
+                            <button
+                                key={multiplier}
+                                onClick={() => setQuantity(targetQty)}
+                                style={{
+                                    flex: 1,
+                                    padding: '5px',
+                                    background: quantity === targetQty ? '#212e44' : '#111927',
+                                    color: quantity === targetQty ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                {isDerivatives ? `${multiplier}L` : `+${multiplier}`}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

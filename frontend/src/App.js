@@ -239,7 +239,7 @@ function App() {
         const isIndexSymbol = symbol.startsWith('^') || symbol.includes('NIFTY') || symbol.includes('SENSEX') || symbol.includes('VIX');
         return (
           <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <StockSearch onSelectStock={handleSelectStock} showToast={showToast} />
+            <StockSearch onSelectStock={handleSelectStock} onOpenOptionChain={handleOpenOptionChain} showToast={showToast} />
             <StockDetails 
               symbol={symbol} 
               portfolio={portfolio}
@@ -274,6 +274,7 @@ function App() {
           <Explore 
             onSelectStock={handleSelectStock} 
             onOpenAllIndices={() => setActiveTab('all-indices')}
+            onOpenOptionChain={handleOpenOptionChain}
             portfolio={portfolio}
           />
         );

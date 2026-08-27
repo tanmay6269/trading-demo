@@ -53,7 +53,7 @@ const SEE_MORE_STOCKS_DEFINITIONS = [
     { symbol: 'SUNPHARMA', name: 'Sun Pharma' }
 ];
 
-const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = () => {} }) => {
+const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio = [], showToast = () => {} }) => {
     const formatChangeAndPct = (change, pct) => {
         const changeNum = typeof change === 'number' ? change : (parseFloat(change) || 0);
         const pctNum = typeof pct === 'number' ? pct : (parseFloat(pct) || 0);
@@ -361,13 +361,16 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                         background: 'var(--bg-surface)',
                         border: '1px solid #2e4161',
                         borderRadius: 'var(--radius-md)',
-                        maxHeight: '360px',
+                        maxHeight: '400px',
                         overflowY: 'auto',
                         zIndex: 1000,
                         boxShadow: '0 16px 40px rgba(0,0,0,0.6)'
                     }}>
                         {searchResults.map((stock) => {
                             const isStarred = watchlist.includes(stock.symbol);
+                            const isOption = stock.type === 'option';
+                            const isCall = stock.option_type === 'CE' || (stock.name && stock.name.includes('Call'));
+                            
                             return (
                                 <div
                                     key={stock.symbol}
@@ -398,35 +401,95 @@ const Explore = ({ onSelectStock, onOpenAllIndices, portfolio = [], showToast = 
                                         >
                                             {isStarred ? '⭐' : '☆'}
                                         </button>
-                                        <StockLogo symbol={stock.symbol} name={stock.name} size={36} />
+                                        
+                                        {isOption ? (
+                                            <div style={{
+                                                width: '36px',
+                                                height: '36px',
+                                                borderRadius: '8px',
+                                                background: isCall ? 'rgba(0, 184, 148, 0.15)' : 'rgba(255, 118, 117, 0.15)',
+                                                color: isCall ? 'var(--accent-emerald)' : 'var(--accent-rose)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '11px',
+                                                fontWeight: '900',
+                                                border: `1px solid ${isCall ? 'rgba(0, 184, 148, 0.4)' : 'rgba(255, 118, 117, 0.4)'}`
+                                            }}>
+                                                {isCall ? 'CE' : 'PE'}
+                                            </div>
+                                        ) : (
+                                            <StockLogo symbol={stock.symbol} name={stock.name} size={36} />
+                                        )}
+
                                         <div>
-                                            <div style={{ fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)' }}>
-                                                {stock.symbol}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)' }}>
+                                                    {stock.display_name || stock.symbol}
+                                                </span>
+                                                {isOption && (
+                                                    <span style={{
+                                                        padding: '1px 6px',
+                                                        borderRadius: '4px',
+                                                        fontSize: '10px',
+                                                        fontWeight: '800',
+                                                        background: isCall ? 'rgba(0, 184, 148, 0.2)' : 'rgba(255, 118, 117, 0.2)',
+                                                        color: isCall ? 'var(--accent-emerald)' : 'var(--accent-rose)'
+                                                    }}>
+                                                        {isCall ? 'CALL' : 'PUT'}
+                                                    </span>
+                                                )}
                                             </div>
                                             <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                {stock.name}
+                                                {stock.name} {stock.expiry ? `• Exp: ${stock.expiry}` : ''}
                                             </div>
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        {stock.price ? (
-                                            <div>
-                                                <div style={{ fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)' }}>
-                                                    ₹{stock.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                                </div>
-                                                {stock.change_percent !== undefined && stock.change_percent !== null && (
-                                                    <div style={{
-                                                        fontSize: '12px',
-                                                        fontWeight: '700',
-                                                        color: (stock.change || 0) >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)'
-                                                    }}>
-                                                        {formatChangeAndPct(stock.change, stock.change_percent)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Trade ➔</div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                        {stock.has_option_chain && onOpenOptionChain && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setShowSearchResults(false);
+                                                    onOpenOptionChain(stock.underlying || stock.symbol);
+                                                }}
+                                                style={{
+                                                    background: 'rgba(108, 92, 231, 0.15)',
+                                                    color: 'var(--accent-primary)',
+                                                    border: '1px solid var(--accent-primary)',
+                                                    padding: '4px 10px',
+                                                    borderRadius: '6px',
+                                                    fontSize: '11px',
+                                                    fontWeight: '700',
+                                                    cursor: 'pointer'
+                                                }}
+                                                title="Open Live Option Chain Matrix"
+                                            >
+                                                Option Chain ⚡
+                                            </button>
                                         )}
+
+                                        <div style={{ textAlign: 'right' }}>
+                                            {stock.price ? (
+                                                <div>
+                                                    <div style={{ fontWeight: '700', fontSize: '15px', color: 'var(--text-primary)' }}>
+                                                        ₹{stock.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                    </div>
+                                                    {stock.change_percent !== undefined && stock.change_percent !== null && (
+                                                        <div style={{
+                                                            fontSize: '12px',
+                                                            fontWeight: '700',
+                                                            color: (stock.change || 0) >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)'
+                                                        }}>
+                                                            {formatChangeAndPct(stock.change, stock.change_percent)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Trade ➔</div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );
