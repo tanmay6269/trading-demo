@@ -25,6 +25,8 @@ from groww_data import (
     get_option_chain
 )
 
+from redis_client import redis_manager
+
 # Load environment variables
 load_dotenv()
 
@@ -1128,7 +1130,12 @@ def search(query):
 @app.route('/api/index-data', methods=['GET'])
 def get_indices():
     try:
+        cached = redis_manager.get_indices()
+        if cached:
+            return jsonify(cached)
         indices = get_index_data()
+        if indices:
+            redis_manager.set_indices(indices, ttl_seconds=5)
         return jsonify(indices)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1172,24 +1179,16 @@ def get_option_chain_route(symbol):
         expiry = request.args.get('expiry')
         exchange = request.args.get('exchange', 'NSE').upper()
         
-        # Redis Caching Key with short 3s TTL to avoid rate limiting
-        cache_key = f"optchain:{symbol}:{exchange}:{expiry or 'default'}"
-        if redis_client:
-            try:
-                cached_bytes = redis_client.get(cache_key)
-                if cached_bytes:
-                    return jsonify(json.loads(cached_bytes.decode('utf-8')))
-            except Exception:
-                pass
+        # High-Speed Redis Option Chain Cache Lookup (Sub-millisecond latency)
+        cached_data = redis_manager.get_option_chain(symbol, exchange, expiry)
+        if cached_data:
+            return jsonify(cached_data)
 
         from nse_bse_fetcher import get_live_option_chain_advanced
         data = get_live_option_chain_advanced(symbol, exchange, expiry)
         
-        if redis_client and data:
-            try:
-                redis_client.setex(cache_key, 3, json.dumps(data))
-            except Exception:
-                pass
+        if data:
+            redis_manager.set_option_chain(symbol, exchange, expiry, data, ttl_seconds=10)
 
         return jsonify(data)
     except Exception as e:
