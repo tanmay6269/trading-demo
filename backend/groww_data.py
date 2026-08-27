@@ -1772,10 +1772,11 @@ def get_historical_data(symbol, period='1d', interval='1m'):
                     close_s = c['close']
                     
                     def _calc_opt(spot):
-                        dist = abs(strike - spot) / spot
-                        intrinsic = max(0.0, (spot - strike) if is_ce else (strike - spot))
-                        time_val = (spot * 0.025) * math.exp(-dist * 15.0)
-                        return max(0.05, round(intrinsic + time_val, 2))
+                        from nse_bse_fetcher import black_scholes_price
+                        is_idx = underlying in ['NIFTY', 'NIFTY 50', '^NSEI', 'BANKNIFTY', 'BANK NIFTY', '^NSEBANK', 'SENSEX', 'BSE SENSEX', 'FINNIFTY', 'MIDCPNIFTY', 'BANKEX']
+                        iv = 11.8 if is_idx else 23.5
+                        t_days = 4 if is_idx else 30
+                        return black_scholes_price(spot, strike, t_days, iv, is_ce)
                     
                     o_opt = _calc_opt(open_s)
                     h_opt = _calc_opt(high_s if is_ce else low_s)
