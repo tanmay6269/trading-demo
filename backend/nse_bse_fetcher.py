@@ -229,6 +229,126 @@ class BSEOptionChainFetcher:
             print("BSE raw fetch error for %s: %s" % (symbol, e))
         return None
 
+GROWW_API_BASE = os.getenv("GROWW_API_BASE", "https://api.groww.in")
+GROWW_TOKEN = os.getenv("GROWW_API_TOKEN", "")
+
+def groww_headers():
+    headers = {
+        "Accept": "application/json",
+        "X-API-VERSION": "1.0"
+    }
+    if GROWW_TOKEN:
+        headers["Authorization"] = f"Bearer {GROWW_TOKEN}"
+    return headers
+
+def fetch_groww_option_chain(exchange, underlying, expiry_date=None):
+    """
+    Fetch complete real-time Option Chain directly from Groww Official F&O API
+    GET /v1/option-chain/exchange/{exchange}/underlying/{underlying}?expiry_date={expiry_date}
+    """
+    try:
+        clean_u = underlying.strip().upper().replace('.NS', '').replace('.BO', '')
+        ex = exchange.upper()
+        url = f"{GROWW_API_BASE}/v1/option-chain/exchange/{ex}/underlying/{clean_u}"
+        params = {}
+        if expiry_date:
+            params["expiry_date"] = expiry_date
+            
+        r = requests.get(url, params=params, headers=groww_headers(), timeout=4)
+        if r.status_code == 200:
+            result = r.json()
+            if result.get("status") == "SUCCESS" and "payload" in result:
+                payload = result["payload"]
+                return build_option_chain_from_groww_payload(payload, clean_u, ex)
+    except Exception as e:
+        pass
+    return None
+
+def build_option_chain_from_groww_payload(payload, underlying, exchange):
+    """
+    Parse actual contracts, LTP, OI, Volume, Greeks, and IV from Groww API response
+    """
+    chain_rows = []
+    strikes_data = payload.get("strikes", {})
+    spot_price = float(payload.get("spot_price") or payload.get("underlying_value") or 0.0)
+    expiries = payload.get("expiries") or payload.get("expiry_dates") or []
+    selected_expiry = payload.get("selected_expiry") or (expiries[0] if expiries else None)
+    lot_size = payload.get("lot_size", 25)
+    
+    total_ce_oi = 0
+    total_pe_oi = 0
+    
+    for strike_key, contract_data in strikes_data.items():
+        strike = float(strike_key)
+        ce = contract_data.get("CE", {})
+        pe = contract_data.get("PE", {})
+        
+        ce_oi = int(ce.get("openInterest") or ce.get("oi") or 0)
+        pe_oi = int(pe.get("openInterest") or pe.get("oi") or 0)
+        total_ce_oi += ce_oi
+        total_pe_oi += pe_oi
+        
+        chain_rows.append({
+            "strike": strike,
+            "is_atm": abs(strike - spot_price) < 25.0,
+            "ce": {
+                "symbol": ce.get("tradingSymbol") or f"{underlying}{int(strike)}CE",
+                "ltp": float(ce.get("lastPrice") or ce.get("ltp") or 0.0),
+                "change": float(ce.get("change") or 0.0),
+                "change_percent": float(ce.get("pChange") or ce.get("change_percent") or 0.0),
+                "oi": ce_oi,
+                "oi_change": int(ce.get("changeinOpenInterest") or ce.get("oi_change") or 0),
+                "volume": int(ce.get("totalTradedVolume") or ce.get("volume") or 0),
+                "iv": float(ce.get("impliedVolatility") or ce.get("iv") or 0.0),
+                "bid_price": float(ce.get("buyPrice") or ce.get("bid_price") or 0.0),
+                "bid_qty": int(ce.get("buyQty") or ce.get("bid_qty") or lot_size),
+                "ask_price": float(ce.get("sellPrice") or ce.get("ask_price") or 0.0),
+                "ask_qty": int(ce.get("sellQty") or ce.get("ask_qty") or lot_size),
+                "delta": float(ce.get("delta") or 0.0),
+                "gamma": float(ce.get("gamma") or 0.0),
+                "theta": float(ce.get("theta") or 0.0),
+                "vega": float(ce.get("vega") or 0.0),
+                "is_itm": spot_price > strike
+            },
+            "pe": {
+                "symbol": pe.get("tradingSymbol") or f"{underlying}{int(strike)}PE",
+                "ltp": float(pe.get("lastPrice") or pe.get("ltp") or 0.0),
+                "change": float(pe.get("change") or 0.0),
+                "change_percent": float(pe.get("pChange") or pe.get("change_percent") or 0.0),
+                "oi": pe_oi,
+                "oi_change": int(pe.get("changeinOpenInterest") or pe.get("oi_change") or 0),
+                "volume": int(pe.get("totalTradedVolume") or pe.get("volume") or 0),
+                "iv": float(pe.get("impliedVolatility") or pe.get("iv") or 0.0),
+                "bid_price": float(pe.get("buyPrice") or pe.get("bid_price") or 0.0),
+                "bid_qty": int(pe.get("buyQty") or pe.get("bid_qty") or lot_size),
+                "ask_price": float(pe.get("sellPrice") or pe.get("ask_price") or 0.0),
+                "ask_qty": int(pe.get("sellQty") or pe.get("ask_qty") or lot_size),
+                "delta": float(pe.get("delta") or 0.0),
+                "gamma": float(pe.get("gamma") or 0.0),
+                "theta": float(pe.get("theta") or 0.0),
+                "vega": float(pe.get("vega") or 0.0),
+                "is_itm": spot_price < strike
+            }
+        })
+        
+    chain_rows.sort(key=lambda x: x["strike"])
+    pcr = round(total_pe_oi / max(total_ce_oi, 1), 2)
+    max_pain = calculate_max_pain(chain_rows)
+    
+    return {
+        "symbol": underlying,
+        "exchange": exchange,
+        "spot_price": spot_price,
+        "lot_size": lot_size,
+        "expiries": expiries,
+        "selected_expiry": selected_expiry,
+        "pcr": pcr,
+        "max_pain": max_pain or spot_price,
+        "india_vix": 11.07,
+        "chain": chain_rows,
+        "source": "Groww F&O Official API"
+    }
+
 nse_fetcher = NSEOptionChainFetcher()
 bse_fetcher = BSEOptionChainFetcher()
 
@@ -339,6 +459,11 @@ def get_live_option_chain_advanced(symbol, exchange='NSE', expiry=None, spot_pri
     m = re.match(r'^([A-Z\s\^]+?)(?:([0-9]{2}[A-Z]{3})([0-9\.]+)(CE|PE)|([0-9\.]+)(CE|PE)|([0-9]{2}[A-Z]{3})?FUT)$', raw_sym)
     if m:
         clean_sym = m.group(1).strip()
+
+    # 0. Try Groww Official F&O Live Option Chain API First
+    groww_data = fetch_groww_option_chain(exchange, clean_sym, expiry)
+    if groww_data and groww_data.get("chain"):
+        return groww_data
 
     # 1. Fetch Spot Price & Market Quote for THIS SPECIFIC SYMBOL
     from groww_data import fetch_stock_quote, get_live_price, SYMBOL_MAP, DEFAULT_STOCK_FALLBACKS

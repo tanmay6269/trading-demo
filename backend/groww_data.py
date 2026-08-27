@@ -1408,25 +1408,55 @@ def get_all_indices_detailed_table():
         'global': global_table
     }
 
+def fetch_groww_direct_quote(symbol):
+    """Fetch live real-time price & previous close directly from Groww Accord API"""
+    try:
+        clean = symbol.strip().upper().replace('.NS', '').replace('.BO', '')
+        url = f"https://groww.in/v1/api/stocks_data/v1/accord_points/exchange/NSE/segment/CASH/latest_prices_ohlc/{clean}"
+        r = HTTP_SESSION.get(url, timeout=2.5)
+        if r.status_code == 200:
+            d = r.json()
+            ltp = d.get('ltp') or d.get('close')
+            prev_close = d.get('close')
+            change = d.get('dayChange', 0.0)
+            change_pct = d.get('dayChangePerc', 0.0)
+            if ltp and prev_close:
+                return {
+                    'price': round(float(ltp), 2),
+                    'prev_close': round(float(prev_close), 2),
+                    'change': round(float(change), 2),
+                    'change_percent': round(float(change_pct), 2),
+                    'high': d.get('high'),
+                    'low': d.get('low'),
+                    'open': d.get('open')
+                }
+    except Exception:
+        pass
+    return None
+
 def fetch_stock_quote(symbol):
-    """Fetch real-time price, day change, and % change for a stock or option contract with 0ms fallback"""
+    """Fetch complete live quote (price, prev_close, change, change_percent) with Groww API Priority"""
     try:
         clean_sym = symbol.strip().upper()
         
-        # Handle Option Contracts strictly (must have strike numbers, e.g. INFY29SEP1120CE, NIFTY24100PE)
-        m = re.match(r'^([A-Z\s^]+?)(?:([0-9]{2}[A-Z]{3})([0-9.]+)(CE|PE)|([0-9.]+)(CE|PE))$', clean_sym)
-        if m:
-            underlying = m.group(1).strip()
-            strike_str = m.group(3) or m.group(5)
-            opt_type = m.group(4) or m.group(6)
-            is_ce = opt_type == 'CE'
+        # Check Option Contract Derivation
+        m_opt = re.match(r'^([A-Z\s^]+?)(?:([0-9]{2}[A-Z]{3})([0-9.]+)(CE|PE)|([0-9.]+)(CE|PE)|([0-9]{2}[A-Z]{3})?FUT)$', clean_sym)
+        if m_opt and (m_opt.group(4) in ['CE', 'PE'] or m_opt.group(6) in ['CE', 'PE']):
+            underlying = m_opt.group(1).strip()
+            strike_str = m_opt.group(3) or m_opt.group(5) or "0"
+            opt_type = m_opt.group(4) or m_opt.group(6) or "CE"
             strike = float(strike_str)
-            spot_q = fetch_stock_quote(underlying) or {}
-            spot = spot_q.get('price') or 1500.0
-            dist = abs(strike - spot) / spot
-            intrinsic = max(0.0, (spot - strike) if is_ce else (strike - spot))
-            time_val = (spot * 0.025) * math.exp(-dist * 15.0)
-            opt_price = round(intrinsic + time_val, 2)
+            is_ce = opt_type == 'CE'
+
+            u_quote = fetch_stock_quote(underlying) or {}
+            spot = u_quote.get('price', 24000.0)
+            
+            from nse_bse_fetcher import black_scholes_price
+            is_idx = underlying in ['NIFTY', 'NIFTY 50', '^NSEI', 'BANKNIFTY', 'BANK NIFTY', '^NSEBANK', 'SENSEX', 'BSE SENSEX', 'FINNIFTY', 'MIDCPNIFTY', 'BANKEX']
+            iv = 11.8 if is_idx else 23.5
+            t_days = 4 if is_idx else 30
+            opt_price = black_scholes_price(spot, strike, t_days, iv, is_ce)
+            
             chg = round(opt_price * 0.02, 2)
             prev_c = round(opt_price - chg, 2)
             pct = round((chg / prev_c) * 100, 2) if prev_c > 0 else 0.0
@@ -1437,7 +1467,12 @@ def fetch_stock_quote(symbol):
                 'change_percent': pct
             }
 
-        # Check SYMBOL_MAP first for indices & special tickers
+        # 1. Groww Live API direct fetcher for equities
+        groww_q = fetch_groww_direct_quote(clean_sym)
+        if groww_q and groww_q.get('price'):
+            return groww_q
+
+        # 2. Check SYMBOL_MAP for indices & special tickers
         target_sym = SYMBOL_MAP.get(clean_sym, clean_sym)
         target = format_symbol(target_sym)
         q = fetch_direct_quote(target)
