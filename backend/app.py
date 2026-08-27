@@ -418,13 +418,54 @@ class Trade(db.Model):
     __tablename__ = 'trades'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
-    symbol = db.Column(db.String(20), nullable=False)
+    symbol = db.Column(db.String(30), nullable=False)
     trade_type = db.Column(db.String(10), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Float, nullable=False)
     trade_date = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='OPEN')
     pnl = db.Column(db.Float, default=0.0)
+
+# 10. instruments — Master Derivative & Equity Directory (PostgreSQL / Relational Table)
+class Instrument(db.Model):
+    __tablename__ = 'instruments'
+    instrument_token = db.Column(db.String(50), primary_key=True)
+    exchange = db.Column(db.String(10), nullable=False, index=True) # NSE / BSE
+    tradingsymbol = db.Column(db.String(50), unique=True, nullable=False, index=True) # e.g. NIFTY24100CE, INFY
+    name = db.Column(db.String(100), nullable=False) # e.g. NIFTY, INFOSYS
+    expiry = db.Column(db.String(20), nullable=True, index=True) # e.g. 2026-09-01
+    strike = db.Column(db.Float, nullable=True, index=True) # e.g. 24100.0
+    tick_size = db.Column(db.Float, default=0.05)
+    lot_size = db.Column(db.Integer, default=1)
+    instrument_type = db.Column(db.String(10), default='EQ') # EQ, CE, PE, FUT
+    segment = db.Column(db.String(10), default='NSE') # NSE, NFO, BSE, BFO
+    is_active = db.Column(db.Boolean, default=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# 11. option_chain_snapshots — Full Option Chain Cache & Historical Greeks Vault
+class OptionChainSnapshot(db.Model):
+    __tablename__ = 'option_chain_snapshots'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    underlying = db.Column(db.String(30), nullable=False, index=True)
+    exchange = db.Column(db.String(10), default='NSE', index=True)
+    expiry = db.Column(db.String(20), nullable=False, index=True)
+    spot_price = db.Column(db.Float, nullable=False)
+    pcr = db.Column(db.Float, nullable=True)
+    max_pain = db.Column(db.Float, nullable=True)
+    lot_size = db.Column(db.Integer, default=25)
+    chain_json = db.Column(db.Text, nullable=False) # JSON payload of full 17 strikes with Greeks
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+# 12. market_depth_snapshots — Level 2 5-Bid / 5-Ask Order Book Ledger
+class MarketDepthSnapshot(db.Model):
+    __tablename__ = 'market_depth_snapshots'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    symbol = db.Column(db.String(50), nullable=False, index=True)
+    ltp = db.Column(db.Float, nullable=False)
+    total_buy_qty = db.Column(db.BigInteger, default=0)
+    total_sell_qty = db.Column(db.BigInteger, default=0)
+    depth_json = db.Column(db.Text, nullable=False) # JSON array of 5 bids & 5 asks
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
 # ============================================
 # HELPER FUNCTIONS
