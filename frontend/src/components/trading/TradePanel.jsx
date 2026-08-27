@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 
 const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
-    const isOption = symbol && (symbol.endsWith('CE') || symbol.endsWith('PE'));
-    const isFutures = symbol && symbol.endsWith('FUT');
+    const isOption = symbol && /^([A-Z\s^]+?)(?:([0-9]{2}[A-Z]{3})([0-9.]+)(CE|PE)|([0-9.]+)(CE|PE))$/i.test(symbol.trim());
+    const isFutures = symbol && /^([A-Z\s^]+?)(?:([0-9]{2}[A-Z]{3})?FUT)$/i.test(symbol.trim());
     const isDerivatives = isOption || isFutures;
 
     const getLotSize = (sym) => {

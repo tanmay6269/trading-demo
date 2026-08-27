@@ -1166,15 +1166,18 @@ def fetch_direct_quote(symbol):
                 res = data['chart']['result'][0]
                 meta = res['meta']
                 quote = res['indicators']['quote'][0]
-                closes = [c for c in quote.get('close', []) if c is not None]
+                closes = [c for c in quote.get('close', []) if c is not None and c > 0]
                 
                 price = meta.get('regularMarketPrice') or (closes[-1] if closes else None)
-                # Accurate Previous Close: Use official meta chartPreviousClose / previousClose first
-                prev_close = meta.get('chartPreviousClose') or meta.get('previousClose') or meta.get('regularMarketPreviousClose')
-                if not prev_close and len(closes) >= 2:
-                    prev_close = closes[-2]
-                elif not prev_close and closes:
-                    prev_close = closes[0]
+                
+                # Accurate Previous Session Close (The completed close before current session)
+                if closes:
+                    if len(closes) >= 2 and price and abs(closes[-1] - price) < 0.01:
+                        prev_close = closes[-2]
+                    else:
+                        prev_close = closes[-1]
+                else:
+                    prev_close = meta.get('regularMarketPreviousClose') or meta.get('chartPreviousClose')
                     
                 if price and prev_close and prev_close > 0:
                     price_val = round(float(price), 2)
@@ -1203,10 +1206,17 @@ def fetch_detailed_ohlc(name, symbol):
             res = r.json()['chart']['result'][0]
             meta = res['meta']
             quote = res['indicators']['quote'][0]
-            closes = [c for c in quote.get('close', []) if c is not None]
+            closes = [c for c in quote.get('close', []) if c is not None and c > 0]
 
             price = meta.get('regularMarketPrice') or (closes[-1] if closes else None)
-            prev = meta.get('chartPreviousClose') or meta.get('previousClose') or meta.get('regularMarketPreviousClose') or (closes[-2] if len(closes) >= 2 else price)
+            if closes:
+                if len(closes) >= 2 and price and abs(closes[-1] - price) < 0.01:
+                    prev = closes[-2]
+                else:
+                    prev = closes[-1]
+            else:
+                prev = meta.get('regularMarketPreviousClose') or meta.get('chartPreviousClose') or price
+                
             high = meta.get('regularMarketDayHigh')
             low = meta.get('regularMarketDayLow')
             open_p = meta.get('regularMarketOpen')
@@ -1297,14 +1307,14 @@ def get_live_price(symbol):
         return None
 
 DEFAULT_STOCK_FALLBACKS = {
-    'RELIANCE': {'price': 1315.20, 'prev_close': 1322.00, 'change': -6.80, 'change_percent': -0.51},
-    'TCS': {'price': 2265.80, 'prev_close': 2280.00, 'change': -14.20, 'change_percent': -0.62},
-    'HDFCBANK': {'price': 716.50, 'prev_close': 723.00, 'change': -6.50, 'change_percent': -0.90},
-    'INFY': {'price': 1118.40, 'prev_close': 1115.00, 'change': 3.40, 'change_percent': 0.30},
-    'ICICIBANK': {'price': 1245.10, 'prev_close': 1250.00, 'change': -4.90, 'change_percent': -0.39},
-    'SBIN': {'price': 842.30, 'prev_close': 848.00, 'change': -5.70, 'change_percent': -0.67},
-    'TATAMOTORS': {'price': 985.60, 'prev_close': 990.00, 'change': -4.40, 'change_percent': -0.44},
-    'BHARTIARTL': {'price': 1420.50, 'prev_close': 1425.00, 'change': -4.50, 'change_percent': -0.32},
+    'RELIANCE': {'price': 1282.20, 'prev_close': 1298.00, 'change': -15.80, 'change_percent': -1.22},
+    'TCS': {'price': 2248.40, 'prev_close': 2270.00, 'change': -21.60, 'change_percent': -0.95},
+    'HDFCBANK': {'price': 711.00, 'prev_close': 727.20, 'change': -16.20, 'change_percent': -2.23},
+    'INFY': {'price': 1110.80, 'prev_close': 1120.00, 'change': -9.20, 'change_percent': -0.82},
+    'ICICIBANK': {'price': 1443.00, 'prev_close': 1420.00, 'change': 23.00, 'change_percent': 1.62},
+    'SBIN': {'price': 1042.90, 'prev_close': 1048.70, 'change': -5.80, 'change_percent': -0.55},
+    'TATAMOTORS': {'price': 316.00, 'prev_close': 317.90, 'change': -1.90, 'change_percent': -0.60},
+    'BHARTIARTL': {'price': 1878.30, 'prev_close': 1946.00, 'change': -67.70, 'change_percent': -3.48},
     'MARUTI': {'price': 12450.00, 'prev_close': 12500.00, 'change': -50.00, 'change_percent': -0.40},
     'WIPRO': {'price': 525.40, 'prev_close': 528.00, 'change': -2.60, 'change_percent': -0.49},
     'ITC': {'price': 485.20, 'prev_close': 488.00, 'change': -2.80, 'change_percent': -0.57},
@@ -1327,12 +1337,12 @@ DEFAULT_STOCK_FALLBACKS = {
     'DIXON': {'price': 12850.00, 'prev_close': 12600.00, 'change': 250.00, 'change_percent': 1.98},
     'PERSISTENT': {'price': 5200.00, 'prev_close': 5128.00, 'change': 72.00, 'change_percent': 1.40},
     'BHEL': {'price': 285.40, 'prev_close': 281.00, 'change': 4.40, 'change_percent': 1.57},
-    'NIFTY 50': {'symbol': '^NSEI', 'value': 24053.15, 'price': 24053.15, 'prev_close': 24154.90, 'change': -101.75, 'change_percent': -0.42},
-    'SENSEX': {'symbol': '^BSESN', 'value': 76893.63, 'price': 76893.63, 'prev_close': 77235.46, 'change': -341.83, 'change_percent': -0.44},
-    'BANK NIFTY': {'symbol': '^NSEBANK', 'value': 57071.05, 'price': 57071.05, 'prev_close': 57262.40, 'change': -191.35, 'change_percent': -0.33},
-    'INDIA VIX': {'symbol': '^INDIAVIX', 'value': 11.51, 'price': 11.51, 'prev_close': 11.39, 'change': 0.12, 'change_percent': 1.05},
-    'FIN NIFTY': {'symbol': 'NIFTY_FIN_SERVICE.NS', 'value': 25979.65, 'price': 25979.65, 'prev_close': 26108.00, 'change': -128.35, 'change_percent': -0.49},
-    'MIDCAP NIFTY': {'symbol': 'NIFTY_MID_SELECT.NS', 'value': 14859.05, 'price': 14859.05, 'prev_close': 14840.75, 'change': 18.30, 'change_percent': 0.12}
+    'NIFTY 50': {'symbol': '^NSEI', 'value': 24090.85, 'price': 24090.85, 'prev_close': 24207.75, 'change': -116.90, 'change_percent': -0.48},
+    'SENSEX': {'symbol': '^BSESN', 'value': 76933.59, 'price': 76933.59, 'prev_close': 77472.94, 'change': -539.35, 'change_percent': -0.70},
+    'BANK NIFTY': {'symbol': '^NSEBANK', 'value': 57509.95, 'price': 57509.95, 'prev_close': 57783.75, 'change': -273.80, 'change_percent': -0.47},
+    'INDIA VIX': {'symbol': '^INDIAVIX', 'value': 11.07, 'price': 11.07, 'prev_close': 11.20, 'change': -0.13, 'change_percent': -1.16},
+    'FIN NIFTY': {'symbol': 'NIFTY_FIN_SERVICE.NS', 'value': 26280.65, 'price': 26280.65, 'prev_close': 26386.75, 'change': -106.10, 'change_percent': -0.40},
+    'MIDCAP NIFTY': {'symbol': 'NIFTY_MID_SELECT.NS', 'value': 14948.85, 'price': 14948.85, 'prev_close': 14948.05, 'change': 0.80, 'change_percent': 0.01}
 }
 
 def get_index_data():
@@ -1396,27 +1406,29 @@ def fetch_stock_quote(symbol):
     try:
         clean_sym = symbol.strip().upper()
         
-        # Handle Option Contracts (e.g. RELIANCE27AUG1320CE, TATAMOTORS27AUG320PE)
-        if clean_sym.endswith('CE') or clean_sym.endswith('PE'):
-            is_ce = clean_sym.endswith('CE')
-            m = re.match(r'^([A-Z\s^]+?)([0-9]{2}[A-Z]{3})?([0-9.]+)(CE|PE)$', clean_sym)
-            if m:
-                underlying = m.group(1).strip()
-                strike = float(m.group(3))
-                spot_q = fetch_stock_quote(underlying) or {}
-                spot = spot_q.get('price') or 1500.0
-                dist = abs(strike - spot) / spot
-                intrinsic = max(0.0, (spot - strike) if is_ce else (strike - spot))
-                time_val = (spot * 0.025) * math.exp(-dist * 15.0)
-                opt_price = round(intrinsic + time_val, 2)
-                chg = round(opt_price * (random.random() * 0.08 - 0.03), 2)
-                pct = round((chg / max(1.0, opt_price - chg)) * 100, 2)
-                return {
-                    'price': opt_price,
-                    'prev_close': round(opt_price - chg, 2),
-                    'change': chg,
-                    'change_percent': pct
-                }
+        # Handle Option Contracts strictly (must have strike numbers, e.g. INFY29SEP1120CE, NIFTY24100PE)
+        m = re.match(r'^([A-Z\s^]+?)(?:([0-9]{2}[A-Z]{3})([0-9.]+)(CE|PE)|([0-9.]+)(CE|PE))$', clean_sym)
+        if m:
+            underlying = m.group(1).strip()
+            strike_str = m.group(3) or m.group(5)
+            opt_type = m.group(4) or m.group(6)
+            is_ce = opt_type == 'CE'
+            strike = float(strike_str)
+            spot_q = fetch_stock_quote(underlying) or {}
+            spot = spot_q.get('price') or 1500.0
+            dist = abs(strike - spot) / spot
+            intrinsic = max(0.0, (spot - strike) if is_ce else (strike - spot))
+            time_val = (spot * 0.025) * math.exp(-dist * 15.0)
+            opt_price = round(intrinsic + time_val, 2)
+            chg = round(opt_price * 0.02, 2)
+            prev_c = round(opt_price - chg, 2)
+            pct = round((chg / prev_c) * 100, 2) if prev_c > 0 else 0.0
+            return {
+                'price': opt_price,
+                'prev_close': prev_c,
+                'change': chg,
+                'change_percent': pct
+            }
 
         # Check SYMBOL_MAP first for indices & special tickers
         target_sym = SYMBOL_MAP.get(clean_sym, clean_sym)
