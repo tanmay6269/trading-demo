@@ -1179,20 +1179,62 @@ def get_option_chain_route(symbol):
         expiry = request.args.get('expiry')
         exchange = request.args.get('exchange', 'NSE').upper()
         
-        # High-Speed Redis Option Chain Cache Lookup (Sub-millisecond latency)
-        cached_data = redis_manager.get_option_chain(symbol, exchange, expiry)
+        # 1. High-Speed Redis Option Chain Cache Lookup (2s TTL)
+        cached_data = redis_manager.get_option_chain(exchange, symbol, expiry)
         if cached_data:
             return jsonify(cached_data)
 
-        from nse_bse_fetcher import get_live_option_chain_advanced
-        data = get_live_option_chain_advanced(symbol, exchange, expiry)
+        # 2. Get Real Option Chain from Groww API
+        from nse_bse_fetcher import get_real_option_chain
+        data = get_real_option_chain(symbol, exchange, expiry)
         
-        if data:
-            redis_manager.set_option_chain(symbol, exchange, expiry, data, ttl_seconds=10)
+        if data and data.get("chain"):
+            redis_manager.set_option_chain(exchange, symbol, expiry, data, ttl_seconds=2)
+            return jsonify(data)
 
-        return jsonify(data)
+        return jsonify({
+            "status": "error",
+            "error": f"Live market data unavailable for {symbol} on {exchange}"
+        }), 503
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route('/api/debug/option-chain/<symbol>', methods=['GET'])
+def debug_option_chain(symbol):
+    try:
+        expiry = request.args.get('expiry')
+        exchange = request.args.get('exchange', 'NSE').upper()
+        from nse_bse_fetcher import get_real_option_chain, normalize_underlying
+        clean_u = normalize_underlying(symbol)
+        data = get_real_option_chain(symbol, exchange, expiry)
+        
+        if not data:
+            return jsonify({
+                "status": "error",
+                "error": "Live market data unavailable",
+                "exchange": exchange,
+                "underlying": clean_u,
+                "expiry": expiry
+            }), 503
+
+        chain = data.get("chain", [])
+        mid_idx = len(chain) // 2 if chain else 0
+        sample_row = chain[mid_idx] if chain else {}
+
+        return jsonify({
+            "data_source": data.get("data_source"),
+            "data_timestamp": data.get("data_timestamp"),
+            "exchange": exchange,
+            "underlying": clean_u,
+            "expiry": data.get("selected_expiry"),
+            "spot_price": data.get("spot_price"),
+            "pcr": data.get("pcr"),
+            "max_pain": data.get("max_pain"),
+            "sample_contract": sample_row,
+            "total_strikes": len(chain)
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 # ============================================
 # WATCHLIST ROUTES

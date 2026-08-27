@@ -1432,6 +1432,32 @@ def fetch_groww_direct_quote(symbol):
                 }
     except Exception:
         pass
+def fetch_groww_fno_quote(trading_symbol, exchange='NSE'):
+    """Fetch real-time F&O quote from Groww Live Data API"""
+    try:
+        from nse_bse_fetcher import GROWW_API_BASE, groww_headers
+        url = f"{GROWW_API_BASE}/v1/live-data/quote"
+        params = {
+            "exchange": exchange,
+            "segment": "FNO",
+            "trading_symbol": trading_symbol
+        }
+        r = HTTP_SESSION.get(url, params=params, timeout=3)
+        if r.status_code == 200:
+            d = r.json().get("payload", {})
+            ltp = d.get("last_price") or d.get("ltp")
+            prev_close = d.get("previous_close") or d.get("prev_close")
+            chg = d.get("day_change")
+            chg_pct = d.get("day_change_perc")
+            if ltp is not None:
+                return {
+                    'price': float(ltp),
+                    'prev_close': float(prev_close) if prev_close else float(ltp),
+                    'change': float(chg) if chg else 0.0,
+                    'change_percent': float(chg_pct) if chg_pct else 0.0
+                }
+    except Exception:
+        pass
     return None
 
 def fetch_stock_quote(symbol):
@@ -1439,33 +1465,12 @@ def fetch_stock_quote(symbol):
     try:
         clean_sym = symbol.strip().upper()
         
-        # Check Option Contract Derivation
+        # Check Option Contract Derivation via Groww Live F&O Data API
         m_opt = re.match(r'^([A-Z\s^]+?)(?:([0-9]{2}[A-Z]{3})([0-9.]+)(CE|PE)|([0-9.]+)(CE|PE)|([0-9]{2}[A-Z]{3})?FUT)$', clean_sym)
-        if m_opt and (m_opt.group(4) in ['CE', 'PE'] or m_opt.group(6) in ['CE', 'PE']):
-            underlying = m_opt.group(1).strip()
-            strike_str = m_opt.group(3) or m_opt.group(5) or "0"
-            opt_type = m_opt.group(4) or m_opt.group(6) or "CE"
-            strike = float(strike_str)
-            is_ce = opt_type == 'CE'
-
-            u_quote = fetch_stock_quote(underlying) or {}
-            spot = u_quote.get('price', 24000.0)
-            
-            from nse_bse_fetcher import black_scholes_price
-            is_idx = underlying in ['NIFTY', 'NIFTY 50', '^NSEI', 'BANKNIFTY', 'BANK NIFTY', '^NSEBANK', 'SENSEX', 'BSE SENSEX', 'FINNIFTY', 'MIDCPNIFTY', 'BANKEX']
-            iv = 11.8 if is_idx else 23.5
-            t_days = 4 if is_idx else 30
-            opt_price = black_scholes_price(spot, strike, t_days, iv, is_ce)
-            
-            chg = round(opt_price * 0.02, 2)
-            prev_c = round(opt_price - chg, 2)
-            pct = round((chg / prev_c) * 100, 2) if prev_c > 0 else 0.0
-            return {
-                'price': opt_price,
-                'prev_close': prev_c,
-                'change': chg,
-                'change_percent': pct
-            }
+        if m_opt:
+            groww_fno = fetch_groww_fno_quote(clean_sym)
+            if groww_fno and groww_fno.get('price') is not None:
+                return groww_fno
 
         # 1. Groww Live API direct fetcher for equities
         groww_q = fetch_groww_direct_quote(clean_sym)

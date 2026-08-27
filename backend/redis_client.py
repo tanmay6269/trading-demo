@@ -12,7 +12,7 @@ except ImportError:
 class RedisManager:
     """
     Enterprise-grade Redis Client with automatic in-memory fallback.
-    Caches Option Chains, Live Market Quotes, Greeks, and Pub/Sub ticks.
+    Caches Option Chains with 1-2s TTL for ultra-low latency & fresh ticks.
     """
     def __init__(self):
         self.redis_url = os.getenv('REDIS_URL')
@@ -49,7 +49,7 @@ class RedisManager:
                     del self._memory_cache[key]
         return None
 
-    def set(self, key, value, ttl_seconds=15):
+    def set(self, key, value, ttl_seconds=2):
         if self.client:
             try:
                 self.client.setex(key, ttl_seconds, json.dumps(value))
@@ -61,29 +61,27 @@ class RedisManager:
             self._memory_cache[key] = (value, time.time() + ttl_seconds)
         return True
 
-    def get_option_chain(self, symbol, exchange='NSE', expiry=None):
-        clean = symbol.strip().upper()
-        key = f"bullx:opt_chain:{clean}:{exchange}:{expiry or 'default'}"
+    def get_option_chain(self, exchange, underlying, expiry):
+        key = f"option_chain:{exchange.upper()}:{underlying.upper()}:{expiry or 'default'}"
         return self.get(key)
 
-    def set_option_chain(self, symbol, exchange, expiry, data, ttl_seconds=10):
-        clean = symbol.strip().upper()
-        key = f"bullx:opt_chain:{clean}:{exchange}:{expiry or 'default'}"
+    def set_option_chain(self, exchange, underlying, expiry, data, ttl_seconds=2):
+        key = f"option_chain:{exchange.upper()}:{underlying.upper()}:{expiry or 'default'}"
         return self.set(key, data, ttl_seconds)
 
-    def get_quote(self, symbol):
-        clean = symbol.strip().upper()
-        return self.get(f"bullx:quote:{clean}")
+    def get_quote(self, exchange, segment, symbol):
+        key = f"quote:{exchange.upper()}:{segment.upper()}:{symbol.upper()}"
+        return self.get(key)
 
-    def set_quote(self, symbol, data, ttl_seconds=10):
-        clean = symbol.strip().upper()
-        return self.set(f"bullx:quote:{clean}", data, ttl_seconds)
+    def set_quote(self, exchange, segment, symbol, data, ttl_seconds=2):
+        key = f"quote:{exchange.upper()}:{segment.upper()}:{symbol.upper()}"
+        return self.set(key, data, ttl_seconds)
 
     def get_indices(self):
-        return self.get("bullx:indices:header")
+        return self.get("indices:header")
 
-    def set_indices(self, data, ttl_seconds=5):
-        return self.set("bullx:indices:header", data, ttl_seconds)
+    def set_indices(self, data, ttl_seconds=2):
+        return self.set("indices:header", data, ttl_seconds)
 
 # Singleton global instance
 redis_manager = RedisManager()
