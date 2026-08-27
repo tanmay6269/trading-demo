@@ -15,6 +15,44 @@ const PERIODS = [
 
 const IST_OFFSET_SEC = 5.5 * 3600; // +19800 seconds (5 hours 30 mins IST Offset)
 
+const roundNum = (n) => Math.round(n * 100) / 100;
+
+const calcEMA = (data, period) => {
+    if (!data || data.length < period) return [];
+    const k = 2 / (period + 1);
+    let ema = data[0].close;
+    const res = [];
+    for (let i = 0; i < data.length; i++) {
+        const c = data[i].close;
+        if (i === 0) {
+            ema = c;
+        } else {
+            ema = c * k + ema * (1 - k);
+        }
+        if (i >= period - 1) {
+            res.push({ time: data[i].time, value: roundNum(ema) });
+        }
+    }
+    return res;
+};
+
+const calcBollingerBands = (data, period = 20, stdDev = 2) => {
+    if (!data || data.length < period) return { upper: [], middle: [], lower: [] };
+    const upper = [], middle = [], lower = [];
+    for (let i = period - 1; i < data.length; i++) {
+        const slice = data.slice(i - period + 1, i + 1);
+        const sum = slice.reduce((acc, d) => acc + d.close, 0);
+        const mean = sum / period;
+        const variance = slice.reduce((acc, d) => acc + Math.pow(d.close - mean, 2), 0) / period;
+        const sd = Math.sqrt(variance);
+        const t = data[i].time;
+        middle.push({ time: t, value: roundNum(mean) });
+        upper.push({ time: t, value: roundNum(mean + stdDev * sd) });
+        lower.push({ time: t, value: roundNum(mean - stdDev * sd) });
+    }
+    return { upper, middle, lower };
+};
+
 const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, onBuy = () => {}, showToast = () => {} }) => {
     const chartContainerRef = useRef(null);
     const chartInstanceRef = useRef(null);
@@ -24,6 +62,11 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
     const rawDataRef = useRef([]);
     const prevCloseRef = useRef(null);
     const prevCloseLineRef = useRef(null);
+    const ema20Ref = useRef(null);
+    const ema50Ref = useRef(null);
+    const bbUpperRef = useRef(null);
+    const bbMidRef = useRef(null);
+    const bbLowerRef = useRef(null);
     
     const [loading, setLoading] = useState(true);
     const [selectedPeriod, setSelectedPeriod] = useState('1D');
@@ -32,6 +75,9 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
     const [livePrice, setLivePrice] = useState(null);
     const [prevClose, setPrevClose] = useState(null);
     const [hoverLegend, setHoverLegend] = useState(null);
+    const [showEma20, setShowEma20] = useState(false);
+    const [showEma50, setShowEma50] = useState(false);
+    const [showBollinger, setShowBollinger] = useState(false);
 
     // Detect Index Benchmark symbols (NIFTY, SENSEX, BANK NIFTY, VIX, BSE indices, etc.)
     const isIndexSymbol = symbol.startsWith('^') || 
@@ -109,6 +155,19 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                 if (cleanData.length > 0) {
                     lastCandleRef.current = { ...cleanData[cleanData.length - 1] };
                     setLivePrice(lastCandleRef.current.close);
+
+                    if (ema20Ref.current) {
+                        ema20Ref.current.setData(calcEMA(cleanData, 20));
+                    }
+                    if (ema50Ref.current) {
+                        ema50Ref.current.setData(calcEMA(cleanData, 50));
+                    }
+                    if (bbUpperRef.current && bbMidRef.current && bbLowerRef.current) {
+                        const bb = calcBollingerBands(cleanData, 20, 2);
+                        bbUpperRef.current.setData(bb.upper);
+                        bbMidRef.current.setData(bb.middle);
+                        bbLowerRef.current.setData(bb.lower);
+                    }
                 }
 
                 if (chartInstanceRef.current) {
@@ -131,6 +190,11 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
             const chartToDispose = chartInstanceRef.current;
             chartInstanceRef.current = null;
             seriesInstanceRef.current = null;
+            ema20Ref.current = null;
+            ema50Ref.current = null;
+            bbUpperRef.current = null;
+            bbMidRef.current = null;
+            bbLowerRef.current = null;
             setTimeout(() => {
                 try {
                     chartToDispose.remove();
@@ -193,6 +257,41 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                 borderDownColor: '#f43f5e',
                 wickUpColor: '#10b981',
                 wickDownColor: '#f43f5e',
+            });
+        }
+
+        // Add Technical Indicator Overlays
+        if (showEma20) {
+            ema20Ref.current = newChart.addLineSeries({
+                color: '#00cec9',
+                lineWidth: 1.5,
+                title: 'EMA 20'
+            });
+        }
+        if (showEma50) {
+            ema50Ref.current = newChart.addLineSeries({
+                color: '#fdcb6e',
+                lineWidth: 1.5,
+                title: 'EMA 50'
+            });
+        }
+        if (showBollinger) {
+            bbUpperRef.current = newChart.addLineSeries({
+                color: 'rgba(162, 155, 254, 0.7)',
+                lineWidth: 1,
+                lineStyle: 2,
+                title: 'BB Upper'
+            });
+            bbMidRef.current = newChart.addLineSeries({
+                color: 'rgba(162, 155, 254, 0.4)',
+                lineWidth: 1,
+                title: 'BB Mid'
+            });
+            bbLowerRef.current = newChart.addLineSeries({
+                color: 'rgba(162, 155, 254, 0.7)',
+                lineWidth: 1,
+                lineStyle: 2,
+                title: 'BB Lower'
             });
         }
 
@@ -279,7 +378,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [symbol, chartType, selectedPeriod, fetchData]);
+    }, [symbol, chartType, selectedPeriod, showEma20, showEma50, showBollinger, fetchData]);
 
     // Live Position Price Line overlay directly on graph canvas (Strictly for single equity stocks with active position)
     useEffect(() => {
@@ -319,25 +418,25 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
 
     // Prev Close Reference Line on Chart
     useEffect(() => {
-        if (!seriesInstanceRef.current || !prevClose) return;
-
-        if (prevCloseLineRef.current) {
+        if (prevCloseLineRef.current && seriesInstanceRef.current) {
             try {
                 seriesInstanceRef.current.removePriceLine(prevCloseLineRef.current);
             } catch (e) {}
             prevCloseLineRef.current = null;
         }
 
-        try {
-            prevCloseLineRef.current = seriesInstanceRef.current.createPriceLine({
-                price: prevClose,
-                color: '#64748b',
-                lineWidth: 1,
-                lineStyle: 2, // Dashed line
-                axisLabelVisible: true,
-                title: `Prev Close: ₹${prevClose.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-            });
-        } catch (e) {}
+        if (prevClose && seriesInstanceRef.current && (selectedPeriod === '1D' || selectedPeriod === '1W')) {
+            try {
+                prevCloseLineRef.current = seriesInstanceRef.current.createPriceLine({
+                    price: prevClose,
+                    color: '#64748b',
+                    lineWidth: 1,
+                    lineStyle: 2, // Dashed line
+                    axisLabelVisible: true,
+                    title: `Prev Close \u20B9${prevClose.toFixed(2)}`
+                });
+            } catch (e) {}
+        }
 
         return () => {
             if (prevCloseLineRef.current && seriesInstanceRef.current) {
@@ -347,7 +446,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                 prevCloseLineRef.current = null;
             }
         };
-    }, [prevClose, chartType, symbol]);
+    }, [prevClose, selectedPeriod]);
 
     // Real-Time Live Candle Tick Updating every 5 seconds
     useEffect(() => {
@@ -392,13 +491,14 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         return () => clearInterval(liveInterval);
     }, [symbol, chartType]);
 
-    const headerChange = livePrice && prevClose ? livePrice - prevClose : 0;
-    const headerChangePct = prevClose ? (headerChange / prevClose) * 100 : 0;
+    // Calculate Dynamic Change in Header
+    const headerChange = prevClose && livePrice ? livePrice - prevClose : 0;
+    const headerChangePct = prevClose && livePrice ? (headerChange / prevClose) * 100 : 0;
     const isHeaderPos = headerChange >= 0;
 
     return (
         <div className="soft-card" style={{ padding: '20px', position: 'relative' }}>
-            {/* Header Toolbar: Symbol, Price, Timeframes, Chart Type Toggle */}
+            {/* Header Toolbar: Symbol, Price, Timeframes, Indicators, Chart Type Toggle */}
             <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
@@ -446,6 +546,61 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {/* Technical Indicators Pill Controls (EMA 20, EMA 50, Bollinger Bands) */}
+                    <div style={{ display: 'flex', gap: '4px', background: '#111927', padding: '4px', borderRadius: '10px' }}>
+                        <button
+                            onClick={() => setShowEma20(!showEma20)}
+                            style={{
+                                padding: '5px 10px',
+                                background: showEma20 ? 'rgba(0, 206, 201, 0.2)' : 'transparent',
+                                color: showEma20 ? '#00cec9' : 'var(--text-secondary)',
+                                border: showEma20 ? '1px solid #00cec9' : '1px solid transparent',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                transition: 'all 0.15s'
+                            }}
+                            title="Toggle 20 Exponential Moving Average"
+                        >
+                            EMA 20
+                        </button>
+                        <button
+                            onClick={() => setShowEma50(!showEma50)}
+                            style={{
+                                padding: '5px 10px',
+                                background: showEma50 ? 'rgba(253, 203, 110, 0.2)' : 'transparent',
+                                color: showEma50 ? '#fdcb6e' : 'var(--text-secondary)',
+                                border: showEma50 ? '1px solid #fdcb6e' : '1px solid transparent',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                transition: 'all 0.15s'
+                            }}
+                            title="Toggle 50 Exponential Moving Average"
+                        >
+                            EMA 50
+                        </button>
+                        <button
+                            onClick={() => setShowBollinger(!showBollinger)}
+                            style={{
+                                padding: '5px 10px',
+                                background: showBollinger ? 'rgba(162, 155, 254, 0.2)' : 'transparent',
+                                color: showBollinger ? '#a29bfe' : 'var(--text-secondary)',
+                                border: showBollinger ? '1px solid #a29bfe' : '1px solid transparent',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                transition: 'all 0.15s'
+                            }}
+                            title="Toggle Bollinger Bands (20, 2)"
+                        >
+                            BB
+                        </button>
+                    </div>
+
                     {/* Timeframe Selector Pills (1D, 1W, 1M, 3M, 6M, 1Y, 5Y, ALL) */}
                     <div style={{ display: 'flex', gap: '4px', background: '#111927', padding: '4px', borderRadius: '10px' }}>
                         {PERIODS.map((p) => {

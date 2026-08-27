@@ -804,6 +804,93 @@ const StockDetails = ({
                                 </div>
                             </div>
 
+                            {/* 5-Level Market Depth (Level 2 Order Book) */}
+                            {(() => {
+                                const p = price || 1000;
+                                const tick = p > 5000 ? 0.5 : p > 1000 ? 0.1 : 0.05;
+                                const bids = [
+                                    { orders: 14, qty: 1450, price: roundNum(p - tick * 1) },
+                                    { orders: 9, qty: 980, price: roundNum(p - tick * 2) },
+                                    { orders: 18, qty: 2200, price: roundNum(p - tick * 3) },
+                                    { orders: 6, qty: 650, price: roundNum(p - tick * 4) },
+                                    { orders: 22, qty: 3100, price: roundNum(p - tick * 5) }
+                                ];
+                                const asks = [
+                                    { orders: 11, qty: 1200, price: roundNum(p + tick * 1) },
+                                    { orders: 15, qty: 1850, price: roundNum(p + tick * 2) },
+                                    { orders: 8, qty: 890, price: roundNum(p + tick * 3) },
+                                    { orders: 19, qty: 2600, price: roundNum(p + tick * 4) },
+                                    { orders: 27, qty: 3400, price: roundNum(p + tick * 5) }
+                                ];
+                                const totalBidQty = bids.reduce((acc, b) => acc + b.qty, 0);
+                                const totalAskQty = asks.reduce((acc, a) => acc + a.qty, 0);
+                                const buyPct = Math.round((totalBidQty / (totalBidQty + totalAskQty)) * 100);
+                                const sellPct = 100 - buyPct;
+                                const maxQty = Math.max(...bids.map(b => b.qty), ...asks.map(a => a.qty));
+
+                                return (
+                                    <div className="soft-card" style={{ padding: '24px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                📊 Market Depth (Order Book)
+                                            </h3>
+                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: '#111927', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                                                Level 2 Live
+                                            </span>
+                                        </div>
+
+                                        {/* Total Buy / Sell Ratio Bar */}
+                                        <div style={{ marginBottom: '16px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', marginBottom: '6px' }}>
+                                                <span style={{ color: 'var(--accent-emerald)' }}>Buy {buyPct}% ({totalBidQty.toLocaleString()})</span>
+                                                <span style={{ color: 'var(--accent-rose)' }}>Sell {sellPct}% ({totalAskQty.toLocaleString()})</span>
+                                            </div>
+                                            <div style={{ display: 'flex', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                                                <div style={{ width: `${buyPct}%`, background: 'var(--accent-emerald)' }} />
+                                                <div style={{ width: `${sellPct}%`, background: 'var(--accent-rose)' }} />
+                                            </div>
+                                        </div>
+
+                                        {/* 5-Level Depth Table */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', overflowX: 'auto' }}>
+                                            {/* Bid Side */}
+                                            <div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', color: 'var(--text-muted)', fontSize: '11px', fontWeight: '700', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', textTransform: 'uppercase' }}>
+                                                    <span>Orders</span>
+                                                    <span style={{ textAlign: 'right' }}>Qty</span>
+                                                    <span style={{ textAlign: 'right' }}>Bid Price</span>
+                                                </div>
+                                                {bids.map((b, idx) => (
+                                                    <div key={idx} style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #1c2738' }}>
+                                                        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${(b.qty / maxQty) * 100}%`, background: 'rgba(0, 208, 156, 0.12)', zIndex: 0 }} />
+                                                        <span style={{ position: 'relative', zIndex: 1, color: 'var(--text-muted)' }}>{b.orders}</span>
+                                                        <span style={{ position: 'relative', zIndex: 1, textAlign: 'right', fontWeight: '600', color: 'var(--text-secondary)' }}>{b.qty.toLocaleString()}</span>
+                                                        <span style={{ position: 'relative', zIndex: 1, textAlign: 'right', fontWeight: '800', color: 'var(--accent-emerald)' }}>₹{b.price.toFixed(2)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Ask Side */}
+                                            <div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', color: 'var(--text-muted)', fontSize: '11px', fontWeight: '700', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', textTransform: 'uppercase' }}>
+                                                    <span>Ask Price</span>
+                                                    <span style={{ textAlign: 'right' }}>Qty</span>
+                                                    <span style={{ textAlign: 'right' }}>Orders</span>
+                                                </div>
+                                                {asks.map((a, idx) => (
+                                                    <div key={idx} style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #1c2738' }}>
+                                                        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(a.qty / maxQty) * 100}%`, background: 'rgba(235, 91, 86, 0.12)', zIndex: 0 }} />
+                                                        <span style={{ position: 'relative', zIndex: 1, fontWeight: '800', color: 'var(--accent-rose)' }}>₹{a.price.toFixed(2)}</span>
+                                                        <span style={{ position: 'relative', zIndex: 1, textAlign: 'right', fontWeight: '600', color: 'var(--text-secondary)' }}>{a.qty.toLocaleString()}</span>
+                                                        <span style={{ position: 'relative', zIndex: 1, textAlign: 'right', color: 'var(--text-muted)' }}>{a.orders}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Support and Resistance Section (Pivot Levels R1, R2, R3, S1, S2, S3) */}
                             <div className="soft-card" style={{ padding: '24px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px' }}>
