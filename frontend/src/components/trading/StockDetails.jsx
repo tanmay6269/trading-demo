@@ -305,6 +305,9 @@ const INDEX_COMPANIES = {
     ]
 };
 
+
+
+
 const StockDetails = ({ 
     symbol = 'RELIANCE', 
     portfolio = [], 
@@ -313,11 +316,6 @@ const StockDetails = ({
     onSelectStock = () => {},
     showToast = () => {} 
 }) => {
-    // Parse if current symbol is a derivative / option contract (e.g. INFY29SEP1140CE, RELIANCE29SEPFUT)
-    const isDerivative = symbol && (symbol.endsWith('CE') || symbol.endsWith('PE') || symbol.endsWith('FUT'));
-    const derivativeMatch = isDerivative ? symbol.match(/^([A-Z\s^]+?)([0-9]{2}[A-Z]{3})?([0-9.]+)?(CE|PE|FUT)$/) : null;
-    const underlyingSymbol = derivativeMatch ? derivativeMatch[1].trim() : symbol;
-
     const [stockInfo, setStockInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'fno' | 'etfs'
@@ -339,14 +337,14 @@ const StockDetails = ({
     }, [symbol]);
 
     const fetchFnoChain = useCallback(async () => {
-        if (!underlyingSymbol) return;
+        if (!symbol) return;
         try {
-            const data = await api.getOptionChain(underlyingSymbol, '', 'NSE');
+            const data = await api.getOptionChain(symbol, '', 'NSE');
             if (data && data.chain) {
                 setFnoChainData(data);
             }
         } catch (e) {}
-    }, [underlyingSymbol]);
+    }, [symbol]);
 
     const fetchWatchlist = useCallback(async () => {
         try {
@@ -507,16 +505,15 @@ const StockDetails = ({
         'NIFTYSMLCAP250.NS': 'NIFTY SMALLCAP 250',
         'BSE-SMLCAP.BO': 'BSE Smallcap',
         '^CNX100': 'NIFTY 100',
-        '^CRSLDX': 'NIFTY 500',
         'NIFTYTOTALMKT.NS': 'Nifty Total Market',
         'BSE-100.BO': 'BSE 100'
     };
 
-    const baseTitle = INDEX_DISPLAY_TITLE_MAP[underlyingSymbol] || stockInfo?.name || underlyingSymbol;
-    const displaySymbol = isDerivative && derivativeMatch
-        ? `${baseTitle} ${derivativeMatch[2] || ''} ${derivativeMatch[3] ? derivativeMatch[3] + ' ' : ''}${derivativeMatch[4] === 'CE' ? 'Call' : derivativeMatch[4] === 'PE' ? 'Put' : 'Future'}`
-        : (INDEX_DISPLAY_TITLE_MAP[actualIndexKey] || INDEX_DISPLAY_TITLE_MAP[symbol] || stockInfo?.name || symbol);
-    const companies = INDEX_COMPANIES[actualIndexKey] || INDEX_COMPANIES[underlyingSymbol] || INDEX_COMPANIES['^NSEI'];
+    const m = (symbol || '').match(/^([A-Z\s^]+?)([0-9]{2}[A-Z]{3})?([0-9.]+)?(CE|PE|FUT)$/i);
+    const underlyingSymbol = m ? m[1].trim() : symbol;
+    const baseTitle = INDEX_DISPLAY_TITLE_MAP[actualIndexKey] || INDEX_DISPLAY_TITLE_MAP[underlyingSymbol] || stockInfo?.name || underlyingSymbol;
+    const displaySymbol = INDEX_DISPLAY_TITLE_MAP[actualIndexKey] || INDEX_DISPLAY_TITLE_MAP[symbol] || stockInfo?.name || symbol;
+    const companies = INDEX_COMPANIES[actualIndexKey] || INDEX_COMPANIES[underlyingSymbol] || INDEX_COMPANIES[symbol] || INDEX_COMPANIES['^NSEI'];
 
     // Dynamic F&O Contracts computed directly from real fnoChainData or spot price
     const getTopOptionsData = () => {
@@ -569,7 +566,7 @@ const StockDetails = ({
                 oiChange: '+12.4%',
                 volume: (Math.round(p * 18)).toLocaleString(),
                 expiry: fallbackExp,
-                symbol: `${underlyingSymbol}${fallbackExpCode}${s}CE`
+                symbol: `${symbol}${fallbackExpCode}${s}CE`
             });
             list.push({
                 type: 'Put',
@@ -580,7 +577,7 @@ const StockDetails = ({
                 oiChange: '+14.1%',
                 volume: (Math.round(p * 22)).toLocaleString(),
                 expiry: fallbackExp,
-                symbol: `${underlyingSymbol}${fallbackExpCode}${s}PE`
+                symbol: `${symbol}${fallbackExpCode}${s}PE`
             });
         });
         return list;
@@ -1113,34 +1110,17 @@ const StockDetails = ({
                     )}
                 </div>
 
-                {/* Right Sidebar Column: Top Options Card */}
+                {/* Right Sidebar Column: Top Options Card (Dynamic per-stock) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
                     
                     {/* Top Options Widget Card */}
                     <div className="soft-card" style={{ padding: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                                Top {baseTitle} Options
-                            </h3>
-                            <button
-                                onClick={() => setShowOptionChainModal(true)}
-                                style={{
-                                    background: 'rgba(108, 92, 231, 0.15)',
-                                    color: 'var(--accent-primary)',
-                                    border: '1px solid var(--accent-primary)',
-                                    padding: '4px 10px',
-                                    borderRadius: '6px',
-                                    fontSize: '11px',
-                                    fontWeight: '700',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                View Chain ❯
-                            </button>
-                        </div>
+                        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                            Top {baseTitle} Options
+                        </h3>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {topOptionsData.slice(0, 7).map((opt, idx) => (
+                            {filteredOptions.slice(0, 10).map((opt, idx) => (
                                 <div
                                     key={idx}
                                     onClick={() => onSelectStock && onSelectStock(opt.symbol)}
@@ -1152,8 +1132,7 @@ const StockDetails = ({
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
                                         border: '1px solid var(--border-color)',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s ease'
+                                        cursor: 'pointer'
                                     }}
                                 >
                                     <div>

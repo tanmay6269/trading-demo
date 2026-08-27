@@ -295,13 +295,19 @@ def get_live_option_chain_advanced(symbol, exchange='NSE', expiry=None, spot_pri
     Full Greeks (Delta, Gamma, Theta, Vega, Rho), SEBI 2024-25 Expiry rules, PCR, Max Pain, and Corporate Action flags.
     
     CRITICAL: Strike prices and option premiums are computed from the actual spot price
-    of the requested symbol (RELIANCE, TCS, etc.) — NOT from NIFTY or any other index.
+    of the requested symbol (RELIANCE, TCS, INFY, etc.) — NOT from NIFTY or any other index.
     """
-    clean_sym = symbol.strip().upper()
+    raw_sym = symbol.strip().upper()
     exchange = exchange.upper()
 
+    # Extract underlying root symbol if derivative contract symbol is passed (e.g. INFY29SEP1140CE -> INFY)
+    clean_sym = raw_sym
+    m = re.match(r'^([A-Z\s\^]+?)([0-9]{2}[A-Z]{3})?([0-9\.]+)?(CE|PE|FUT)$', raw_sym)
+    if m:
+        clean_sym = m.group(1).strip()
+
     # 1. Fetch Spot Price & Market Quote for THIS SPECIFIC SYMBOL
-    from groww_data import fetch_stock_quote, get_live_price, SYMBOL_MAP
+    from groww_data import fetch_stock_quote, get_live_price, SYMBOL_MAP, DEFAULT_STOCK_FALLBACKS
     target_sym = SYMBOL_MAP.get(clean_sym, clean_sym)
     quote = fetch_stock_quote(target_sym) or fetch_stock_quote(clean_sym) or {}
     spot = spot_price_override or quote.get('price') or get_live_price(target_sym) or 0
@@ -316,25 +322,28 @@ def get_live_option_chain_advanced(symbol, exchange='NSE', expiry=None, spot_pri
         except Exception:
             pass
     
-    # Last-resort hardcoded fallbacks for popular stocks (approximate prices)
+    # Last-resort fallback dictionary from DEFAULT_STOCK_FALLBACKS or accurate popular stock prices
     STOCK_FALLBACK_PRICES = {
-        'RELIANCE': 1300.0, 'TCS': 2270.0, 'HDFCBANK': 1750.0, 'INFY': 1550.0,
-        'ICICIBANK': 1350.0, 'SBIN': 820.0, 'BHARTIARTL': 1680.0, 'ITC': 470.0,
-        'WIPRO': 305.0, 'HCLTECH': 1450.0, 'TATAMOTORS': 315.0, 'TATASTEEL': 155.0,
-        'SUNPHARMA': 1890.0, 'AXISBANK': 1170.0, 'MARUTI': 12500.0, 'BAJFINANCE': 7300.0,
-        'KOTAKBANK': 1840.0, 'LT': 3550.0, 'ZOMATO': 265.0, 'ADANIENT': 3100.0,
-        'HINDUNILVR': 2450.0, 'NESTLEIND': 2400.0, 'TITAN': 3150.0, 'POWERGRID': 325.0,
-        'NTPC': 370.0, 'BAJAJFINSV': 1720.0, 'M&M': 2900.0, 'ONGC': 275.0,
-        'JSWSTEEL': 980.0, 'ULTRACEMCO': 11200.0, 'TECHM': 1650.0, 'COALINDIA': 410.0,
-        'NIFTY': 24200.0, 'NIFTY 50': 24200.0, '^NSEI': 24200.0,
-        'BANKNIFTY': 52500.0, 'BANK NIFTY': 52500.0, '^NSEBANK': 52500.0,
-        'SENSEX': 79500.0, 'BSE SENSEX': 79500.0, '^BSESN': 79500.0,
-        'FINNIFTY': 23600.0, 'MIDCPNIFTY': 12800.0,
-        'BANKEX': 57200.0, 'SENSEX 50': 24800.0,
+        'RELIANCE': 1315.20, 'TCS': 2265.80, 'HDFCBANK': 716.50, 'INFY': 1118.40,
+        'ICICIBANK': 1245.10, 'SBIN': 842.30, 'BHARTIARTL': 1420.50, 'ITC': 485.20,
+        'WIPRO': 525.40, 'HCLTECH': 1450.00, 'TATAMOTORS': 985.60, 'TATASTEEL': 155.00,
+        'SUNPHARMA': 1680.00, 'AXISBANK': 1170.00, 'MARUTI': 12450.00, 'BAJFINANCE': 6850.00,
+        'KOTAKBANK': 1840.00, 'LT': 3650.00, 'ZOMATO': 262.50, 'ADANIENT': 3100.00,
+        'HINDUNILVR': 2450.00, 'NESTLEIND': 2400.00, 'TITAN': 3420.00, 'POWERGRID': 325.00,
+        'NTPC': 370.00, 'BAJAJFINSV': 1720.00, 'M&M': 2900.00, 'ONGC': 275.00,
+        'JSWSTEEL': 980.00, 'ULTRACEMCO': 11200.00, 'TECHM': 1650.00, 'COALINDIA': 410.00,
+        'NIFTY': 24053.15, 'NIFTY 50': 24053.15, '^NSEI': 24053.15,
+        'BANKNIFTY': 57071.05, 'BANK NIFTY': 57071.05, '^NSEBANK': 57071.05,
+        'SENSEX': 76893.63, 'BSE SENSEX': 76893.63, '^BSESN': 76893.63,
+        'FINNIFTY': 25979.65, 'MIDCPNIFTY': 14859.05,
+        'BANKEX': 57200.00, 'SENSEX 50': 24800.00,
     }
     
     if spot == 0 or spot == 1000.0:
-        spot = STOCK_FALLBACK_PRICES.get(clean_sym, 1500.0)
+        if clean_sym in DEFAULT_STOCK_FALLBACKS and DEFAULT_STOCK_FALLBACKS[clean_sym].get('price'):
+            spot = DEFAULT_STOCK_FALLBACKS[clean_sym]['price']
+        else:
+            spot = STOCK_FALLBACK_PRICES.get(clean_sym, 1500.0)
 
     change = quote.get('change', 0.0)
     change_pct = quote.get('change_percent', 0.0)
