@@ -53,7 +53,7 @@ const SEE_MORE_STOCKS_DEFINITIONS = [
     { symbol: 'SUNPHARMA', name: 'Sun Pharma' }
 ];
 
-const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio = [], showToast = () => {} }) => {
+const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio = [], showToast = () => {}, onViewHoldings }) => {
     const formatChangeAndPct = (change, pct) => {
         const changeNum = typeof change === 'number' ? change : (parseFloat(change) || 0);
         const pctNum = typeof pct === 'number' ? pct : (parseFloat(pct) || 0);
@@ -99,8 +99,8 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
         // 2. Load Watchlist
         try {
             const wlData = await api.getWatchlist();
-            if (wlData && Array.isArray(wlData.watchlist)) {
-                setWatchlist(wlData.watchlist);
+            if (Array.isArray(wlData)) {
+                setWatchlist(wlData.map((item) => item.symbol));
             }
         } catch (e) {
             console.error("Watchlist load error:", e);
@@ -248,10 +248,11 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: '#111927',
+                background: 'var(--bg-surface)',
                 padding: '12px 20px',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-color)',
+                boxShadow: 'var(--shadow-card)',
                 gap: '16px',
                 overflowX: 'auto'
             }}>
@@ -295,22 +296,13 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                 <button
                     onClick={onOpenAllIndices}
                     title="View All Indian & Global Indices"
+                    className="soft-btn soft-btn-ghost"
                     style={{
-                        background: '#14161d',
-                        border: '1px solid #6C5CE7',
-                        color: '#6C5CE7',
-                        padding: '6px 14px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        whiteSpace: 'nowrap'
+                        padding: '7px 14px',
+                        fontSize: '12px'
                     }}
                 >
-                    <span>All Indices</span>
+                    All Indices
                 </button>
             </div>
 
@@ -320,7 +312,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                     <input
                         type="text"
                         className="soft-input"
-                        placeholder="🔍 Search BullX stocks & indices (e.g., RELIANCE, TCS, HDFCBANK, INFY, SBIN, NIFTY 50...)"
+                        placeholder="Search stocks & indices (e.g. RELIANCE, TCS, HDFCBANK)..."
                         value={searchQuery}
                         onChange={(e) => handleSearch(e.target.value)}
                         onFocus={() => searchQuery.length >= 1 && setShowSearchResults(true)}
@@ -329,11 +321,11 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                             padding: '16px 24px',
                             paddingRight: '48px',
                             borderRadius: 'var(--radius-md)',
-                            fontSize: '16px',
-                            fontWeight: '600',
-                            background: '#111927',
-                            border: '1px solid var(--accent-primary)',
-                            boxShadow: '0 4px 20px rgba(56, 189, 248, 0.15)'
+                            fontSize: '15px',
+                            fontWeight: '500',
+                            background: 'var(--bg-surface)',
+                            border: '2px solid var(--border-color)',
+                            boxShadow: 'var(--shadow-card)'
                         }}
                     />
                     {searchLoading && (
@@ -345,7 +337,10 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                             color: 'var(--accent-primary)',
                             fontWeight: '700'
                         }}>
-                            ⏳
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                <path d="M21 12a9 9 0 0 1-9 9c-2.5 0-4.8-1-6.5-2.7L21 4.7" />
+                                <path d="M9 4.5A9 9 0 0 1 21 12" />
+                            </svg>
                         </div>
                     )}
                 </div>
@@ -359,7 +354,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                         right: 0,
                         marginTop: '8px',
                         background: 'var(--bg-surface)',
-                        border: '1px solid #2e4161',
+                        border: '1px solid var(--border-color-strong)',
                         borderRadius: 'var(--radius-md)',
                         maxHeight: '400px',
                         overflowY: 'auto',
@@ -466,7 +461,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                                 }}
                                                 title="Open Live Option Chain Matrix"
                                             >
-                                                Option Chain ⚡
+                                                Option Chain
                                             </button>
                                         )}
 
@@ -501,15 +496,8 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
             {/* Recently Viewed Options Bar */}
             {recentlyViewed.length > 0 && (
                 <div>
-                    <h3 style={{ 
-                        color: 'var(--text-secondary)', 
-                        fontSize: '12px', 
-                        fontWeight: '700',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        marginBottom: '10px' 
-                    }}>
-                        🕒 Recently Viewed
+                    <h3 className="sec-label" style={{ marginBottom: '10px' }}>
+                        Recently Viewed
                     </h3>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         {recentlyViewed.map((sym) => {
@@ -518,12 +506,9 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                 <div
                                     key={sym}
                                     onClick={() => handleStockClick(sym)}
-                                    className="soft-btn"
+                                    className="soft-btn soft-btn-ghost"
                                     style={{
-                                        background: '#111927',
-                                        border: '1px solid var(--border-color)',
-                                        color: 'var(--text-primary)',
-                                        padding: '6px 14px',
+                                        padding: '7px 14px',
                                         borderRadius: '20px',
                                         fontSize: '13px',
                                         display: 'flex',
@@ -560,9 +545,9 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                             </h3>
                             <span 
                                 onClick={() => setShowSeeMoreModal(true)} 
-                                style={{ color: 'var(--accent-emerald)', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
+                                style={{ color: 'var(--accent-primary)', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
                             >
-                                See more ❯
+                                See all
                             </span>
                         </div>
 
@@ -577,7 +562,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                         onClick={() => handleStockClick(stk.symbol)}
                                         className="soft-card" 
                                         style={{ padding: '16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-emerald)'}
+                                        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-primary)'}
                                         onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -629,9 +614,9 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                 style={{
                                     padding: '6px 16px',
                                     borderRadius: '20px',
-                                    background: moverTab === 'gainers' ? 'var(--accent-emerald)' : '#111927',
+                                    background: moverTab === 'gainers' ? 'var(--accent-emerald)' : 'var(--bg-inset)',
                                     color: moverTab === 'gainers' ? '#ffffff' : 'var(--text-secondary)',
-                                    border: 'none',
+                                    border: moverTab === 'gainers' ? 'none' : '1px solid var(--border-color)',
                                     cursor: 'pointer',
                                     fontSize: '13px',
                                     fontWeight: '700'
@@ -644,9 +629,9 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                 style={{
                                     padding: '6px 16px',
                                     borderRadius: '20px',
-                                    background: moverTab === 'losers' ? 'var(--accent-rose)' : '#111927',
+                                    background: moverTab === 'losers' ? 'var(--accent-rose)' : 'var(--bg-inset)',
                                     color: moverTab === 'losers' ? '#ffffff' : 'var(--text-secondary)',
-                                    border: 'none',
+                                    border: moverTab === 'losers' ? 'none' : '1px solid var(--border-color)',
                                     cursor: 'pointer',
                                     fontSize: '13px',
                                     fontWeight: '700'
@@ -661,9 +646,9 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                             display: 'flex', 
                             gap: '8px', 
                             marginBottom: '14px', 
-                            background: '#111927', 
+                            background: 'var(--bg-inset)', 
                             padding: '4px', 
-                            borderRadius: '10px',
+                            borderRadius: 'var(--radius-md)',
                             border: '1px solid var(--border-color)',
                             width: 'fit-content'
                         }}>
@@ -676,11 +661,11 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                     key={cat.id}
                                     onClick={() => setCategoryTab(cat.id)}
                                     style={{
-                                        padding: '5px 14px',
-                                        borderRadius: '6px',
-                                        background: categoryTab === cat.id ? '#212e44' : 'transparent',
-                                        color: categoryTab === cat.id ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                        border: categoryTab === cat.id ? '1px solid var(--accent-primary)' : 'none',
+                                        padding: '6px 16px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        background: categoryTab === cat.id ? 'var(--accent-primary)' : 'transparent',
+                                        color: categoryTab === cat.id ? '#ffffff' : 'var(--text-secondary)',
+                                        border: 'none',
                                         cursor: 'pointer',
                                         fontSize: '12px',
                                         fontWeight: '700'
@@ -692,10 +677,10 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                         </div>
 
                         {/* Top Movers Stock List Table with Live Prices & Day Change % */}
-                        <div className="soft-card" style={{ padding: '0', overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <div className="soft-card" style={{ padding: '0', overflow: 'hidden' }}>
+                            <table className="bx-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                 <thead>
-                                    <tr style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)', background: '#111927' }}>
+                                    <tr style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-inset)' }}>
                                         <th style={{ padding: '12px 16px' }}>COMPANY</th>
                                         <th style={{ padding: '12px 16px', textAlign: 'right' }}>MARKET PRICE (1D)</th>
                                         <th style={{ padding: '12px 16px', textAlign: 'right' }}>DAY CHANGE</th>
@@ -758,45 +743,82 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                     
                     {/* Your Investments Card */}
                     <div className="soft-card" style={{ padding: '24px' }}>
-                        <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '16px', fontWeight: '800', marginBottom: '16px' }}>
+                        <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '16px', fontWeight: '700', marginBottom: '18px' }}>
                             Your investments
                         </h3>
 
                         {portfolio && portfolio.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Active Equities:</div>
-                                <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--accent-emerald)' }}>
-                                    ₹{portfolio.reduce((sum, i) => sum + (i.current_value || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            <>
+                                <div style={{
+
+                                    background: 'var(--accent-emerald-soft)',
+                                    borderRadius: 'var(--radius-md)',
+                                    padding: '16px 18px',
+                                    marginBottom: '14px'
+                                }}>
+                                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '6px' }}>
+                                        Active Equities Value
+                                    </div>
+                                    <div style={{ fontSize: '26px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
+                                        ₹{portfolio.reduce((sum, i) => sum + (i.current_value || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </div>
+                                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-emerald)', marginTop: '6px' }}>
+                                        ● {portfolio.length} holdings
+                                    </div>
                                 </div>
-                            </div>
+                                <button
+                                    onClick={onViewHoldings}
+                                    className="soft-btn-primary"
+                                    style={{ width: '100%', padding: '12px' }}
+                                >
+                                    View Holdings
+                                </button>
+                            </>
                         ) : (
-                            <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-secondary)' }}>
-                                <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎨</div>
-                                <div style={{ fontWeight: '600', fontSize: '14px' }}>You haven't invested yet</div>
-                                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Start paper trading with ₹1,00,000 demo funds!</div>
+                            <div style={{ textAlign: 'center', padding: '14px 0', color: 'var(--text-secondary)' }}>
+                                <div style={{
+                                    width: '64px',
+                                    height: '64px',
+                                    margin: '0 auto 14px',
+                                    borderRadius: '20px',
+                                    background: 'var(--accent-primary-soft)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M4 4h16v16H4z" />
+                                        <path d="M4 9h16" />
+                                        <path d="M9 9v8M15 9v8" />
+                                    </svg>
+                                </div>
+                                <div style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-primary)' }}>No investments yet</div>
+                                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
+                                    Start paper trading with ₹1,00,000 demo funds.
+                                </div>
                             </div>
                         )}
                     </div>
 
                     {/* Products & Tools Menu */}
                     <div className="soft-card" style={{ padding: '20px' }}>
-                        <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '16px', fontWeight: '800', marginBottom: '14px' }}>
+                        <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '16px', fontWeight: '700', marginBottom: '14px' }}>
                             Products & Tools
                         </h3>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {[
-                                { title: 'IPO', badge: '7 open', icon: '📢' },
-                                { title: 'Bonds', badge: '6 open', icon: '📜' },
-                                { title: 'ETFs', icon: '📊' },
-                                { title: 'Intraday Screener', icon: '⌛' },
-                                { title: 'Stocks SIP', icon: '📅' },
-                                { title: 'MTF stocks', icon: '💼' }
+                                { title: 'IPO', badge: '7 open', icon: 'M12 3v18M3 12h18M5 5l14 14M19 5L5 19', accent: 'var(--accent-rose)' },
+                                { title: 'Bonds', badge: '6 open', icon: 'M8 6h8M8 12h8M8 18h8', accent: 'var(--accent-primary)' },
+                                { title: 'ETFs', icon: 'M4 4h16v16H4zM4 9h16M9 4v5', accent: 'var(--accent-emerald)' },
+                                { title: 'Intraday Screener', icon: 'M21 12a9 9 0 1 1-9-9M21 3l-9 9M15 3h6v6', accent: 'var(--accent-amber)' },
+                                { title: 'Stocks SIP', icon: 'M3 20h18M5 20V10M12 20V4M19 20V13', accent: 'var(--accent-primary)' },
+                                { title: 'MTF stocks', icon: 'M3 13l9-8 9 8M5 11v9h5v-5h4v5h5v-9', accent: 'var(--accent-emerald)' }
                             ].map((item) => (
                                 <div
                                     key={item.title}
                                     style={{
-                                        padding: '12px 14px',
+                                        padding: '11px 10px',
                                         borderRadius: 'var(--radius-sm)',
                                         display: 'flex',
                                         justifyContent: 'space-between',
@@ -808,7 +830,20 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <span style={{ fontSize: '18px' }}>{item.icon}</span>
+                                        <span style={{
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '11px',
+                                            background: 'var(--bg-inset)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: item.accent
+                                        }}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d={item.icon} />
+                                            </svg>
+                                        </span>
                                         <span style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: '600' }}>
                                             {item.title}
                                         </span>
@@ -819,8 +854,8 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                             fontWeight: '700',
                                             padding: '2px 8px',
                                             borderRadius: '10px',
-                                            background: 'var(--accent-emerald-soft)',
-                                            color: 'var(--accent-emerald)'
+                                            background: 'var(--bg-inset)',
+                                            color: 'var(--text-secondary)'
                                         }}>
                                             {item.badge}
                                         </span>
@@ -856,16 +891,15 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                         display: 'flex',
                         flexDirection: 'column',
                         padding: '24px',
-                        background: '#0d131f',
+                        background: 'var(--bg-surface)',
                         border: '1px solid var(--border-color)',
-                        boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
-                        borderRadius: '16px'
+                        borderRadius: 'var(--radius-lg)'
                     }}>
                         {/* Modal Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid var(--border-color)' }}>
                             <div>
                                 <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    🔥 Most Traded Stocks on BullX
+                                    Most Traded Stocks
                                 </h2>
                                 <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '12px' }}>
                                     Top 16 highest volume Indian equities with live price updates
@@ -874,7 +908,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                             <button
                                 onClick={() => setShowSeeMoreModal(false)}
                                 style={{
-                                    background: '#111927',
+                                    background: 'var(--bg-inset)',
                                     border: '1px solid var(--border-color)',
                                     color: 'var(--text-secondary)',
                                     width: '36px',
@@ -893,7 +927,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                         <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                 <thead>
-                                    <tr style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)', background: '#111927' }}>
+                                    <tr style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-inset)' }}>
                                         <th style={{ padding: '12px 16px' }}>COMPANY</th>
                                         <th style={{ padding: '12px 16px', textAlign: 'right' }}>MARKET PRICE</th>
                                         <th style={{ padding: '12px 16px', textAlign: 'right' }}>1D CHANGE</th>
@@ -934,7 +968,7 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                                         <button
                                                             onClick={(e) => toggleWatchlist(e, stk.symbol)}
-                                                            style={{ background: '#111927', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
+                                                            style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
                                                             title={isStarred ? 'Remove from Watchlist' : 'Add to Watchlist'}
                                                         >
                                                             {isStarred ? '⭐' : '☆'}
@@ -944,7 +978,8 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                                                 setShowSeeMoreModal(false);
                                                                 handleStockClick(stk.symbol);
                                                             }}
-                                                            style={{ background: 'var(--accent-emerald)', color: '#ffffff', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '800' }}
+                                                            className="soft-btn soft-btn-primary"
+                                                            style={{ padding: '6px 14px', fontSize: '12px' }}
                                                         >
                                                             Trade ➔
                                                         </button>

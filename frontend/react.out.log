@@ -1,0 +1,9 @@
+
+> trading-demo-frontend@0.1.0 start
+> set HOST=0.0.0.0&& react-scripts start
+
+Attempting to bind to HOST environment variable: 0.0.0.0
+If this was unintentional, check that you haven't mistakenly set it in your shell.
+Learn more here: https://cra.link/advanced-config
+
+Something is already running on port 3000.

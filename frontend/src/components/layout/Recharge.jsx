@@ -52,13 +52,13 @@ const Recharge = ({ onRecharge, balance }) => {
                     width: '48px',
                     height: '48px',
                     borderRadius: '14px',
-                    background: 'linear-gradient(135deg, #f59e0b 0%, #00d09c 100%)',
+                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-strong) 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
                     fontSize: '24px',
-                    boxShadow: '0 4px 14px rgba(0, 208, 156, 0.3)'
+                    boxShadow: '0 4px 14px var(--accent-primary-soft)'
                 }}>
                     💳
                 </div>
@@ -74,7 +74,7 @@ const Recharge = ({ onRecharge, balance }) => {
 
             {/* Current Balance */}
             <div style={{
-                background: '#0d131f',
+                background: 'var(--bg-inset)',
                 padding: '18px 24px',
                 borderRadius: '14px',
                 border: '1px solid var(--border-color)',
@@ -84,7 +84,7 @@ const Recharge = ({ onRecharge, balance }) => {
                 alignItems: 'center'
             }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '600' }}>Current Wallet Balance</span>
-                <span style={{ color: '#00d09c', fontSize: '22px', fontWeight: '900' }}>
+                <span style={{ color: 'var(--accent-emerald)', fontSize: '22px', fontWeight: '900' }}>
                     ₹{(balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
             </div>
@@ -110,10 +110,10 @@ const Recharge = ({ onRecharge, balance }) => {
                     padding: '16px',
                     marginBottom: '24px',
                     borderRadius: '12px',
-                    background: 'rgba(0, 208, 156, 0.12)',
-                    border: '1px solid rgba(0, 208, 156, 0.4)',
+                    background: 'var(--accent-emerald-soft)',
+                    border: '1px solid var(--accent-emerald)',
                     textAlign: 'center',
-                    color: '#00d09c',
+                    color: 'var(--accent-emerald)',
                     fontWeight: '700',
                     fontSize: '14px',
                     lineHeight: '1.5'
@@ -124,39 +124,28 @@ const Recharge = ({ onRecharge, balance }) => {
 
             {/* Package Card */}
             <div style={{
-                background: 'linear-gradient(135deg, #111927 0%, #172436 100%)',
+                background: 'linear-gradient(135deg, var(--bg-inset) 0%, var(--bg-surface-hover) 100%)',
                 padding: '24px',
                 borderRadius: '16px',
-                border: '2px solid #00d09c',
-                boxShadow: '0 8px 24px rgba(0, 208, 156, 0.15)',
+                border: '2px solid var(--accent-emerald)',
+                boxShadow: '0 8px 24px var(--accent-emerald-soft)',
                 textAlign: 'center',
                 marginBottom: '20px'
             }}>
-                <div style={{ fontSize: '12px', color: '#f59e0b', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px' }}>
                     🌟 Most Popular Pack
                 </div>
-                <h3 style={{ margin: '0 0 4px 0', color: '#ffffff', fontSize: '28px', fontWeight: '900' }}>
+                <h3 style={{ margin: '0 0 4px 0', color: 'var(--text-primary)', fontSize: '28px', fontWeight: '900' }}>
                     ₹1,00,000 <span style={{ fontSize: '16px', color: 'var(--text-secondary)', fontWeight: '600' }}>Demo Funds</span>
                 </h3>
                 <div style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
-                    Recharge Price: <strong style={{ color: '#00d09c', fontSize: '18px' }}>₹500 INR</strong> (Real Money)
+                    Recharge Price: <strong style={{ color: 'var(--accent-emerald)', fontSize: '18px' }}>₹500 INR</strong> (Real Money)
                 </div>
 
                 <button
                     onClick={() => setIsPaymentModalOpen(true)}
-                    style={{
-                        width: '100%',
-                        padding: '14px 24px',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #00d09c 0%, #10b981 100%)',
-                        color: '#ffffff',
-                        border: 'none',
-                        fontSize: '16px',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 16px rgba(0, 208, 156, 0.4)',
-                        transition: 'transform 0.2s ease'
-                    }}
+                    className="soft-btn-primary"
+                    style={{ width: '100%', padding: '14px 24px', fontSize: '16px' }}
                 >
                     💳 Pay ₹500 via UPI / QR Code
                 </button>
@@ -179,13 +168,13 @@ const Recharge = ({ onRecharge, balance }) => {
                     padding: '20px'
                 }}>
                     <div className="fade-in" style={{
-                        background: '#0d131f',
+                        background: 'var(--bg-surface)',
                         width: '100%',
                         maxWidth: '460px',
                         borderRadius: '20px',
-                        border: '1.5px solid #00d09c',
+                        border: '1.5px solid var(--accent-primary)',
                         padding: '28px',
-                        boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
                         textAlign: 'center',
                         position: 'relative'
                     }}>
@@ -206,7 +195,7 @@ const Recharge = ({ onRecharge, balance }) => {
                             ✕
                         </button>
 
-                        <h3 style={{ margin: '0 0 6px 0', fontSize: '20px', fontWeight: '900', color: '#ffffff' }}>
+                        <h3 style={{ margin: '0 0 6px 0', fontSize: '20px', fontWeight: '900', color: 'var(--text-primary)' }}>
                             📱 UPI / QR Payment Checkout
                         </h3>
                         <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
@@ -231,7 +220,7 @@ const Recharge = ({ onRecharge, balance }) => {
 
                         {/* UPI ID Row */}
                         <div style={{
-                            background: '#162032',
+                            background: 'var(--bg-inset)',
                             padding: '10px 16px',
                             borderRadius: '12px',
                             border: '1px solid var(--border-color)',
@@ -240,12 +229,12 @@ const Recharge = ({ onRecharge, balance }) => {
                             alignItems: 'center',
                             marginBottom: '20px'
                         }}>
-                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>UPI ID: <strong style={{ color: '#ffffff' }}>{upiId}</strong></span>
+                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>UPI ID: <strong style={{ color: 'var(--text-primary)' }}>{upiId}</strong></span>
                             <button
                                 onClick={handleCopyUPI}
                                 style={{
-                                    background: 'rgba(0, 208, 156, 0.15)',
-                                    color: '#00d09c',
+                                    background: 'var(--accent-emerald-soft)',
+                                    color: 'var(--accent-emerald)',
                                     border: 'none',
                                     padding: '4px 10px',
                                     borderRadius: '6px',
@@ -274,9 +263,9 @@ const Recharge = ({ onRecharge, balance }) => {
                                         width: '100%',
                                         padding: '12px 14px',
                                         borderRadius: '10px',
-                                        background: '#162032',
+                                        background: 'var(--bg-inset)',
                                         border: '1px solid var(--border-color)',
-                                        color: '#ffffff',
+                                        color: 'var(--text-primary)',
                                         fontSize: '14px',
                                         fontWeight: '600',
                                         boxSizing: 'border-box'
@@ -293,17 +282,8 @@ const Recharge = ({ onRecharge, balance }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                style={{
-                                    width: '100%',
-                                    padding: '14px',
-                                    borderRadius: '12px',
-                                    background: 'linear-gradient(135deg, #00d09c 0%, #10b981 100%)',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    fontSize: '15px',
-                                    fontWeight: '800',
-                                    cursor: loading ? 'not-allowed' : 'pointer'
-                                }}
+                                className="soft-btn-success"
+                                style={{ width: '100%', padding: '14px', fontSize: '15px' }}
                             >
                                 {loading ? 'Submitting...' : '✅ Submit UTR for Verification'}
                             </button>

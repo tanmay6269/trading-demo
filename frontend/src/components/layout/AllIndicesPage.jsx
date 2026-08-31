@@ -46,15 +46,10 @@ const AllIndicesPage = ({ onBack, onSelectStock = () => {} }) => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <button
                         onClick={onBack}
-                        className="soft-btn"
+                        className="soft-btn soft-btn-ghost"
                         style={{
-                            background: '#111927',
-                            border: '1px solid var(--border-color)',
-                            color: 'var(--text-primary)',
-                            padding: '6px 14px',
-                            borderRadius: '8px',
-                            fontSize: '13px',
-                            fontWeight: '700'
+                            padding: '7px 14px',
+                            fontSize: '13px'
                         }}
                     >
                         ← Back to Explore
@@ -82,11 +77,11 @@ const AllIndicesPage = ({ onBack, onSelectStock = () => {} }) => {
                         background: 'transparent',
                         border: 'none',
                         padding: '10px 4px',
-                        color: activeTab === 'indian' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+                        color: activeTab === 'indian' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                         fontSize: '16px',
                         fontWeight: '700',
                         cursor: 'pointer',
-                        borderBottom: activeTab === 'indian' ? '3px solid var(--accent-emerald)' : '3px solid transparent',
+                        borderBottom: activeTab === 'indian' ? '3px solid var(--accent-primary)' : '3px solid transparent',
                         transition: 'all 0.2s ease',
                         marginBottom: '-2px'
                     }}
@@ -99,11 +94,11 @@ const AllIndicesPage = ({ onBack, onSelectStock = () => {} }) => {
                         background: 'transparent',
                         border: 'none',
                         padding: '10px 4px',
-                        color: activeTab === 'global' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+                        color: activeTab === 'global' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                         fontSize: '16px',
                         fontWeight: '700',
                         cursor: 'pointer',
-                        borderBottom: activeTab === 'global' ? '3px solid var(--accent-emerald)' : '3px solid transparent',
+                        borderBottom: activeTab === 'global' ? '3px solid var(--accent-primary)' : '3px solid transparent',
                         transition: 'all 0.2s ease',
                         marginBottom: '-2px'
                     }}
@@ -126,7 +121,7 @@ const AllIndicesPage = ({ onBack, onSelectStock = () => {} }) => {
                                 fontSize: '12px',
                                 textTransform: 'uppercase',
                                 borderBottom: '1px solid var(--border-color)',
-                                background: '#111927'
+                                background: 'var(--bg-inset)'
                             }}>
                                 <th style={{ padding: '16px 20px', fontWeight: '700' }}>Index Name</th>
                                 <th style={{ padding: '16px 20px', fontWeight: '700', textAlign: 'right' }}>Last Traded</th>

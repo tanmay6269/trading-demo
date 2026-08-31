@@ -1,0 +1,21 @@
+Running with in-memory cache layer (Set REDIS_URL to enable external Redis cluster).
+[REDIS FALLBACK] Standard session store active.
+==================================================
+[SUCCESS] Database created successfully!
+==================================================
+==================================================
+[SERVER] Starting Flask Server...
+📍 http://127.0.0.1:5000
+==================================================
+ * Serving Flask app 'app'
+ * Debug mode: on
+Running with in-memory cache layer (Set REDIS_URL to enable external Redis cluster).
+[REDIS FALLBACK] Standard session store active.
+==================================================
+[SUCCESS] Database created successfully!
+==================================================
+==================================================
+[SERVER] Starting Flask Server...
+📍 http://127.0.0.1:5000
+==================================================
+Direct quote fetch error for NIFTY_FIN_SERVICE.NS: HTTPSConnectionPool(host='query1.finance.yahoo.com', port=443): Max retries exceeded with url: /v8/finance/chart/NIFTY_FIN_SERVICE.NS?interval=1d&range=5d (Caused by ReadTimeoutError("HTTPSConnectionPool(host='query1.finance.yahoo.com', port=443): Read timed out. (read timeout=3)"))

@@ -7,43 +7,59 @@ const PerformanceMetrics = ({ holdings = [], balance = 0 }) => {
     const pnlPercent = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
     const netWorth = totalValue + balance;
 
-    const metrics = [
-        { label: 'Total Invested', value: `₹${totalInvested.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--text-primary)' },
-        { label: 'Current Portfolio Value', value: `₹${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--text-primary)' },
-        { label: 'Total Un-realized P&L', value: `${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toFixed(2)}`, color: totalPnl >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' },
-        { label: 'Total Return %', value: `${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(2)}%`, color: pnlPercent >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)' },
-        { label: 'Available Demo Cash', value: `₹${balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--accent-emerald)' },
-        { label: 'Net Account Worth', value: `₹${netWorth.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--accent-primary)' },
-    ];
+    const isPnlPos = totalPnl >= 0;
 
     return (
-        <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '14px',
-            marginBottom: '20px'
-        }}>
-            {metrics.map((metric) => (
-                <div key={metric.label} className="soft-card" style={{
-                    padding: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    gap: '4px'
-                }}>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                        {metric.label}
-                    </div>
-                    <div style={{
-                        fontSize: '18px',
-                        fontWeight: '800',
-                        color: metric.color,
-                        marginTop: '2px'
-                    }}>
-                        {metric.value}
-                    </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+            {/* Portfolio value highlight card */}
+            <div className="soft-card" style={{
+                padding: '18px 20px',
+                gridColumn: 'span 2',
+                background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-strong) 100%)',
+                border: 'none',
+                color: '#ffffff',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: '6px'
+            }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', opacity: 0.85 }}>Net Account Worth</div>
+                <div style={{ fontSize: '26px', fontWeight: '800', letterSpacing: '-0.5px' }}>
+                    ₹{netWorth.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
-            ))}
+                <div style={{ fontSize: '12px', fontWeight: '700' }}>
+                    Current Portfolio: ₹{totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })} · Available Cash: ₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+            </div>
+
+            <div className="soft-card" style={{
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: '4px'
+            }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600' }}>Total Invested</div>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                    ₹{totalInvested.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+            </div>
+
+            <div className="soft-card" style={{
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: '4px'
+            }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600' }}>Unrealized P&L</div>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: isPnlPos ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                    {isPnlPos ? '+' : '−'}₹{Math.abs(totalPnl).toFixed(2)}
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: '700', color: isPnlPos ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
+                    {isPnlPos ? '+' : '−'}{Math.abs(pnlPercent).toFixed(2)}%
+                </div>
+            </div>
         </div>
     );
 };

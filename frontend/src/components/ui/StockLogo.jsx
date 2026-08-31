@@ -17,7 +17,7 @@ const StockLogo = ({ symbol, name, size = 40, style = {} }) => {
 
     const getRandomGradient = (str) => {
         const gradients = [
-            'linear-gradient(135deg, #00d09c 0%, #0284c7 100%)',
+            'linear-gradient(135deg, #2a6ff3 0%, #14b8a6 100%)',
             'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
             'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
             'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',

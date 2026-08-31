@@ -13,8 +13,8 @@ const StockSearch = ({ onSelectStock, onOpenOptionChain, showToast = () => {} })
         const fetchWatchlist = async () => {
             try {
                 const res = await api.getWatchlist();
-                if (res && Array.isArray(res.watchlist)) {
-                    setWatchlist(res.watchlist);
+                if (Array.isArray(res)) {
+                    setWatchlist(res.map((item) => item.symbol));
                 }
             } catch (e) {}
         };
@@ -94,7 +94,7 @@ const StockSearch = ({ onSelectStock, onOpenOptionChain, showToast = () => {} })
                         paddingRight: '40px',
                         borderRadius: 'var(--radius-md)',
                         fontSize: '15px',
-                        background: '#111927'
+                        background: 'var(--bg-inset)'
                     }}
                 />
                 {loading && (
@@ -118,7 +118,7 @@ const StockSearch = ({ onSelectStock, onOpenOptionChain, showToast = () => {} })
                     right: 0,
                     marginTop: '6px',
                     background: 'var(--bg-surface)',
-                    border: '1px solid #2e4161',
+                    border: '1px solid var(--border-color-strong)',
                     borderRadius: 'var(--radius-md)',
                     maxHeight: '400px',
                     overflowY: 'auto',

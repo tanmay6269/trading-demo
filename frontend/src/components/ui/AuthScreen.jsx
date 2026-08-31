@@ -309,7 +309,7 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'radial-gradient(circle at 50% 30%, #1e2c45 0%, #0e1626 100%)',
+            background: 'var(--bg-dark)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -319,18 +319,19 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
         }}>
             <div className="soft-card fade-in" style={{
                 width: '100%',
-                maxWidth: '400px',
-                padding: '36px 32px',
-                background: '#14161d',
+                maxWidth: '420px',
+                padding: '34px 30px',
+                background: 'var(--bg-surface)',
                 border: '1px solid var(--border-color)',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-card)',
                 textAlign: 'left'
             }}>
-                {/* Logo & Asymmetric Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    <BullMarketIcon size={32} />
+                {/* Logo & Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                    <BullMarketIcon size={36} />
                     <span style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-                        Bull<span style={{ color: '#6C5CE7' }}>X</span>
+                        Bull<span style={{ color: 'var(--accent-primary)' }}>X</span>
                     </span>
                 </div>
 
@@ -342,9 +343,9 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                 {mode !== 'pin_unlock' && step === 1 && (
                     <div style={{
                         display: 'flex',
-                        background: '#0d0e12',
-                        padding: '3px',
-                        borderRadius: '6px',
+                        background: 'var(--bg-inset)',
+                        padding: '4px',
+                        borderRadius: 'var(--radius-md)',
                         marginBottom: '24px',
                         border: '1px solid var(--border-color)'
                     }}>
@@ -352,13 +353,13 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                             onClick={() => { setMode('login'); setErrorMsg(''); }}
                             style={{
                                 flex: 1,
-                                padding: '8px',
-                                borderRadius: '4px',
+                                padding: '10px',
+                                borderRadius: '10px',
                                 border: 'none',
-                                background: mode === 'login' ? '#6C5CE7' : 'transparent',
+                                background: mode === 'login' ? 'var(--accent-primary)' : 'transparent',
                                 color: mode === 'login' ? '#ffffff' : 'var(--text-secondary)',
-                                fontWeight: '600',
-                                fontSize: '13px',
+                                fontWeight: '700',
+                                fontSize: '14px',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s'
                             }}
@@ -369,13 +370,13 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                             onClick={() => { setMode('register'); setErrorMsg(''); }}
                             style={{
                                 flex: 1,
-                                padding: '8px',
-                                borderRadius: '4px',
+                                padding: '10px',
+                                borderRadius: '10px',
                                 border: 'none',
-                                background: mode === 'register' ? '#6C5CE7' : 'transparent',
+                                background: mode === 'register' ? 'var(--accent-primary)' : 'transparent',
                                 color: mode === 'register' ? '#ffffff' : 'var(--text-secondary)',
-                                fontWeight: '600',
-                                fontSize: '13px',
+                                fontWeight: '700',
+                                fontSize: '14px',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s'
                             }}
@@ -408,8 +409,8 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                         <div style={{
                             width: '48px',
                             height: '48px',
-                            borderRadius: '6px',
-                            background: '#6C5CE7',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'var(--accent-primary)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -439,8 +440,8 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                             width: '14px',
                                             height: '14px',
                                             borderRadius: '50%',
-                                            background: filled ? '#6C5CE7' : 'transparent',
-                                            border: filled ? '1.5px solid #6C5CE7' : '1.5px solid var(--border-color)',
+                                            background: filled ? 'var(--accent-primary)' : 'transparent',
+                                            border: filled ? '1.5px solid var(--accent-primary)' : '1.5px solid var(--border-color)',
                                             transition: 'all 0.15s ease'
                                         }}
                                     />
@@ -462,16 +463,16 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                         type="button"
                                         onClick={(e) => { e.preventDefault(); handleKeypadPress(val); }}
                                         style={{
-                                            background: '#111927',
+                                            background: 'var(--bg-inset)',
                                             border: '1px solid var(--border-color)',
                                             color: 'var(--text-primary)',
                                             padding: '14px',
-                                            borderRadius: '12px',
+                                            borderRadius: 'var(--radius-sm)',
                                             fontSize: '18px',
                                             fontWeight: '800',
                                             cursor: 'pointer',
                                             transition: 'all 0.15s ease',
-                                            boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                                            boxShadow: 'var(--shadow-subtle)'
                                         }}
                                         className="keypad-btn"
                                     >
@@ -502,23 +503,23 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                             <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                                 Email or Mobile Number
                             </label>
-                            <input
-                                type="text"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="name@example.com"
-                                style={{
-                                    width: '100%',
-                                    padding: '12px 14px',
-                                    background: '#111927',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '10px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '14px',
-                                    outline: 'none'
-                                }}
-                            />
-                        </div>
+                                <input
+                                    type="text"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="name@example.com"
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px 14px',
+                                        background: 'var(--bg-inset)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        color: 'var(--text-primary)',
+                                        fontSize: '14px',
+                                        outline: 'none'
+                                    }}
+                                />
+                            </div>
 
                         <div>
                             <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
@@ -532,9 +533,9 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                 style={{
                                     width: '100%',
                                     padding: '12px 14px',
-                                    background: '#111927',
+                                    background: 'var(--bg-inset)',
                                     border: '1px solid var(--border-color)',
-                                    borderRadius: '10px',
+                                    borderRadius: 'var(--radius-sm)',
                                     color: 'var(--text-primary)',
                                     fontSize: '14px',
                                     outline: 'none'
@@ -546,16 +547,16 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                             type="submit"
                             disabled={loading}
                             style={{
-                                background: 'linear-gradient(135deg, #00d09c 0%, #0284c7 100%)',
+                                background: 'var(--accent-primary)',
                                 color: '#ffffff',
                                 border: 'none',
                                 padding: '14px',
-                                borderRadius: '12px',
+                                borderRadius: 'var(--radius-sm)',
                                 fontSize: '15px',
                                 fontWeight: '800',
                                 cursor: loading ? 'not-allowed' : 'pointer',
                                 marginTop: '8px',
-                                boxShadow: '0 4px 14px rgba(0, 208, 156, 0.4)'
+                                boxShadow: '0 4px 16px var(--accent-primary-soft)'
                             }}
                         >
                             {loading ? 'Verifying Credentials...' : 'Continue ›'}
@@ -571,11 +572,11 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                             type="button"
                             onClick={handleGuestDemo}
                             style={{
-                                background: '#111927',
+                                background: 'var(--bg-inset)',
                                 color: 'var(--text-primary)',
-                                border: '1px solid var(--border-color)',
+                                border: '1px solid var(--border-color-strong)',
                                 padding: '12px',
-                                borderRadius: '10px',
+                                borderRadius: 'var(--radius-sm)',
                                 fontSize: '13px',
                                 fontWeight: '700',
                                 cursor: 'pointer'
@@ -604,9 +605,9 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                         style={{
                                             width: '100%',
                                             padding: '10px 12px',
-                                            background: '#111927',
+                                            background: 'var(--bg-inset)',
                                             border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
+                                            borderRadius: 'var(--radius-sm)',
                                             color: 'var(--text-primary)',
                                             fontSize: '13px'
                                         }}
@@ -625,9 +626,9 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                         style={{
                                             width: '100%',
                                             padding: '10px 12px',
-                                            background: '#111927',
+                                            background: 'var(--bg-inset)',
                                             border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
+                                            borderRadius: 'var(--radius-sm)',
                                             color: 'var(--text-primary)',
                                             fontSize: '13px'
                                         }}
@@ -646,9 +647,9 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                         style={{
                                             width: '100%',
                                             padding: '10px 12px',
-                                            background: '#111927',
+                                            background: 'var(--bg-inset)',
                                             border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
+                                            borderRadius: 'var(--radius-sm)',
                                             color: 'var(--text-primary)',
                                             fontSize: '13px'
                                         }}
@@ -667,9 +668,9 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                         style={{
                                             width: '100%',
                                             padding: '10px 12px',
-                                            background: '#111927',
+                                            background: 'var(--bg-inset)',
                                             border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
+                                            borderRadius: 'var(--radius-sm)',
                                             color: 'var(--text-primary)',
                                             fontSize: '13px'
                                         }}
@@ -681,7 +682,7 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                                 <span>Strength</span>
                                                 <span>{pwdStrength.label}</span>
                                             </div>
-                                            <div style={{ height: '4px', background: '#111927', borderRadius: '2px', marginTop: '4px', overflow: 'hidden' }}>
+                                            <div style={{ height: '4px', background: 'var(--bg-inset)', borderRadius: '2px', marginTop: '4px', overflow: 'hidden' }}>
                                                 <div style={{ width: `${pwdStrength.percent}%`, height: '100%', background: pwdStrength.color, transition: 'all 0.3s' }} />
                                             </div>
                                         </div>
@@ -700,9 +701,9 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                         style={{
                                             width: '100%',
                                             padding: '10px 12px',
-                                            background: '#111927',
+                                            background: 'var(--bg-inset)',
                                             border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
+                                            borderRadius: 'var(--radius-sm)',
                                             color: 'var(--text-primary)',
                                             fontSize: '13px'
                                         }}
@@ -713,11 +714,11 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                     type="submit"
                                     disabled={loading}
                                     style={{
-                                        background: 'linear-gradient(135deg, #00d09c 0%, #0284c7 100%)',
+                                        background: 'var(--accent-primary)',
                                         color: '#ffffff',
                                         border: 'none',
                                         padding: '12px',
-                                        borderRadius: '10px',
+                                        borderRadius: 'var(--radius-sm)',
                                         fontSize: '14px',
                                         fontWeight: '800',
                                         cursor: loading ? 'not-allowed' : 'pointer',
@@ -784,10 +785,10 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                             style={{
                                                 width: '44px',
                                                 height: '50px',
-                                                borderRadius: '10px',
-                                                background: '#111927',
+                                                borderRadius: 'var(--radius-sm)',
+                                                background: 'var(--bg-inset)',
                                                 border: '2px solid var(--border-color)',
-                                                color: 'var(--accent-emerald)',
+                                                color: 'var(--accent-primary)',
                                                 fontSize: '20px',
                                                 fontWeight: '800',
                                                 textAlign: 'center',
@@ -802,11 +803,11 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                     disabled={loading}
                                     style={{
                                         width: '100%',
-                                        background: 'linear-gradient(135deg, #00d09c 0%, #0284c7 100%)',
+                                        background: 'var(--accent-primary)',
                                         color: '#ffffff',
                                         border: 'none',
                                         padding: '14px',
-                                        borderRadius: '12px',
+                                        borderRadius: 'var(--radius-sm)',
                                         fontSize: '15px',
                                         fontWeight: '800',
                                         cursor: loading ? 'not-allowed' : 'pointer',
@@ -856,7 +857,7 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                                     borderRadius: '50%',
                                                     background: filled ? 'var(--accent-emerald)' : 'transparent',
                                                     border: filled ? '2px solid var(--accent-emerald)' : '2px solid var(--border-color)',
-                                                    boxShadow: filled ? '0 0 12px rgba(0, 208, 156, 0.6)' : 'none',
+                                                    boxShadow: filled ? '0 0 12px var(--accent-emerald-soft)' : 'none',
                                                     transition: 'all 0.15s ease'
                                                 }}
                                             />
@@ -874,11 +875,11 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                                 type="button"
                                                 onClick={(e) => { e.preventDefault(); handleKeypadPress(val); }}
                                                 style={{
-                                                    background: '#111927',
+                                                    background: 'var(--bg-inset)',
                                                     border: '1px solid var(--border-color)',
                                                     color: 'var(--text-primary)',
                                                     padding: '14px',
-                                                    borderRadius: '12px',
+                                                    borderRadius: 'var(--radius-sm)',
                                                     fontSize: '18px',
                                                     fontWeight: '800',
                                                     cursor: 'pointer',
@@ -896,11 +897,11 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                                     disabled={loading}
                                     style={{
                                         width: '100%',
-                                        background: 'linear-gradient(135deg, #00d09c 0%, #0284c7 100%)',
+                                        background: 'var(--accent-primary)',
                                         color: '#ffffff',
                                         border: 'none',
                                         padding: '14px',
-                                        borderRadius: '12px',
+                                        borderRadius: 'var(--radius-sm)',
                                         fontSize: '15px',
                                         fontWeight: '800',
                                         cursor: loading ? 'not-allowed' : 'pointer'

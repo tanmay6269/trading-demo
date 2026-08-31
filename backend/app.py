@@ -428,6 +428,18 @@ class Trade(db.Model):
     status = db.Column(db.String(20), default='OPEN')
     pnl = db.Column(db.Float, default=0.0)
 
+# 9b. order_logs — Immutable execution log for the Orders page (independent of position lifecycle)
+class OrderLog(db.Model):
+    __tablename__ = 'order_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False, index=True)
+    symbol = db.Column(db.String(30), nullable=False)
+    order_type = db.Column(db.String(10), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    pnl = db.Column(db.Float, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
 # 10. instruments — Master Derivative & Equity Directory (PostgreSQL / Relational Table)
 class Instrument(db.Model):
     __tablename__ = 'instruments'
@@ -1339,8 +1351,15 @@ def buy_stock():
         )
         
         db.session.add(trade)
+        db.session.add(OrderLog(
+            user_id=user.id,
+            symbol=symbol,
+            order_type='BUY',
+            quantity=quantity,
+            price=price
+        ))
         db.session.commit()
-        
+
         return jsonify({
             'message': f'Bought {quantity} shares of {symbol} at ₹{price:.2f}',
             'balance': round(user.demo_balance, 2)
@@ -1382,9 +1401,17 @@ def sell_stock():
         
         open_trade.status = 'CLOSED'
         open_trade.pnl = pnl
-        
+
+        db.session.add(OrderLog(
+            user_id=user.id,
+            symbol=symbol,
+            order_type='SELL',
+            quantity=quantity,
+            price=price,
+            pnl=pnl
+        ))
         db.session.commit()
-        
+
         return jsonify({
             'message': f'Sold {quantity} shares of {symbol} at ₹{price:.2f}',
             'pnl': round(pnl, 2),
@@ -1447,6 +1474,29 @@ def get_portfolio():
             'balance': round(user.demo_balance, 2),
             'total_worth': round(total_value + user.demo_balance, 2)
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/orders', methods=['GET'])
+@login_required
+def get_orders():
+    try:
+        logs = OrderLog.query.filter_by(
+            user_id=current_user.id
+        ).order_by(OrderLog.created_at.desc()).limit(100).all()
+
+        orders = [{
+            'id': o.id,
+            'symbol': o.symbol,
+            'type': o.order_type,
+            'quantity': o.quantity,
+            'price': round(o.price, 2),
+            'pnl': round(o.pnl, 2) if o.pnl is not None else None,
+            'status': 'EXECUTED',
+            'timestamp': o.created_at.isoformat() + 'Z'
+        } for o in logs]
+
+        return jsonify({'orders': orders})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

@@ -51,7 +51,7 @@ const Watchlist = ({ onSelectStock }) => {
     return (
         <div className="soft-card fade-in" style={{ padding: '24px' }}>
             <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)', fontSize: '18px', fontWeight: '800' }}>
-                ⭐ My Custom Watchlist
+                My Watchlist
             </h3>
 
             {actionMsg && (
@@ -102,7 +102,7 @@ const Watchlist = ({ onSelectStock }) => {
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
                                 padding: '14px 18px',
-                                background: '#111927',
+                                background: 'var(--bg-inset)',
                                 border: '1px solid var(--border-color)',
                                 borderRadius: 'var(--radius-md)',
                                 cursor: 'pointer',

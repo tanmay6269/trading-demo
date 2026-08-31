@@ -1622,21 +1622,56 @@ FNO_UNDERLYINGS = {
     'VEDL': {'symbol': 'VEDL', 'clean': 'VEDL', 'step': 5.0, 'lot': 2300, 'weekly': False, 'exchange': 'NSE'},
 }
 
-def _build_option_search_result(underlying_key, strike, opt_type):
-    from nse_bse_fetcher import generate_expiries_sebi_rule
+def _next_weekly_expiry():
+    """Best-effort near-term expiry (NSE weekly expiry day = Tuesday) for building a
+    search-suggestion option symbol. The live option chain modal fetches real expiries
+    from the Groww API separately and does not use this."""
+    today = datetime.now()
+    days_ahead = (1 - today.weekday()) % 7  # Tuesday = weekday() 1
+    if days_ahead == 0:
+        days_ahead = 7
+    return (today + timedelta(days=days_ahead)).strftime('%d-%b-%Y').upper()
+
+def _fetch_search_option_chain(clean_u, exchange):
+    """Best-effort fetch of the real (or realistic simulated) option chain used
+    by the Option Chain modal, so search suggestions show real per-strike prices
+    instead of a fabricated symbol that live quote lookups can't resolve."""
+    try:
+        from nse_bse_fetcher import get_real_option_chain
+        return get_real_option_chain(clean_u, exchange)
+    except Exception:
+        return None
+
+def _build_option_search_result(underlying_key, strike, opt_type, chain_data=None):
     fno_info = FNO_UNDERLYINGS.get(underlying_key, {'symbol': underlying_key, 'clean': underlying_key, 'lot': 100, 'exchange': 'NSE'})
     clean_u = fno_info.get('clean', underlying_key)
-    ex = fno_info.get('exchange', 'NSE')
-    expiries = generate_expiries_sebi_rule(clean_u, ex)
-    near_exp = expiries[0] if expiries else '29-SEP-2026'
-    exp_code = near_exp[:2] + near_exp[3:6].upper()
+    exchange = fno_info.get('exchange', 'NSE')
     strike_fmt = int(strike) if float(strike).is_integer() else strike
-    contract_sym = f"{clean_u}{exp_code}{strike_fmt}{opt_type}"
-    q = fetch_stock_quote(contract_sym)
-    p_val = q.get('price', 25.0)
-    chg_val = q.get('change', 0.0)
-    pct_val = q.get('change_percent', 0.0)
-    
+
+    if chain_data is None:
+        chain_data = _fetch_search_option_chain(clean_u, exchange)
+
+    contract_sym = f"{clean_u}{strike_fmt}{opt_type}"
+    p_val, chg_val, pct_val = None, 0.0, 0.0
+    expiry = chain_data.get('selected_expiry') if chain_data else None
+
+    rows = chain_data.get('chain') if chain_data else None
+    if rows:
+        nearest_row = min(rows, key=lambda r: abs(r.get('strike', 0) - strike))
+        side = nearest_row.get('ce' if opt_type == 'CE' else 'pe') or {}
+        if side.get('ltp') is not None:
+            p_val = side['ltp']
+            chg_val = side.get('change', 0.0)
+            pct_val = side.get('change_percent', 0.0)
+            contract_sym = side.get('symbol', contract_sym)
+            strike_fmt = nearest_row.get('strike', strike_fmt)
+
+    if p_val is None:
+        q = fetch_stock_quote(contract_sym)
+        p_val = q.get('price', 25.0)
+        chg_val = q.get('change', 0.0)
+        pct_val = q.get('change_percent', 0.0)
+
     return {
         'symbol': contract_sym,
         'name': f"{fno_info.get('symbol', clean_u)} {strike_fmt} {'Call' if opt_type=='CE' else 'Put'}",
@@ -1646,11 +1681,11 @@ def _build_option_search_result(underlying_key, strike, opt_type):
         'change_percent': pct_val,
         'type': 'option',
         'underlying': fno_info.get('symbol', clean_u),
-        'strike': strike,
+        'strike': strike_fmt,
         'option_type': opt_type,
-        'expiry': near_exp,
+        'expiry': expiry or _next_weekly_expiry(),
         'lot_size': fno_info.get('lot', 100),
-        'exchange': ex,
+        'exchange': exchange,
         'has_option_chain': True
     }
 
@@ -1692,8 +1727,10 @@ def search_stocks(query):
             else:
                 sides = ['CE', 'PE']
             
+            matched_info = FNO_UNDERLYINGS.get(matched_fno, {'clean': matched_fno, 'exchange': 'NSE'})
+            shared_chain = _fetch_search_option_chain(matched_info.get('clean', matched_fno), matched_info.get('exchange', 'NSE'))
             for side in sides:
-                opt_res = _build_option_search_result(matched_fno, strike_val, side)
+                opt_res = _build_option_search_result(matched_fno, strike_val, side, chain_data=shared_chain)
                 results.append(opt_res)
 
     # 2. Standard Equity & Index Matches
@@ -1744,8 +1781,9 @@ def search_stocks(query):
                 fno_info = FNO_UNDERLYINGS[symbol]
                 step = fno_info['step']
                 atm = round(p_val / step) * step
-                results.append(_build_option_search_result(symbol, atm, 'CE'))
-                results.append(_build_option_search_result(symbol, atm, 'PE'))
+                shared_chain = _fetch_search_option_chain(fno_info.get('clean', symbol), fno_info.get('exchange', 'NSE'))
+                results.append(_build_option_search_result(symbol, atm, 'CE', chain_data=shared_chain))
+                results.append(_build_option_search_result(symbol, atm, 'PE', chain_data=shared_chain))
     
     if not opt_match and not results and len(query) >= 2:
         for suffix in ['.NS', '.BO', '']:

@@ -45,40 +45,40 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
     return (
         <div className="soft-card fade-in" style={{ padding: '24px' }}>
             {/* Buy / Sell Tab Toggle */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: '#0b0f19', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: 'var(--bg-inset)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                 <button
                     onClick={() => setTradeType('BUY')}
                     style={{
                         flex: 1,
-                        padding: '10px',
-                        background: tradeType === 'BUY' ? '#00d09c' : 'transparent',
-                        color: tradeType === 'BUY' ? '#000000' : 'var(--text-secondary)',
+                        padding: '11px',
+                        background: tradeType === 'BUY' ? 'var(--accent-emerald)' : 'transparent',
+                        color: tradeType === 'BUY' ? '#ffffff' : 'var(--text-secondary)',
                         border: 'none',
-                        borderRadius: '6px',
+                        borderRadius: '10px',
                         cursor: 'pointer',
                         fontWeight: '700',
                         fontSize: '14px',
                         transition: 'all 0.15s ease'
                     }}
                 >
-                    BUY {symbol}
+                    BUY
                 </button>
                 <button
                     onClick={() => setTradeType('SELL')}
                     style={{
                         flex: 1,
-                        padding: '10px',
-                        background: tradeType === 'SELL' ? '#eb5b56' : 'transparent',
+                        padding: '11px',
+                        background: tradeType === 'SELL' ? 'var(--accent-rose)' : 'transparent',
                         color: tradeType === 'SELL' ? '#ffffff' : 'var(--text-secondary)',
                         border: 'none',
-                        borderRadius: '6px',
+                        borderRadius: '10px',
                         cursor: 'pointer',
                         fontWeight: '700',
                         fontSize: '14px',
                         transition: 'all 0.15s ease'
                     }}
                 >
-                    SELL {symbol}
+                    SELL
                 </button>
             </div>
 
@@ -95,7 +95,7 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
                         style={{
                             flex: 1,
                             padding: '8px 12px',
-                            background: tradeMode === mode ? '#212e44' : '#111927',
+                            background: tradeMode === mode ? 'var(--bg-surface-hover)' : 'var(--bg-inset)',
                             color: tradeMode === mode ? 'var(--accent-primary)' : 'var(--text-secondary)',
                             border: tradeMode === mode ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
                             borderRadius: '8px',
@@ -149,7 +149,7 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
                                 style={{
                                     flex: 1,
                                     padding: '5px',
-                                    background: quantity === targetQty ? '#212e44' : '#111927',
+                                    background: quantity === targetQty ? 'var(--bg-surface-hover)' : 'var(--bg-inset)',
                                     color: quantity === targetQty ? 'var(--accent-primary)' : 'var(--text-secondary)',
                                     border: '1px solid var(--border-color)',
                                     borderRadius: '6px',
@@ -183,7 +183,7 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
 
             {/* Order Summary Box */}
             <div style={{ 
-                background: '#111927',
+                background: 'var(--bg-inset)',
                 padding: '14px 18px',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-color)',
@@ -230,8 +230,8 @@ const TradePanel = ({ symbol, price, balance, onBuy, onSell, loading }) => {
             </button>
 
             {tradeType === 'BUY' && !canAfford && (
-                <p style={{ color: 'var(--accent-rose)', textAlign: 'center', marginTop: '10px', fontSize: '12px' }}>
-                    ⚠️ Insufficient demo cash. Top up your funds in the Recharge tab.
+                <p style={{ color: 'var(--accent-rose)', textAlign: 'center', marginTop: '10px', fontSize: '12px', fontWeight: '600' }}>
+                    Insufficient funds. Add cash to continue.
                 </p>
             )}
         </div>
