@@ -5,13 +5,13 @@ const BullMarketIcon = ({ size = 36, style = {} }) => {
         <div style={{
             width: `${size}px`,
             height: `${size}px`,
-            borderRadius: '6px',
+            borderRadius: '12px',
             overflow: 'hidden',
-            border: '1px solid #6C5CE7',
+            border: '1px solid var(--accent-primary)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#14161d',
+            background: 'var(--bg-surface)',
             flexShrink: 0,
             ...style
         }}>

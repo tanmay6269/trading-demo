@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://trading-demo-backend.onrender.com/api';
+const API_BASE_URL = 'http://127.0.0.1:5000/api';
 
 const defaultHeaders = {
     'Content-Type': 'application/json',
@@ -268,6 +268,11 @@ export const api = {
 
     getPortfolio: async () => {
         const res = await fetch(`${API_BASE_URL}/portfolio`, { credentials: 'include' });
+        return handleResponse(res);
+    },
+
+    getOrders: async () => {
+        const res = await fetch(`${API_BASE_URL}/orders`, { credentials: 'include' });
         return handleResponse(res);
     },
 

@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import BullMarketIcon from './BullMarketIcon';
 
 const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTab, activeTab, onOpenProfile = () => {}, profilePic, onOpenOptionChain }) => {
-    const [topCategory, setTopCategory] = useState('stocks'); // 'stocks' | 'fno' | 'mf'
+    const [topCategory, setTopCategory] = useState('stocks');
     const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') || 'dark');
 
     const toggleTheme = () => {
         const nextTheme = theme === 'dark' ? 'light' : 'dark';
         setTheme(nextTheme);
         document.documentElement.setAttribute('data-theme', nextTheme);
+        try { localStorage.setItem('bx_theme', nextTheme); } catch (e) {}
     };
 
     const subTabs = [
@@ -18,49 +19,47 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
         { id: 'positions', label: 'Positions' },
         { id: 'orders', label: 'Orders' },
         { id: 'watchlist', label: 'Watchlist' },
-        { id: 'trading', label: 'Trade & Chart' },
         { id: 'recharge', label: 'Recharge Funds' },
     ];
 
+    const navStyle = {
+        background: 'var(--bg-surface)',
+        borderBottom: '1px solid var(--border-color)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        boxShadow: 'var(--shadow-soft)'
+    };
+
     return (
-        <header style={{
-            background: 'var(--bg-surface)',
-            borderBottom: '1px solid var(--border-color)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-            boxShadow: 'var(--shadow-soft)'
-        }}>
-            {/* Top Groww Navigation Row */}
+        <header style={navStyle}>
+            {/* Top row */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '12px 28px',
-                borderBottom: '1px solid var(--border-color)',
+                padding: '10px 24px',
                 flexWrap: 'wrap',
-                gap: '16px'
+                gap: '12px'
             }}>
-                {/* Groww Logo & Top Category Tabs */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
-                    <div 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '26px' }}>
+                    <div
                         style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
                         onClick={() => setActiveTab('explore')}
                     >
-                        <BullMarketIcon size={42} />
-                        <h2 style={{ 
-                            margin: 0, 
-                            fontSize: '20px', 
-                            fontWeight: '800', 
+                        <BullMarketIcon size={36} />
+                        <h2 style={{
+                            margin: 0,
+                            fontSize: '20px',
+                            fontWeight: '800',
                             letterSpacing: '-0.5px',
                             color: 'var(--text-primary)'
                         }}>
-                            Bull<span style={{ color: '#6C5CE7' }}>X</span>
+                            Bull<span style={{ color: 'var(--accent-primary)' }}>X</span>
                         </h2>
                     </div>
 
-                    {/* Category Selector Tabs: Stocks | F&O | Mutual Funds */}
-                    <div className="hide-on-mobile" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                    <div className="hide-on-mobile" style={{ display: 'flex', gap: '22px', alignItems: 'center' }}>
                         {['stocks', 'fno', 'mf'].map((cat) => {
                             const label = cat === 'stocks' ? 'Stocks' : cat === 'fno' ? 'F&O' : 'Mutual Funds';
                             const isActive = topCategory === cat;
@@ -71,10 +70,11 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                                     style={{
                                         background: 'transparent',
                                         border: 'none',
-                                        color: isActive ? '#6C5CE7' : 'var(--text-secondary)',
+                                        color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
                                         fontSize: '14px',
                                         fontWeight: isActive ? '700' : '500',
                                         cursor: 'pointer',
+                                        padding: '4px 2px',
                                         transition: 'color 0.15s ease'
                                     }}
                                 >
@@ -85,116 +85,81 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                     </div>
                 </div>
 
-                {/* User & Balance Bar */}
-                <div className="nav-user-bar" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-
-                    {/* Theme Switcher Toggle */}
+                <div className="nav-user-bar" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <button
                         onClick={toggleTheme}
                         title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
                         style={{
-                            background: 'var(--bg-surface-hover)',
+                            background: 'var(--bg-inset)',
                             border: '1px solid var(--border-color)',
                             color: 'var(--text-primary)',
-                            padding: '6px 10px',
-                            borderRadius: '6px',
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '12px',
                             cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                        }}
-                    >
-                        <span>{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</span>
-                    </button>
-
-                    {/* Notification Bell Badge */}
-                    <div className="hide-on-mobile" style={{
-                        position: 'relative',
-                        background: '#14161d',
-                        padding: '6px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '34px',
-                        height: '34px',
-                        border: '1px solid var(--border-color)'
-                    }}>
-                        <span style={{ fontSize: '14px' }}>🔔</span>
-                        <span style={{
-                            position: 'absolute',
-                            top: '-3px',
-                            right: '-3px',
-                            background: '#6C5CE7',
-                            color: '#ffffff',
-                            fontSize: '9px',
-                            fontWeight: '700',
-                            borderRadius: '50%',
-                            width: '14px',
-                            height: '14px',
+                            fontSize: '15px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
-                        }}>5</span>
-                    </div>
+                        }}
+                    >
+                        {theme === 'dark' ? (
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                            </svg>
+                        ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                            </svg>
+                        )}
+                    </button>
 
-                    {/* Live Balance Pill */}
                     <div className="nav-balance-pill" style={{
-                        background: 'rgba(108, 92, 231, 0.08)',
-                        border: '1px solid rgba(108, 92, 231, 0.2)',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
+                        background: 'var(--bg-inset)',
+                        border: '1px solid var(--border-color)',
+                        padding: '7px 14px',
+                        borderRadius: '12px',
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        lineHeight: 1.2
                     }}>
-                        <span className="hide-on-mobile" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Demo:</span>
-                        <span style={{ fontWeight: '700', color: '#6C5CE7', fontSize: '13px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Balance
+                        </span>
+                        <span style={{ fontWeight: '800', color: 'var(--text-primary)', fontSize: '14px' }}>
                             ₹{(balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                     </div>
 
-                    {/* Lock Terminal Button */}
                     <button
                         onClick={onLockApp}
-                        className="soft-btn hide-on-mobile"
+                        className="soft-btn soft-btn-ghost hide-on-mobile"
                         title="Lock Terminal"
-                        style={{
-                            background: '#14161d',
-                            border: '1px solid var(--border-color)',
-                            color: 'var(--text-primary)',
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            cursor: 'pointer'
-                        }}
+                        style={{ padding: '9px 14px', fontSize: '13px' }}
                     >
                         Lock
                     </button>
 
-                    {/* User Avatar */}
-                    <div 
+                    <div
+                        onClick={onOpenProfile}
                         style={{
-                            width: '34px',
-                            height: '34px',
-                            borderRadius: '6px',
-                            background: '#6C5CE7',
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '12px',
+                            background: 'var(--accent-primary)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: '#ffffff',
                             fontWeight: '700',
-                            fontSize: '14px',
+                            fontSize: '15px',
                             cursor: 'pointer',
                             overflow: 'hidden',
-                            border: '1px solid #6C5CE7'
-                        }} 
-                        title={`Logged in as ${username}`} 
-                        onClick={onOpenProfile}
+                            boxShadow: '0 2px 8px var(--accent-primary-soft)'
+                        }}
+                        title={`Logged in as ${username}`}
                     >
                         {profilePic ? (
                             <img src={profilePic} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -205,13 +170,14 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                 </div>
             </div>
 
-            {/* Sub Navigation Bar */}
+            {/* Sub navigation */}
             <div className="desktop-subtabs" style={{
                 display: 'flex',
                 padding: '0 24px',
-                gap: '24px',
+                gap: '28px',
                 background: 'var(--bg-surface)',
-                overflowX: 'auto'
+                overflowX: 'auto',
+                borderTop: '1px solid var(--border-color)'
             }}>
                 {subTabs.map((tab) => {
                     const isActive = activeTab === tab.id;
@@ -220,13 +186,13 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             style={{
-                                padding: '10px 0',
+                                padding: '12px 0',
                                 background: 'transparent',
-                                color: isActive ? '#6C5CE7' : 'var(--text-secondary)',
+                                color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
                                 border: 'none',
-                                borderBottom: isActive ? '2px solid #6C5CE7' : '2px solid transparent',
+                                borderBottom: isActive ? '2px solid var(--accent-primary)' : '2px solid transparent',
                                 cursor: 'pointer',
-                                fontSize: '13px',
+                                fontSize: '14px',
                                 fontWeight: isActive ? '700' : '500',
                                 transition: 'all 0.15s ease',
                                 whiteSpace: 'nowrap'
@@ -236,6 +202,24 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
                         </button>
                     );
                 })}
+                {onOpenOptionChain && (
+                    <button
+                        onClick={onOpenOptionChain}
+                        style={{
+                            marginLeft: 'auto',
+                            padding: '12px 0',
+                            background: 'transparent',
+                            color: 'var(--accent-primary)',
+                            border: 'none',
+                            borderBottom: '2px solid transparent',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                        }}
+                    >
+                        Option Chain
+                    </button>
+                )}
             </div>
         </header>
     );

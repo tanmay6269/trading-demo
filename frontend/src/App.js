@@ -187,6 +187,7 @@ function App() {
             onOpenAllIndices={() => setActiveTab('all-indices')}
             portfolio={portfolio}
             showToast={showToast}
+            onViewHoldings={() => setActiveTab('holdings')}
           />
         );
 
@@ -280,6 +281,7 @@ function App() {
             onOpenAllIndices={() => setActiveTab('all-indices')}
             onOpenOptionChain={handleOpenOptionChain}
             portfolio={portfolio}
+            onViewHoldings={() => setActiveTab('holdings')}
           />
         );
     }
@@ -306,12 +308,12 @@ function App() {
       {/* Mobile Bottom Navigation Bar (Phone view) */}
       <div className="mobile-bottom-nav">
         {[
-          { id: 'explore', icon: '📈', label: 'Explore' },
-          { id: 'news', icon: '📰', label: 'News' },
-          { id: 'holdings', icon: '💼', label: 'Holdings' },
-          { id: 'positions', icon: '⚡', label: 'Positions' },
-          { id: 'orders', icon: '📋', label: 'Orders' },
-          { id: 'watchlist', icon: '⭐', label: 'Watchlist' },
+          { id: 'explore', icon: 'M3 13l9-8 9 8M5 11v9h5v-5h4v5h5v-9', label: 'Home' },
+          { id: 'news', icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z', label: 'News' },
+          { id: 'holdings', icon: 'M4 4h16v16H4zM4 9h16M9 4v5', label: 'Holdings' },
+          { id: 'positions', icon: 'M3 12h4l3-8 4 16 3-8h4', label: 'Positions' },
+          { id: 'orders', icon: 'M8 6h11M8 12h11M8 18h11M4 6h.01M4 12h.01M4 18h.01', label: 'Orders' },
+          { id: 'watchlist', icon: 'M12 3l2.9 5.9 6.1.9-4.5 4.3 1.1 6.1-5.6-3-5.6 3 1.1-6.1L3 9.8l6.1-.9z', label: 'Watchlist' },
         ].map((item) => {
           const isActive = activeTab === item.id;
           return (
@@ -320,7 +322,11 @@ function App() {
               onClick={() => setActiveTab(item.id)}
               className={`mobile-nav-btn ${isActive ? 'active' : ''}`}
             >
-              <span style={{ fontSize: '16px' }}>{item.icon}</span>
+              <span className="mnav-ico">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={item.icon} />
+                </svg>
+              </span>
               <span>{item.label}</span>
             </button>
           );

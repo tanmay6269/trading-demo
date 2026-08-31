@@ -115,7 +115,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                 width: '100%',
                 maxWidth: '900px',
                 maxHeight: '90vh',
-                background: '#111927',
+                background: 'var(--bg-surface)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '20px',
                 boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
@@ -131,7 +131,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: '#182234'
+                    background: 'var(--bg-inset)'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '20px' }}>👤</span>
@@ -160,7 +160,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                     {/* Left Sidebar Menu */}
                     <div className="profile-modal-sidebar" style={{
                         width: '260px',
-                        background: '#0d131f',
+                        background: 'var(--bg-inset)',
                         borderRight: '1px solid var(--border-color)',
                         padding: '20px 16px',
                         display: 'flex',
@@ -190,8 +190,8 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                                 height: '100%',
                                                 borderRadius: '50%',
                                                 objectFit: 'cover',
-                                                border: '3px solid #00d09c',
-                                                boxShadow: '0 4px 14px rgba(0,208,156,0.3)'
+                                                border: '3px solid var(--accent-primary)',
+                                                boxShadow: '0 4px 14px var(--accent-primary-soft)'
                                             }} 
                                         />
                                     ) : (
@@ -199,7 +199,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                             width: '100%',
                                             height: '100%',
                                             borderRadius: '50%',
-                                            background: 'linear-gradient(135deg, #00d09c 0%, #38bdf8 100%)',
+                                            background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-strong) 100%)',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
@@ -216,7 +216,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                         position: 'absolute',
                                         bottom: 0,
                                         right: 0,
-                                        background: '#00d09c',
+                                        background: 'var(--accent-primary)',
                                         color: '#ffffff',
                                         width: '28px',
                                         height: '28px',
@@ -226,7 +226,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                         justifyContent: 'center',
                                         fontSize: '14px',
                                         boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-                                        border: '2px solid #0d131f'
+                                        border: '2px solid var(--bg-inset)'
                                     }}>
                                         📷
                                     </div>
@@ -242,7 +242,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                     onClick={() => fileInputRef.current && fileInputRef.current.click()}
                                     style={{ 
                                         fontSize: '12px', 
-                                        color: '#00d09c', 
+                                        color: 'var(--accent-primary)', 
                                         fontWeight: '700', 
                                         cursor: 'pointer',
                                         marginBottom: '6px'
@@ -262,8 +262,8 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                     marginTop: '8px',
                                     padding: '3px 8px',
                                     borderRadius: '12px',
-                                    background: 'rgba(0,208,156,0.15)',
-                                    color: '#00d09c',
+                                    background: 'var(--accent-primary-soft)',
+                                    color: 'var(--accent-primary)',
                                     fontSize: '10px',
                                     fontWeight: '800'
                                 }}>
@@ -350,15 +350,15 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                     </div>
 
                     {/* Right Content Area */}
-                    <div className="profile-modal-content" style={{ flex: 1, padding: '24px', overflowY: 'auto', background: '#111927' }}>
+                    <div className="profile-modal-content" style={{ flex: 1, padding: '24px', overflowY: 'auto', background: 'var(--bg-surface)' }}>
                         {msg && (
                             <div style={{
                                 padding: '10px 14px',
                                 borderRadius: '8px',
                                 marginBottom: '16px',
-                                background: msg.type === 'success' ? 'rgba(0,208,156,0.15)' : 'rgba(235,91,86,0.15)',
-                                color: msg.type === 'success' ? '#00d09c' : '#eb5b56',
-                                border: `1px solid ${msg.type === 'success' ? '#00d09c' : '#eb5b56'}`,
+                                background: msg.type === 'success' ? 'var(--accent-emerald-soft)' : 'var(--accent-rose-soft)',
+                                color: msg.type === 'success' ? 'var(--accent-emerald)' : 'var(--accent-rose)',
+                                border: `1px solid ${msg.type === 'success' ? 'var(--accent-emerald)' : 'var(--accent-rose)'}`,
                                 fontSize: '13px',
                                 fontWeight: '600'
                             }}>
@@ -383,9 +383,9 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                         style={{
                                             padding: '8px 16px',
                                             borderRadius: '8px',
-                                            border: '1px solid #00d09c',
-                                            background: isEditing ? '#00d09c' : 'transparent',
-                                            color: isEditing ? '#ffffff' : '#00d09c',
+                                            border: '1px solid var(--accent-primary)',
+                                            background: isEditing ? 'var(--accent-primary)' : 'transparent',
+                                            color: isEditing ? '#ffffff' : 'var(--accent-primary)',
                                             fontWeight: '700',
                                             fontSize: '13px',
                                             cursor: 'pointer'
@@ -519,11 +519,11 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                                 padding: '10px 24px',
                                                 borderRadius: '8px',
                                                 border: 'none',
-                                                background: '#00d09c',
+                                                background: 'var(--accent-primary)',
                                                 color: '#ffffff',
                                                 fontWeight: '700',
                                                 cursor: 'pointer',
-                                                boxShadow: '0 4px 14px rgba(0,208,156,0.3)'
+                                                boxShadow: '0 4px 14px var(--accent-primary-soft)'
                                             }}
                                         >
                                             {saving ? 'Saving...' : '💾 Save Profile Changes'}
@@ -540,9 +540,9 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Download tax P&L, contract notes, and trade logs.</p>
                                 <div style={{ display: 'grid', gap: '12px', marginTop: '16px' }}>
                                     {['Tax P&L Statement FY 2025-26', 'Annual Holding Statement', 'F&O Trade Ledger Log'].map((doc, idx) => (
-                                        <div key={idx} style={{ padding: '14px', background: '#182234', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div key={idx} style={{ padding: '14px', background: 'var(--bg-inset)', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span>📄 {doc}</span>
-                                            <button style={{ padding: '6px 12px', background: '#00d09c', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '12px', cursor: 'pointer' }}>Download PDF</button>
+                                            <button style={{ padding: '6px 12px', background: 'var(--accent-primary)', border: 'none', borderRadius: '6px', color: '#fff', fontSize: '12px', cursor: 'pointer' }}>Download PDF</button>
                                         </div>
                                     ))}
                                 </div>
@@ -561,11 +561,11 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                         {activeTab === 'banks' && (
                             <div>
                                 <h3 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)' }}>🏦 Add Bank Accounts & UPI</h3>
-                                <div style={{ padding: '16px', background: '#182234', borderRadius: '12px', marginBottom: '16px' }}>
-                                    <div style={{ fontWeight: '700', color: '#00d09c' }}>HDFC Bank (Primary)</div>
+                                <div style={{ padding: '16px', background: 'var(--bg-inset)', borderRadius: '12px', marginBottom: '16px' }}>
+                                    <div style={{ fontWeight: '700', color: 'var(--accent-primary)' }}>HDFC Bank (Primary)</div>
                                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>A/C No: •••••••• 4921 | IFSC: HDFC0001234</div>
                                 </div>
-                                <button style={{ padding: '10px 16px', background: '#00d09c', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: '700', cursor: 'pointer' }}>➕ Add Primary Bank Account</button>
+                                <button style={{ padding: '10px 16px', background: 'var(--accent-primary)', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: '700', cursor: 'pointer' }}>➕ Add Primary Bank Account</button>
                             </div>
                         )}
 
@@ -575,13 +575,13 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                 <h3 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)' }}>🎧 24x7 Customer Support & Help</h3>
                                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Need help with trades, PIN, or account verification?</p>
                                 <div style={{ display: 'grid', gap: '12px', marginTop: '16px' }}>
-                                    <div style={{ padding: '14px', background: '#182234', borderRadius: '10px' }}>
+                                    <div style={{ padding: '14px', background: 'var(--bg-inset)', borderRadius: '10px' }}>
                                         <div style={{ fontWeight: '700' }}>📞 Priority Support Helpline</div>
-                                        <div style={{ fontSize: '12px', color: '#00d09c', marginTop: '4px' }}>1800-419-8765 (Toll Free)</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>1800-419-8765 (Toll Free)</div>
                                     </div>
-                                    <div style={{ padding: '14px', background: '#182234', borderRadius: '10px' }}>
+                                    <div style={{ padding: '14px', background: 'var(--bg-inset)', borderRadius: '10px' }}>
                                         <div style={{ fontWeight: '700' }}>✉️ Support Email Ticket</div>
-                                        <div style={{ fontSize: '12px', color: '#00d09c', marginTop: '4px' }}>support@zenithx.com</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>support@zenithx.com</div>
                                     </div>
                                 </div>
                             </div>
@@ -601,9 +601,9 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                     <div style={{
                                         padding: '12px 16px',
                                         borderRadius: '8px',
-                                        background: resetMsg.type === 'success' ? 'rgba(0, 208, 156, 0.15)' : 'rgba(235, 91, 86, 0.15)',
-                                        border: `1px solid ${resetMsg.type === 'success' ? '#00d09c' : '#eb5b56'}`,
-                                        color: resetMsg.type === 'success' ? '#00d09c' : '#eb5b56',
+                                        background: resetMsg.type === 'success' ? 'var(--accent-emerald-soft)' : 'var(--accent-rose-soft)',
+                                        border: `1px solid ${resetMsg.type === 'success' ? 'var(--accent-emerald)' : 'var(--accent-rose)'}`,
+                                        color: resetMsg.type === 'success' ? 'var(--accent-emerald)' : 'var(--accent-rose)',
                                         fontSize: '13px',
                                         fontWeight: '700',
                                         marginBottom: '16px'
@@ -626,7 +626,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                                 width: '100%',
                                                 padding: '10px 14px',
                                                 borderRadius: '8px',
-                                                background: '#182234',
+                                                background: 'var(--bg-inset)',
                                                 border: '1px solid var(--border-color)',
                                                 color: '#ffffff',
                                                 fontSize: '14px',
@@ -649,7 +649,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                                 width: '100%',
                                                 padding: '10px 14px',
                                                 borderRadius: '8px',
-                                                background: '#182234',
+                                                background: 'var(--bg-inset)',
                                                 border: '1px solid var(--border-color)',
                                                 color: '#ffffff',
                                                 fontSize: '14px',
@@ -674,7 +674,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                                     width: '100%',
                                                     padding: '10px 14px',
                                                     borderRadius: '8px',
-                                                    background: '#182234',
+                                                    background: 'var(--bg-inset)',
                                                     border: '1px solid var(--border-color)',
                                                     color: '#ffffff',
                                                     fontSize: '16px',
@@ -700,7 +700,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                                     width: '100%',
                                                     padding: '10px 14px',
                                                     borderRadius: '8px',
-                                                    background: '#182234',
+                                                    background: 'var(--bg-inset)',
                                                     border: '1px solid var(--border-color)',
                                                     color: '#ffffff',
                                                     fontSize: '16px',
@@ -721,7 +721,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
                                             padding: '12px',
                                             borderRadius: '8px',
                                             border: 'none',
-                                            background: '#00d09c',
+                                            background: 'var(--accent-primary)',
                                             color: '#ffffff',
                                             fontSize: '14px',
                                             fontWeight: '800',
@@ -744,7 +744,7 @@ const ProfileModal = ({ isOpen, onClose, userInfo, onLogout, onLockApp, onProfil
 
 const ProfileField = ({ label, icon, value, isEditing, onChange, hint }) => (
     <div style={{
-        background: '#182234',
+        background: 'var(--bg-inset)',
         padding: '14px 16px',
         borderRadius: '12px',
         border: '1px solid var(--border-color)'
@@ -753,7 +753,7 @@ const ProfileField = ({ label, icon, value, isEditing, onChange, hint }) => (
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {icon} {label}
             </span>
-            {hint && <span style={{ fontSize: '10px', color: '#00d09c', fontWeight: '700' }}>{hint}</span>}
+            {hint && <span style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: '700' }}>{hint}</span>}
         </div>
         {isEditing ? (
             <input
@@ -764,9 +764,9 @@ const ProfileField = ({ label, icon, value, isEditing, onChange, hint }) => (
                     width: '100%',
                     padding: '8px 12px',
                     borderRadius: '6px',
-                    background: '#111927',
-                    border: '1px solid #00d09c',
-                    color: '#ffffff',
+                    background: 'var(--bg-inset)',
+                    border: '1px solid var(--accent-primary)',
+                    color: 'var(--text-primary)',
                     fontSize: '14px',
                     fontWeight: '600',
                     outline: 'none'
@@ -782,7 +782,7 @@ const ProfileField = ({ label, icon, value, isEditing, onChange, hint }) => (
 
 const ProfileSelectField = ({ label, icon, value, options, isEditing, onChange }) => (
     <div style={{
-        background: '#182234',
+        background: 'var(--bg-inset)',
         padding: '14px 16px',
         borderRadius: '12px',
         border: '1px solid var(--border-color)'
@@ -798,9 +798,9 @@ const ProfileSelectField = ({ label, icon, value, options, isEditing, onChange }
                     width: '100%',
                     padding: '8px 12px',
                     borderRadius: '6px',
-                    background: '#111927',
-                    border: '1px solid #00d09c',
-                    color: '#ffffff',
+                    background: 'var(--bg-inset)',
+                    border: '1px solid var(--accent-primary)',
+                    color: 'var(--text-primary)',
                     fontSize: '14px',
                     fontWeight: '600',
                     outline: 'none'

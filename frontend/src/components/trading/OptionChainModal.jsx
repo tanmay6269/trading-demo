@@ -72,24 +72,24 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                 width: '100%',
                 maxWidth: '1280px',
                 maxHeight: '92vh',
-                backgroundColor: '#0f172a',
-                border: '1px solid #334155',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '16px',
                 boxShadow: '0 25px 60px rgba(0,0,0,0.9)',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
-                color: '#f8fafc',
+                color: 'var(--text-primary)',
                 fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
             }}>
                 {/* 1. Header Bar: Exchange Switcher, Stock Symbol & Spot */}
                 <div style={{
                     padding: '14px 20px',
-                    borderBottom: '1px solid #334155',
+                    borderBottom: '1px solid var(--border-color)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    backgroundColor: '#1e293b',
+                    backgroundColor: 'var(--bg-inset)',
                     flexWrap: 'wrap',
                     gap: '12px'
                 }}>
@@ -97,10 +97,10 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                         {/* Exchange Toggle Switcher (NSE / BSE) */}
                         <div style={{
                             display: 'flex',
-                            backgroundColor: '#0f172a',
+                            backgroundColor: 'var(--bg-surface)',
                             padding: '3px',
                             borderRadius: '8px',
-                            border: '1px solid #334155'
+                            border: '1px solid var(--border-color)'
                         }}>
                             {['NSE', 'BSE'].map((ex) => (
                                 <button
@@ -113,8 +113,8 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                         padding: '5px 14px',
                                         borderRadius: '6px',
                                         border: 'none',
-                                        backgroundColor: exchange === ex ? '#6366f1' : 'transparent',
-                                        color: exchange === ex ? '#ffffff' : '#94a3b8',
+                                        backgroundColor: exchange === ex ? 'var(--accent-primary)' : 'transparent',
+                                        color: exchange === ex ? '#ffffff' : 'var(--text-secondary)',
                                         fontWeight: '800',
                                         fontSize: '12px',
                                         cursor: 'pointer',
@@ -127,7 +127,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                         </div>
 
                         <div>
-                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 {symbol} Option Chain
                                 <span style={{
                                     fontSize: '11px',
@@ -145,15 +145,15 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                         {/* Spot Price Pill */}
                         {spotPrice > 0 && (
                             <div style={{
-                                backgroundColor: '#0f172a',
-                                border: '1px solid #334155',
+                                backgroundColor: 'var(--bg-surface)',
+                                border: '1px solid var(--border-color)',
                                 padding: '4px 14px',
                                 borderRadius: '8px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px'
                             }}>
-                                <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>SPOT:</span>
+                                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>SPOT:</span>
                                 <span style={{ fontSize: '15px', fontWeight: '800', color: '#ffffff' }}>
                                     ₹{spotPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </span>
@@ -172,14 +172,14 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {data?.expiries && data.expiries.length > 0 && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Expiry:</span>
+                                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>Expiry:</span>
                                 <select
                                     value={selectedExpiry}
                                     onChange={(e) => setSelectedExpiry(e.target.value)}
                                     style={{
-                                        backgroundColor: '#0f172a',
-                                        border: '1px solid #6366f1',
-                                        color: '#ffffff',
+                                        backgroundColor: 'var(--bg-surface)',
+                                        border: '1px solid var(--accent-primary)',
+                                        color: 'var(--text-primary)',
                                         padding: '6px 12px',
                                         borderRadius: '8px',
                                         fontSize: '13px',
@@ -189,7 +189,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                     }}
                                 >
                                     {data.expiries.map((exp) => (
-                                        <option key={exp} value={exp} style={{ backgroundColor: '#0f172a', color: '#ffffff' }}>
+                                        <option key={exp} value={exp} style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
                                             {exp}
                                         </option>
                                     ))}
@@ -202,7 +202,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                             style={{
                                 backgroundColor: 'transparent',
                                 border: 'none',
-                                color: '#94a3b8',
+                                color: 'var(--text-secondary)',
                                 fontSize: '22px',
                                 cursor: 'pointer',
                                 padding: '4px 8px',
@@ -218,7 +218,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                 <div style={{
                     padding: '8px 20px',
                     backgroundColor: '#090d16',
-                    borderBottom: '1px solid #334155',
+                    borderBottom: '1px solid var(--border-color)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -240,14 +240,14 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                             </div>
                         )}
 
-                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                            📦 Lot Size: <strong style={{ color: '#f8fafc' }}>{data?.lot_size || 25} Qty</strong>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            📦 Lot Size: <strong style={{ color: 'var(--text-primary)' }}>{data?.lot_size || 25} Qty</strong>
                         </div>
                     </div>
 
                     {/* Columns View Switcher (Compact | Greeks | Full) */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ display: 'flex', gap: '4px', backgroundColor: '#1e293b', padding: '3px', borderRadius: '6px' }}>
+                        <div style={{ display: 'flex', gap: '4px', backgroundColor: 'var(--bg-inset)', padding: '3px', borderRadius: '6px' }}>
                             {[
                                 { id: 'compact', label: 'Compact' },
                                 { id: 'greeks', label: 'Greeks (Δ, Γ, Θ, ν)' },
@@ -260,8 +260,8 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                         padding: '4px 10px',
                                         borderRadius: '4px',
                                         border: 'none',
-                                        backgroundColor: columnView === v.id ? '#6366f1' : 'transparent',
-                                        color: columnView === v.id ? '#ffffff' : '#94a3b8',
+                                        backgroundColor: columnView === v.id ? 'var(--accent-primary)' : 'transparent',
+                                        color: columnView === v.id ? '#ffffff' : 'var(--text-secondary)',
                                         fontSize: '11px',
                                         fontWeight: '700',
                                         cursor: 'pointer'
@@ -281,8 +281,8 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                     style={{
                                         padding: '4px 10px',
                                         borderRadius: '4px',
-                                        border: '1px solid #334155',
-                                        backgroundColor: activeSide === side ? '#334155' : 'transparent',
+                                        border: '1px solid var(--border-color)',
+                                        backgroundColor: activeSide === side ? 'var(--border-color)' : 'transparent',
                                         color: activeSide === side ? '#818cf8' : '#64748b',
                                         fontSize: '11px',
                                         fontWeight: '700',
@@ -298,7 +298,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                 </div>
 
                 {/* 3. Main Option Chain Matrix Table */}
-                <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#0f172a' }}>
+                    <div style={{ flex: 1, overflowY: 'auto', backgroundColor: 'var(--bg-surface)' }}>
                     {loading && !data ? (
                         <div style={{ padding: '40px', textAlign: 'center', color: '#818cf8', fontWeight: '700' }}>
                             ⚡ Loading {exchange} {symbol} Option Chain & Greeks...
@@ -310,21 +310,21 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                             <thead>
-                                <tr style={{ backgroundColor: '#1e293b', color: '#94a3b8', borderBottom: '1px solid #334155', position: 'sticky', top: 0, zIndex: 5 }}>
+                                <tr style={{ backgroundColor: 'var(--bg-inset)', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, zIndex: 5 }}>
                                     {/* CALLS (CE) HEADERS */}
                                     {(activeSide === 'all' || activeSide === 'ce') && (
                                         <>
-                                            {columnView === 'full' && <th style={{ padding: '10px', textAlign: 'right', color: '#38bdf8' }}>BID</th>}
-                                            {columnView === 'full' && <th style={{ padding: '10px', textAlign: 'right', color: '#38bdf8' }}>ASK</th>}
+                                            {columnView === 'full' && <th style={{ padding: '10px', textAlign: 'right', color: 'var(--accent-primary)' }}>BID</th>}
+                                            {columnView === 'full' && <th style={{ padding: '10px', textAlign: 'right', color: 'var(--accent-primary)' }}>ASK</th>}
                                             {columnView !== 'greeks' && <th style={{ padding: '10px', textAlign: 'right', color: '#34d399' }}>CALL OI</th>}
                                             {columnView !== 'greeks' && <th style={{ padding: '10px', textAlign: 'right', color: '#34d399' }}>VOL</th>}
                                             
                                             {(columnView === 'greeks' || columnView === 'full') && (
                                                 <>
-                                                    <th style={{ padding: '10px', textAlign: 'right', color: '#38bdf8' }}>DELTA (Δ)</th>
-                                                    <th style={{ padding: '10px', textAlign: 'right', color: '#38bdf8' }}>GAMMA (Γ)</th>
-                                                    <th style={{ padding: '10px', textAlign: 'right', color: '#38bdf8' }}>THETA (Θ)</th>
-                                                    <th style={{ padding: '10px', textAlign: 'right', color: '#38bdf8' }}>VEGA (ν)</th>
+                                                    <th style={{ padding: '10px', textAlign: 'right', color: 'var(--accent-primary)' }}>DELTA (Δ)</th>
+                                                    <th style={{ padding: '10px', textAlign: 'right', color: 'var(--accent-primary)' }}>GAMMA (Γ)</th>
+                                                    <th style={{ padding: '10px', textAlign: 'right', color: 'var(--accent-primary)' }}>THETA (Θ)</th>
+                                                    <th style={{ padding: '10px', textAlign: 'right', color: 'var(--accent-primary)' }}>VEGA (ν)</th>
                                                 </>
                                             )}
 
@@ -335,7 +335,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                     )}
 
                                     {/* STRIKE PRICE HEADER */}
-                                    <th style={{ padding: '10px', textAlign: 'center', backgroundColor: '#334155', color: '#ffffff', minWidth: '100px', fontWeight: '800' }}>
+                                    <th style={{ padding: '10px', textAlign: 'center', backgroundColor: 'var(--border-color)', color: '#ffffff', minWidth: '100px', fontWeight: '800' }}>
                                         STRIKE
                                     </th>
 
@@ -348,17 +348,17 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
 
                                             {(columnView === 'greeks' || columnView === 'full') && (
                                                 <>
-                                                    <th style={{ padding: '10px', textAlign: 'left', color: '#38bdf8' }}>DELTA (Δ)</th>
-                                                    <th style={{ padding: '10px', textAlign: 'left', color: '#38bdf8' }}>GAMMA (Γ)</th>
-                                                    <th style={{ padding: '10px', textAlign: 'left', color: '#38bdf8' }}>THETA (Θ)</th>
-                                                    <th style={{ padding: '10px', textAlign: 'left', color: '#38bdf8' }}>VEGA (ν)</th>
+                                                    <th style={{ padding: '10px', textAlign: 'left', color: 'var(--accent-primary)' }}>DELTA (Δ)</th>
+                                                    <th style={{ padding: '10px', textAlign: 'left', color: 'var(--accent-primary)' }}>GAMMA (Γ)</th>
+                                                    <th style={{ padding: '10px', textAlign: 'left', color: 'var(--accent-primary)' }}>THETA (Θ)</th>
+                                                    <th style={{ padding: '10px', textAlign: 'left', color: 'var(--accent-primary)' }}>VEGA (ν)</th>
                                                 </>
                                             )}
 
                                             {columnView !== 'greeks' && <th style={{ padding: '10px', textAlign: 'left', color: '#f87171' }}>VOL</th>}
                                             {columnView !== 'greeks' && <th style={{ padding: '10px', textAlign: 'left', color: '#f87171' }}>PUT OI</th>}
-                                            {columnView === 'full' && <th style={{ padding: '10px', textAlign: 'left', color: '#38bdf8' }}>BID</th>}
-                                            {columnView === 'full' && <th style={{ padding: '10px', textAlign: 'left', color: '#38bdf8' }}>ASK</th>}
+                                            {columnView === 'full' && <th style={{ padding: '10px', textAlign: 'left', color: 'var(--accent-primary)' }}>BID</th>}
+                                            {columnView === 'full' && <th style={{ padding: '10px', textAlign: 'left', color: 'var(--accent-primary)' }}>ASK</th>}
                                         </>
                                     )}
                                 </tr>
@@ -375,7 +375,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                         <tr
                                             key={row.strike}
                                             style={{
-                                                borderBottom: '1px solid #1e293b',
+                                                borderBottom: '1px solid var(--border-color)',
                                                 backgroundColor: isAtm ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
                                                 transition: 'background-color 0.15s'
                                             }}
@@ -384,12 +384,12 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                             {(activeSide === 'all' || activeSide === 'ce') && (
                                                 <>
                                                     {columnView === 'full' && (
-                                                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>
+                                                        <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>
                                                             {ce.bid_price ? `₹${ce.bid_price.toFixed(2)}` : '-'}
                                                         </td>
                                                     )}
                                                     {columnView === 'full' && (
-                                                        <td style={{ padding: '8px 10px', textAlign: 'right', color: '#94a3b8' }}>
+                                                        <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>
                                                             {ce.ask_price ? `₹${ce.ask_price.toFixed(2)}` : '-'}
                                                         </td>
                                                     )}
@@ -399,21 +399,21 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                         </td>
                                                     )}
                                                     {columnView !== 'greeks' && (
-                                                        <td style={{ padding: '8px 10px', textAlign: 'right', backgroundColor: ceItm ? 'rgba(16, 185, 129, 0.08)' : 'transparent', color: '#94a3b8' }}>
+                                                        <td style={{ padding: '8px 10px', textAlign: 'right', backgroundColor: ceItm ? 'rgba(16, 185, 129, 0.08)' : 'transparent', color: 'var(--text-secondary)' }}>
                                                             {(ce.volume || 0).toLocaleString()}
                                                         </td>
                                                     )}
 
                                                     {(columnView === 'greeks' || columnView === 'full') && (
                                                         <>
-                                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#38bdf8', fontWeight: '600' }}>{ce.delta !== undefined ? ce.delta : '-'}</td>
-                                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#38bdf8' }}>{ce.gamma !== undefined ? ce.gamma : '-'}</td>
-                                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#38bdf8' }}>{ce.theta !== undefined ? ce.theta : '-'}</td>
-                                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#38bdf8' }}>{ce.vega !== undefined ? ce.vega : '-'}</td>
+                                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--accent-primary)', fontWeight: '600' }}>{ce.delta !== undefined ? ce.delta : '-'}</td>
+                                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--accent-primary)' }}>{ce.gamma !== undefined ? ce.gamma : '-'}</td>
+                                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--accent-primary)' }}>{ce.theta !== undefined ? ce.theta : '-'}</td>
+                                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--accent-primary)' }}>{ce.vega !== undefined ? ce.vega : '-'}</td>
                                                         </>
                                                     )}
 
-                                                    <td style={{ padding: '8px 10px', textAlign: 'right', backgroundColor: ceItm ? 'rgba(16, 185, 129, 0.08)' : 'transparent', color: '#94a3b8' }}>
+                                                    <td style={{ padding: '8px 10px', textAlign: 'right', backgroundColor: ceItm ? 'rgba(16, 185, 129, 0.08)' : 'transparent', color: 'var(--text-secondary)' }}>
                                                         {ce.iv ? `${ce.iv}%` : '-'}
                                                     </td>
                                                     <td 
@@ -462,7 +462,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                 style={{
                                                     padding: '8px 10px',
                                                     textAlign: 'center',
-                                                    backgroundColor: isAtm ? '#6366f1' : '#1e293b',
+                                                    backgroundColor: isAtm ? 'var(--accent-primary)' : 'var(--bg-inset)',
                                                     color: '#ffffff',
                                                     fontWeight: '800',
                                                     fontSize: '13px',
@@ -514,21 +514,21 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                     >
                                                         ₹{(pe.ltp || 0).toFixed(2)}
                                                     </td>
-                                                    <td style={{ padding: '8px 10px', textAlign: 'left', backgroundColor: peItm ? 'rgba(239, 68, 68, 0.08)' : 'transparent', color: '#94a3b8' }}>
+                                                    <td style={{ padding: '8px 10px', textAlign: 'left', backgroundColor: peItm ? 'rgba(239, 68, 68, 0.08)' : 'transparent', color: 'var(--text-secondary)' }}>
                                                         {pe.iv ? `${pe.iv}%` : '-'}
                                                     </td>
 
                                                     {(columnView === 'greeks' || columnView === 'full') && (
                                                         <>
-                                                            <td style={{ padding: '8px 10px', textAlign: 'left', color: '#38bdf8', fontWeight: '600' }}>{pe.delta !== undefined ? pe.delta : '-'}</td>
-                                                            <td style={{ padding: '8px 10px', textAlign: 'left', color: '#38bdf8' }}>{pe.gamma !== undefined ? pe.gamma : '-'}</td>
-                                                            <td style={{ padding: '8px 10px', textAlign: 'left', color: '#38bdf8' }}>{pe.theta !== undefined ? pe.theta : '-'}</td>
-                                                            <td style={{ padding: '8px 10px', textAlign: 'left', color: '#38bdf8' }}>{pe.vega !== undefined ? pe.vega : '-'}</td>
+                                                            <td style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--accent-primary)', fontWeight: '600' }}>{pe.delta !== undefined ? pe.delta : '-'}</td>
+                                                            <td style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--accent-primary)' }}>{pe.gamma !== undefined ? pe.gamma : '-'}</td>
+                                                            <td style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--accent-primary)' }}>{pe.theta !== undefined ? pe.theta : '-'}</td>
+                                                            <td style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--accent-primary)' }}>{pe.vega !== undefined ? pe.vega : '-'}</td>
                                                         </>
                                                     )}
 
                                                     {columnView !== 'greeks' && (
-                                                        <td style={{ padding: '8px 10px', textAlign: 'left', backgroundColor: peItm ? 'rgba(239, 68, 68, 0.08)' : 'transparent', color: '#94a3b8' }}>
+                                                        <td style={{ padding: '8px 10px', textAlign: 'left', backgroundColor: peItm ? 'rgba(239, 68, 68, 0.08)' : 'transparent', color: 'var(--text-secondary)' }}>
                                                             {(pe.volume || 0).toLocaleString()}
                                                         </td>
                                                     )}
@@ -538,12 +538,12 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                         </td>
                                                     )}
                                                     {columnView === 'full' && (
-                                                        <td style={{ padding: '8px 10px', textAlign: 'left', color: '#94a3b8' }}>
+                                                        <td style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--text-secondary)' }}>
                                                             {pe.bid_price ? `₹${pe.bid_price.toFixed(2)}` : '-'}
                                                         </td>
                                                     )}
                                                     {columnView === 'full' && (
-                                                        <td style={{ padding: '8px 10px', textAlign: 'left', color: '#94a3b8' }}>
+                                                        <td style={{ padding: '8px 10px', textAlign: 'left', color: 'var(--text-secondary)' }}>
                                                             {pe.ask_price ? `₹${pe.ask_price.toFixed(2)}` : '-'}
                                                         </td>
                                                     )}

@@ -364,8 +364,8 @@ const StockDetails = ({
     const fetchWatchlist = useCallback(async () => {
         try {
             const wlData = await api.getWatchlist();
-            if (wlData && Array.isArray(wlData.watchlist)) {
-                setWatchlist(wlData.watchlist);
+            if (Array.isArray(wlData)) {
+                setWatchlist(wlData.map((item) => item.symbol));
             }
         } catch (e) {}
     }, []);
@@ -614,7 +614,7 @@ const StockDetails = ({
                             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)' }}>
                                 {displaySymbol}
                             </h1>
-                            <span style={{ fontSize: '11px', background: '#1e2c45', color: 'var(--accent-primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: '700' }}>NSE</span>
+                            <span style={{ fontSize: '11px', background: 'var(--accent-primary-soft)', color: 'var(--accent-primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: '700' }}>NSE</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
                             <span style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)' }}>
@@ -639,7 +639,7 @@ const StockDetails = ({
                     <button
                         onClick={handleCreateAlert}
                         style={{
-                            background: alertSet ? 'var(--accent-emerald-soft)' : '#111927',
+                            background: alertSet ? 'var(--accent-emerald-soft)' : 'var(--bg-inset)',
                             color: alertSet ? 'var(--accent-emerald)' : 'var(--text-primary)',
                             border: '1px solid var(--border-color)',
                             padding: '8px 14px',
@@ -659,7 +659,7 @@ const StockDetails = ({
                     <button
                         onClick={toggleWatchlist}
                         style={{
-                            background: isStarred ? 'var(--accent-primary-soft)' : '#111927',
+                            background: isStarred ? 'var(--accent-primary-soft)' : 'var(--bg-inset)',
                             color: isStarred ? 'var(--accent-primary)' : 'var(--text-primary)',
                             border: '1px solid var(--border-color)',
                             padding: '8px 14px',
@@ -723,8 +723,8 @@ const StockDetails = ({
                             style={{
                                 background: 'transparent',
                                 border: 'none',
-                                borderBottom: isActive ? '3px solid var(--accent-emerald)' : '3px solid transparent',
-                                color: isActive ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+                                borderBottom: isActive ? '3px solid var(--accent-primary)' : '3px solid transparent',
+                                color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
                                 fontSize: '16px',
                                 fontWeight: isActive ? '800' : '600',
                                 padding: '8px 12px',
@@ -774,7 +774,7 @@ const StockDetails = ({
                                             </div>
                                         </div>
                                         {/* Slider Line with Current Price Indicator Pointer */}
-                                        <div style={{ position: 'relative', height: '6px', background: '#212e44', borderRadius: '3px', margin: '14px 0' }}>
+                                        <div style={{ position: 'relative', height: '6px', background: 'var(--border-color-strong)', borderRadius: '3px', margin: '14px 0' }}>
                                             <div style={{
                                                 position: 'absolute',
                                                 top: '-6px',
@@ -805,7 +805,7 @@ const StockDetails = ({
                                             </div>
                                         </div>
                                         {/* Slider Line with Current Price Indicator Pointer */}
-                                        <div style={{ position: 'relative', height: '6px', background: '#212e44', borderRadius: '3px', margin: '14px 0' }}>
+                                        <div style={{ position: 'relative', height: '6px', background: 'var(--border-color-strong)', borderRadius: '3px', margin: '14px 0' }}>
                                             <div style={{
                                                 position: 'absolute',
                                                 top: '-6px',
@@ -851,7 +851,7 @@ const StockDetails = ({
                                             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)' }}>
                                                 📊 Market Depth (Order Book)
                                             </h3>
-                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: '#111927', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-inset)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
                                                 Level 2 Live
                                             </span>
                                         </div>
@@ -878,7 +878,7 @@ const StockDetails = ({
                                                     <span style={{ textAlign: 'right' }}>Bid Price</span>
                                                 </div>
                                                 {bids.map((b, idx) => (
-                                                    <div key={idx} style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #1c2738' }}>
+                                                    <div key={idx} style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid var(--border-color)' }}>
                                                         <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${(b.qty / maxQty) * 100}%`, background: 'rgba(0, 208, 156, 0.12)', zIndex: 0 }} />
                                                         <span style={{ position: 'relative', zIndex: 1, color: 'var(--text-muted)' }}>{b.orders}</span>
                                                         <span style={{ position: 'relative', zIndex: 1, textAlign: 'right', fontWeight: '600', color: 'var(--text-secondary)' }}>{b.qty.toLocaleString()}</span>
@@ -895,7 +895,7 @@ const StockDetails = ({
                                                     <span style={{ textAlign: 'right' }}>Orders</span>
                                                 </div>
                                                 {asks.map((a, idx) => (
-                                                    <div key={idx} style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid #1c2738' }}>
+                                                    <div key={idx} style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '6px 0', fontSize: '12px', borderBottom: '1px solid var(--border-color)' }}>
                                                         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(a.qty / maxQty) * 100}%`, background: 'rgba(235, 91, 86, 0.12)', zIndex: 0 }} />
                                                         <span style={{ position: 'relative', zIndex: 1, fontWeight: '800', color: 'var(--accent-rose)' }}>₹{a.price.toFixed(2)}</span>
                                                         <span style={{ position: 'relative', zIndex: 1, textAlign: 'right', fontWeight: '600', color: 'var(--text-secondary)' }}>{a.qty.toLocaleString()}</span>
@@ -936,7 +936,7 @@ const StockDetails = ({
                                                 alignItems: 'center',
                                                 padding: '6px 12px',
                                                 borderRadius: '6px',
-                                                background: row.isPrice ? '#2e4161' : row.isPivot ? '#1e2c45' : 'transparent',
+                                                background: row.isPrice ? 'var(--accent-primary-soft)' : row.isPivot ? 'var(--bg-inset)' : 'transparent',
                                                 borderLeft: row.isPrice ? '4px solid var(--accent-emerald)' : row.isPivot ? '4px solid var(--accent-primary)' : 'none'
                                             }}
                                         >
@@ -965,7 +965,7 @@ const StockDetails = ({
                                 <div style={{ overflowX: 'auto', maxHeight: '480px', overflowY: 'auto', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                         <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
-                                            <tr style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)', background: '#111927' }}>
+                                            <tr style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-inset)' }}>
                                                 <th style={{ padding: '12px 16px' }}>COMPANY</th>
                                                 <th style={{ padding: '12px 16px', textAlign: 'right' }}>MARKET CAP</th>
                                                 <th style={{ padding: '12px 16px', textAlign: 'right' }}>MARKET PRICE</th>
@@ -987,7 +987,7 @@ const StockDetails = ({
                                                     <td style={{ padding: '12px 16px', fontWeight: '700', color: 'var(--text-primary)' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                             <span>{comp.name}</span>
-                                                            <span style={{ fontSize: '10px', background: '#1e2c45', color: 'var(--accent-primary)', padding: '2px 6px', borderRadius: '4px' }}>
+                                                            <span style={{ fontSize: '10px', background: 'var(--accent-primary-soft)', color: 'var(--accent-primary)', padding: '2px 6px', borderRadius: '4px' }}>
                                                                 {comp.symbol}
                                                             </span>
                                                         </div>
@@ -1038,19 +1038,19 @@ const StockDetails = ({
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', textAlign: 'center' }}>
-                                    <div style={{ background: '#111927', padding: '14px', borderRadius: '8px' }}>
+                                    <div style={{ background: 'var(--bg-inset)', padding: '14px', borderRadius: '8px' }}>
                                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total Put OI</div>
                                         <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent-emerald)', marginTop: '4px' }}>
                                             {fnoChainData?.total_pe_oi ? fnoChainData.total_pe_oi.toLocaleString() : (Math.round((price || 1500) * 1420)).toLocaleString()}
                                         </div>
                                     </div>
-                                    <div style={{ background: '#111927', padding: '14px', borderRadius: '8px' }}>
+                                    <div style={{ background: 'var(--bg-inset)', padding: '14px', borderRadius: '8px' }}>
                                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Put:Call ratio</div>
                                         <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent-primary)', marginTop: '4px' }}>
                                             {fnoChainData?.pcr !== undefined ? fnoChainData.pcr : (0.85 + ((price || 1500) % 100) / 500).toFixed(2)}
                                         </div>
                                     </div>
-                                    <div style={{ background: '#111927', padding: '14px', borderRadius: '8px' }}>
+                                    <div style={{ background: 'var(--bg-inset)', padding: '14px', borderRadius: '8px' }}>
                                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total Call OI</div>
                                         <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent-rose)', marginTop: '4px' }}>
                                             {fnoChainData?.total_ce_oi ? fnoChainData.total_ce_oi.toLocaleString() : (Math.round((price || 1500) * 1580)).toLocaleString()}
@@ -1120,7 +1120,7 @@ const StockDetails = ({
                                     <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
                                         Top {displaySymbol} Options
                                     </h3>
-                                    <div style={{ display: 'flex', gap: '6px', background: '#111927', padding: '3px', borderRadius: '8px' }}>
+                                    <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-inset)', padding: '3px', borderRadius: '8px' }}>
                                         {['All', 'Put', 'Call'].map((f) => (
                                             <button
                                                 key={f}
@@ -1145,7 +1145,7 @@ const StockDetails = ({
                                 <div style={{ overflowX: 'auto' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                         <thead>
-                                            <tr style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)', background: '#111927' }}>
+                                            <tr style={{ color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-inset)' }}>
                                                 <th style={{ padding: '10px 14px' }}>CONTRACT</th>
                                                 <th style={{ padding: '10px 14px', textAlign: 'right' }}>PRICE</th>
                                                 <th style={{ padding: '10px 14px', textAlign: 'right' }}>OI</th>
@@ -1198,7 +1198,7 @@ const StockDetails = ({
                                     { name: 'ICICI Prudential Nifty 50 ETF', symbol: 'ICICINIFTY', price: 269.80, change: '+0.15%', oneYr: '+18.5%' },
                                     { name: 'UTI Nifty 50 Exchange Traded Fund', symbol: 'UTINIFTYSUM', price: 270.50, change: '+0.08%', oneYr: '+18.1%' }
                                 ].map((etf) => (
-                                    <div key={etf.symbol} style={{ padding: '14px', background: '#111927', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div key={etf.symbol} style={{ padding: '14px', background: 'var(--bg-inset)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
                                             <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>{etf.name}</div>
                                             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{etf.symbol}</div>
@@ -1299,7 +1299,7 @@ const StockDetails = ({
                                     onClick={() => onSelectStock && onSelectStock(opt.symbol)}
                                     style={{
                                         padding: '12px 14px',
-                                        background: '#111927',
+                                        background: 'var(--bg-inset)',
                                         borderRadius: '8px',
                                         display: 'flex',
                                         justifyContent: 'space-between',

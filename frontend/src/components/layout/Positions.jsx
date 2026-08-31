@@ -29,8 +29,21 @@ const Positions = () => {
     if (positions.length === 0) {
         return (
             <div className="soft-card fade-in" style={{ padding: '40px 20px', textAlign: 'center' }}>
-                <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚡</div>
-                <h3 style={{ color: 'var(--text-primary)', marginBottom: '6px' }}>No Open Intraday Positions</h3>
+                <div style={{
+                    width: '64px',
+                    height: '64px',
+                    margin: '0 auto 14px',
+                    borderRadius: '20px',
+                    background: 'var(--accent-primary-soft)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12h4l3-8 4 16 3-8h4" />
+                    </svg>
+                </div>
+                <h3 style={{ color: 'var(--text-primary)', marginBottom: '6px' }}>No Open Positions</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
                     Active trading positions will appear here in real time.
                 </p>
@@ -39,48 +52,49 @@ const Positions = () => {
     }
 
     return (
-        <div className="soft-card fade-in" style={{ padding: '20px', overflowX: 'auto' }}>
-            <h3 style={{ marginBottom: '16px', color: 'var(--text-primary)', fontSize: '18px', fontWeight: '800' }}>
-                ⚡ Active Trading Positions
-            </h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="soft-card fade-in" style={{ padding: '0', overflow: 'hidden' }}>
+            <div style={{ padding: '20px 20px 8px' }}>
+                <h3 style={{ margin: '0', color: 'var(--text-primary)', fontSize: '18px', fontWeight: '800' }}>
+                    Active Trading Positions
+                </h3>
+            </div>
+            <table className="bx-table">
                 <thead>
-                    <tr style={{ color: 'var(--text-muted)', fontSize: '12px', borderBottom: '1px solid var(--border-color)' }}>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>SYMBOL</th>
-                        <th style={{ padding: '12px', textAlign: 'right' }}>QUANTITY</th>
-                        <th style={{ padding: '12px', textAlign: 'right' }}>ENTRY PRICE</th>
-                        <th style={{ padding: '12px', textAlign: 'right' }}>LIVE PRICE</th>
-                        <th style={{ padding: '12px', textAlign: 'right' }}>LIVE P&L</th>
-                        <th style={{ padding: '12px', textAlign: 'right' }}>RETURN %</th>
+                    <tr>
+                        <th style={{ textAlign: 'left' }}>SYMBOL</th>
+                        <th style={{ textAlign: 'right' }}>QUANTITY</th>
+                        <th style={{ textAlign: 'right' }}>ENTRY PRICE</th>
+                        <th style={{ textAlign: 'right' }}>LIVE PRICE</th>
+                        <th style={{ textAlign: 'right' }}>LIVE P&L</th>
+                        <th style={{ textAlign: 'right' }}>RETURN %</th>
                     </tr>
                 </thead>
                 <tbody>
                     {positions.map((item) => {
                         const isPos = item.pnl >= 0;
                         return (
-                            <tr key={item.symbol} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                <td style={{ padding: '14px 12px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                            <tr key={item.symbol}>
+                                <td style={{ fontWeight: '700', color: 'var(--text-primary)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <StockLogo symbol={item.symbol} size={32} />
                                         <span>{item.symbol}</span>
                                     </div>
                                 </td>
-                                <td style={{ padding: '14px 12px', textAlign: 'right', fontWeight: '600' }}>{item.quantity}</td>
-                                <td style={{ padding: '14px 12px', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                                <td style={{ textAlign: 'right', fontWeight: '600' }}>{item.quantity}</td>
+                                <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
                                     ₹{item.avg_price ? item.avg_price.toFixed(2) : '0.00'}
                                 </td>
-                                <td style={{ padding: '14px 12px', textAlign: 'right', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--text-primary)' }}>
                                     ₹{item.current_price ? item.current_price.toFixed(2) : '0.00'}
                                 </td>
                                 <td style={{
-                                    padding: '14px 12px',
                                     textAlign: 'right',
                                     color: isPos ? 'var(--accent-emerald)' : 'var(--accent-rose)',
                                     fontWeight: '700'
                                 }}>
                                     {isPos ? '+' : ''}₹{item.pnl ? item.pnl.toFixed(2) : '0.00'}
                                 </td>
-                                <td style={{ padding: '14px 12px', textAlign: 'right' }}>
+                                <td style={{ textAlign: 'right' }}>
                                     <span className={`soft-badge ${isPos ? 'positive' : 'negative'}`}>
                                         {isPos ? '+' : ''}{item.pnl_percent ? item.pnl_percent.toFixed(2) : '0.00'}%
                                     </span>

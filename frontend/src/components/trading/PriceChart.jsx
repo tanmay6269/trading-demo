@@ -17,6 +17,21 @@ const IST_OFFSET_SEC = 5.5 * 3600; // +19800 seconds (5 hours 30 mins IST Offset
 
 const roundNum = (n) => Math.round(n * 100) / 100;
 
+// lightweight-charts parses colors itself and can't resolve CSS custom
+// properties (var(--x)) — it needs the actual computed color string.
+const resolveColor = (cssVarName, fallback) => {
+    if (typeof window === 'undefined') return fallback;
+    const value = getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim();
+    return value || fallback;
+};
+
+const getChartThemeColors = () => ({
+    background: resolveColor('--bg-inset', '#0e1420'),
+    textColor: resolveColor('--text-muted', '#5c6b82'),
+    gridColor: resolveColor('--border-color', '#232c3f'),
+    borderColor: resolveColor('--border-color-strong', '#2e3950'),
+});
+
 const calcEMA = (data, period) => {
     if (!data || data.length < period) return [];
     const k = 2 / (period + 1);
@@ -203,25 +218,26 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         }
 
         const isIntraday = selectedPeriod === '1D' || selectedPeriod === '1W';
+        const themeColors = getChartThemeColors();
 
         // Initialize TradingView Lightweight Chart
         const newChart = createChart(chartContainerRef.current, {
             width: chartContainerRef.current.clientWidth,
             height: 440,
             layout: {
-                background: { color: '#182234' },
-                textColor: '#94a3b8',
+                background: { color: themeColors.background },
+                textColor: themeColors.textColor,
                 fontSize: 12,
             },
             grid: {
-                vertLines: { color: '#243247' },
-                horzLines: { color: '#243247' },
+                vertLines: { color: themeColors.gridColor },
+                horzLines: { color: themeColors.gridColor },
             },
             crosshair: {
                 mode: 0,
             },
             timeScale: {
-                borderColor: '#26354d',
+                borderColor: themeColors.borderColor,
                 timeVisible: true,
                 secondsVisible: false,
                 tickMarkFormatter: (time) => {
@@ -233,7 +249,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                 }
             },
             rightPriceScale: {
-                borderColor: '#26354d',
+                borderColor: themeColors.borderColor,
                 autoScale: true
             },
         });
@@ -380,6 +396,33 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [symbol, chartType, selectedPeriod, showEma20, showEma50, showBollinger, fetchData]);
 
+    // Re-apply resolved theme colors when the user toggles light/dark mode,
+    // since lightweight-charts snapshots colors once at creation time.
+    useEffect(() => {
+        const applyThemeColors = () => {
+            if (!chartInstanceRef.current) return;
+            const themeColors = getChartThemeColors();
+            try {
+                chartInstanceRef.current.applyOptions({
+                    layout: {
+                        background: { color: themeColors.background },
+                        textColor: themeColors.textColor,
+                    },
+                    grid: {
+                        vertLines: { color: themeColors.gridColor },
+                        horzLines: { color: themeColors.gridColor },
+                    },
+                    timeScale: { borderColor: themeColors.borderColor },
+                    rightPriceScale: { borderColor: themeColors.borderColor },
+                });
+            } catch (e) {}
+        };
+
+        const observer = new MutationObserver(applyThemeColors);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        return () => observer.disconnect();
+    }, []);
+
     // Live Position Price Line overlay directly on graph canvas (Strictly for single equity stocks with active position)
     useEffect(() => {
         if (priceLineRef.current && seriesInstanceRef.current) {
@@ -518,7 +561,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                                 fontSize: '16px', 
                                 fontWeight: '800', 
                                 color: 'var(--text-primary)',
-                                background: '#111927',
+                                background: 'var(--bg-inset)',
                                 padding: '4px 10px',
                                 borderRadius: '8px',
                                 border: '1px solid var(--border-color)'
@@ -548,7 +591,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     {/* Technical Indicators Pill Controls (EMA 20, EMA 50, Bollinger Bands) */}
-                    <div style={{ display: 'flex', gap: '4px', background: '#111927', padding: '4px', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-inset)', padding: '4px', borderRadius: '10px' }}>
                         <button
                             onClick={() => setShowEma20(!showEma20)}
                             style={{
@@ -603,7 +646,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                     </div>
 
                     {/* Timeframe Selector Pills (1D, 1W, 1M, 3M, 6M, 1Y, 5Y, ALL) */}
-                    <div style={{ display: 'flex', gap: '4px', background: '#111927', padding: '4px', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-inset)', padding: '4px', borderRadius: '10px' }}>
                         {PERIODS.map((p) => {
                             const isSelected = selectedPeriod === p.label;
                             return (
@@ -629,7 +672,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                     </div>
 
                     {/* Chart Type Toggle Button: 📊 Candlestick vs 📈 Line / Arrow */}
-                    <div style={{ display: 'flex', gap: '4px', background: '#111927', padding: '4px', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-inset)', padding: '4px', borderRadius: '10px' }}>
                         <button
                             onClick={() => setChartType('candlestick')}
                             title="Switch to Candlestick Chart"
@@ -680,7 +723,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                     display: 'flex',
                     alignItems: 'center',
                     gap: '16px',
-                    background: '#111927',
+                    background: 'var(--bg-inset)',
                     padding: '8px 14px',
                     borderRadius: '8px',
                     border: '1px solid var(--border-color)',
