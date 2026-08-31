@@ -11,6 +11,7 @@ import Positions from './components/layout/Positions';
 import Orders from './components/layout/Orders';
 import WatchlistPage from './components/layout/WatchlistPage';
 import Recharge from './components/layout/Recharge';
+import NewsTerminal from './components/layout/NewsTerminal';
 import StockSearch from './components/trading/StockSearch';
 import StockDetails from './components/trading/StockDetails';
 import TradePanel from './components/trading/TradePanel';
@@ -209,6 +210,9 @@ function App() {
       case 'watchlist':
         return <WatchlistPage onSelectStock={handleSelectStock} />;
 
+      case 'news':
+        return <NewsTerminal onSelectStock={handleSelectStock} />;
+
       case 'option-chain':
         return (
           <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -303,6 +307,7 @@ function App() {
       <div className="mobile-bottom-nav">
         {[
           { id: 'explore', icon: '📈', label: 'Explore' },
+          { id: 'news', icon: '📰', label: 'News' },
           { id: 'holdings', icon: '💼', label: 'Holdings' },
           { id: 'positions', icon: '⚡', label: 'Positions' },
           { id: 'orders', icon: '📋', label: 'Orders' },

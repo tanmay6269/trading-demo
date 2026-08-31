@@ -124,10 +124,29 @@ const Watchlist = ({ onSelectStock }) => {
                                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{item.name}</div>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                 <span style={{ fontWeight: '800', fontSize: '15px', color: 'var(--accent-emerald)' }}>
                                     ₹{item.price ? item.price.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'N/A'}
                                 </span>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelectStock && onSelectStock(item.symbol);
+                                    }}
+                                    style={{
+                                        background: 'rgba(59, 130, 246, 0.15)',
+                                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                                        color: '#60a5fa',
+                                        borderRadius: '4px',
+                                        padding: '3px 8px',
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer'
+                                    }}
+                                    title={`View ${item.symbol} news`}
+                                >
+                                    📰 News
+                                </button>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();

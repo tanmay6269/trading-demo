@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 import time
 import threading
@@ -82,6 +82,24 @@ class RedisManager:
 
     def set_indices(self, data, ttl_seconds=2):
         return self.set("indices:header", data, ttl_seconds)
+
+    def get_news_feed(self, category=None, limit=30, offset=0):
+        cat = (category or 'ALL').upper()
+        key = f"news:feed:{cat}:{limit}:{offset}"
+        return self.get(key)
+
+    def set_news_feed(self, category, limit, offset, data, ttl_seconds=30):
+        cat = (category or 'ALL').upper()
+        key = f"news:feed:{cat}:{limit}:{offset}"
+        return self.set(key, data, ttl_seconds)
+
+    def get_stock_news(self, symbol):
+        key = f"news:stock:{symbol.upper()}"
+        return self.get(key)
+
+    def set_stock_news(self, symbol, data, ttl_seconds=60):
+        key = f"news:stock:{symbol.upper()}"
+        return self.set(key, data, ttl_seconds)
 
 # Singleton global instance
 redis_manager = RedisManager()

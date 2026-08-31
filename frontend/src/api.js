@@ -289,7 +289,36 @@ export const api = {
             body: JSON.stringify({ utr_number, package_amount, real_price })
         });
         return handleResponse(res);
+    },
+
+    // News API
+    getNews: async (limit = 30, offset = 0, category = '') => {
+        const params = new URLSearchParams({ limit, offset });
+        if (category && category !== 'ALL') params.append('category', category);
+        const response = await fetch(`${API_BASE_URL}/news?${params}`);
+        return handleResponse(response);
+    },
+    getLatestNews: async () => {
+        const response = await fetch(`${API_BASE_URL}/news/latest`);
+        return handleResponse(response);
+    },
+    getStockNews: async (symbol) => {
+        const response = await fetch(`${API_BASE_URL}/news/stock/${symbol}`);
+        return handleResponse(response);
+    },
+    searchNews: async (query) => {
+        const response = await fetch(`${API_BASE_URL}/news/search?q=${encodeURIComponent(query)}`);
+        return handleResponse(response);
+    },
+    getWatchlistNews: async () => {
+        const response = await fetch(`${API_BASE_URL}/news/watchlist`, { credentials: 'include' });
+        return handleResponse(response);
+    },
+    getNewsHealth: async () => {
+        const response = await fetch(`${API_BASE_URL}/news/health`);
+        return handleResponse(response);
     }
 };
 
+export { API_BASE_URL };
 export default api;

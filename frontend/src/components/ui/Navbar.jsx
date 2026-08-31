@@ -13,6 +13,7 @@ const Navbar = ({ username, balance, onLogout, onLockApp = () => {}, setActiveTa
 
     const subTabs = [
         { id: 'explore', label: 'Explore' },
+        { id: 'news', label: 'News', icon: '📰' },
         { id: 'holdings', label: 'Holdings' },
         { id: 'positions', label: 'Positions' },
         { id: 'orders', label: 'Orders' },

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, Response
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -468,6 +468,43 @@ class MarketDepthSnapshot(db.Model):
     total_sell_qty = db.Column(db.BigInteger, default=0)
     depth_json = db.Column(db.Text, nullable=False) # JSON array of 5 bids & 5 asks
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+# 13. news_articles — BullX Live Financial News Vault
+class NewsArticle(db.Model):
+    __tablename__ = 'news_articles'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    provider_id = db.Column(db.String(255), index=True)
+    title = db.Column(db.String(500), nullable=False)
+    summary = db.Column(db.Text)
+    source = db.Column(db.String(100), index=True)
+    source_url = db.Column(db.String(1000))
+    canonical_url = db.Column(db.String(1000), unique=True, index=True)
+    published_at = db.Column(db.DateTime, index=True)
+    fetched_at = db.Column(db.DateTime, default=datetime.utcnow)
+    category = db.Column(db.String(50), index=True)
+    symbols = db.Column(db.Text)      # JSON list: ["RELIANCE", "TCS"]
+    companies = db.Column(db.Text)    # JSON list: ["Reliance Industries"]
+    image_url = db.Column(db.String(1000), nullable=True)
+    importance = db.Column(db.String(10), default='LOW')       # HIGH, MEDIUM, LOW
+    sentiment = db.Column(db.String(10), default='NEUTRAL')    # POSITIVE, NEUTRAL, NEGATIVE
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "summary": self.summary or "",
+            "source": self.source or "Market News",
+            "sourceUrl": self.source_url or "",
+            "publishedAt": self.published_at.isoformat() if self.published_at else None,
+            "fetchedAt": self.fetched_at.isoformat() if self.fetched_at else None,
+            "category": self.category or "OTHER",
+            "symbols": json.loads(self.symbols) if self.symbols else [],
+            "companies": json.loads(self.companies) if self.companies else [],
+            "imageUrl": self.image_url,
+            "importance": self.importance or "LOW",
+            "sentiment": self.sentiment or "NEUTRAL",
+        }
 
 # ============================================
 # HELPER FUNCTIONS
@@ -1497,6 +1534,239 @@ def submit_payment_utr():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ============================================
+# BULLX LIVE NEWS TERMINAL ROUTES
+# ============================================
+
+from news_sse import get_broadcaster
+from news_engine import init_scheduler, get_scheduler
+
+news_sse_broadcaster = get_broadcaster()
+news_scheduler = init_scheduler(db=db, sse_broadcaster=news_sse_broadcaster)
+news_scheduler.start()
+
+@app.route('/api/news', methods=['GET'])
+def get_news_feed_route():
+    try:
+        limit = min(int(request.args.get('limit', 30)), 100)
+        offset = max(int(request.args.get('offset', 0)), 0)
+        category = request.args.get('category', '').strip().upper()
+
+        # Check Redis cache first (30s TTL)
+        cached = redis_manager.get_news_feed(category, limit, offset)
+        if cached:
+            return jsonify(cached)
+
+        query = NewsArticle.query
+        if category and category != 'ALL':
+            query = query.filter(NewsArticle.category == category)
+
+        total_count = query.count()
+        articles = query.order_by(NewsArticle.published_at.desc()).offset(offset).limit(limit).all()
+
+        # If DB is empty, fallback to recently in-memory fetched articles from scheduler
+        articles_data = [a.to_dict() for a in articles]
+        if not articles_data and offset == 0:
+            articles_data = news_scheduler.get_recent_articles()
+            if category and category != 'ALL':
+                articles_data = [a for a in articles_data if a.get('category') == category]
+            articles_data = articles_data[:limit]
+
+        response_data = {
+            "status": "success",
+            "count": len(articles_data),
+            "total": total_count or len(articles_data),
+            "limit": limit,
+            "offset": offset,
+            "category": category or "ALL",
+            "articles": articles_data
+        }
+
+        if articles_data:
+            redis_manager.set_news_feed(category, limit, offset, response_data, ttl_seconds=30)
+
+        return jsonify(response_data)
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route('/api/news/latest', methods=['GET'])
+def get_latest_news_route():
+    try:
+        cached = redis_manager.get_news_feed("ALL", 10, 0)
+        if cached:
+            return jsonify(cached)
+
+        articles = NewsArticle.query.order_by(NewsArticle.published_at.desc()).limit(10).all()
+        articles_data = [a.to_dict() for a in articles]
+        if not articles_data:
+            articles_data = news_scheduler.get_recent_articles()[:10]
+
+        return jsonify({
+            "status": "success",
+            "count": len(articles_data),
+            "articles": articles_data
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route('/api/news/<int:news_id>', methods=['GET'])
+def get_single_news_route(news_id):
+    try:
+        article = NewsArticle.query.get(news_id)
+        if not article:
+            return jsonify({"status": "error", "error": "Article not found"}), 404
+        return jsonify({"status": "success", "article": article.to_dict()})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route('/api/news/stock/<symbol>', methods=['GET'])
+def get_stock_news_route(symbol):
+    try:
+        clean_sym = symbol.strip().upper().replace('.NS', '').replace('.BO', '')
+        limit = min(int(request.args.get('limit', 20)), 50)
+
+        cached = redis_manager.get_stock_news(clean_sym)
+        if cached:
+            return jsonify(cached)
+
+        # Match JSON symbols array in DB or search title/summary
+        query = NewsArticle.query.filter(
+            (NewsArticle.symbols.like(f'%"{clean_sym}"%')) |
+            (NewsArticle.title.ilike(f'%{clean_sym}%'))
+        ).order_by(NewsArticle.published_at.desc()).limit(limit)
+
+        articles = query.all()
+        articles_data = [a.to_dict() for a in articles]
+
+        # Fallback to scheduler memory cache
+        if not articles_data:
+            mem_articles = news_scheduler.get_recent_articles()
+            articles_data = [
+                a for a in mem_articles 
+                if clean_sym in a.get('symbols', []) or clean_sym in a.get('title', '').upper()
+            ][:limit]
+
+        response_data = {
+            "status": "success",
+            "symbol": clean_sym,
+            "count": len(articles_data),
+            "articles": articles_data
+        }
+
+        if articles_data:
+            redis_manager.set_stock_news(clean_sym, response_data, ttl_seconds=60)
+
+        return jsonify(response_data)
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route('/api/news/category/<category>', methods=['GET'])
+def get_category_news_route(category):
+    try:
+        cat = category.strip().upper()
+        limit = min(int(request.args.get('limit', 30)), 100)
+        offset = max(int(request.args.get('offset', 0)), 0)
+
+        query = NewsArticle.query.filter(NewsArticle.category == cat)
+        total = query.count()
+        articles = query.order_by(NewsArticle.published_at.desc()).offset(offset).limit(limit).all()
+
+        return jsonify({
+            "status": "success",
+            "category": cat,
+            "count": len(articles),
+            "total": total,
+            "articles": [a.to_dict() for a in articles]
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route('/api/news/search', methods=['GET'])
+def search_news_route():
+    try:
+        q = request.args.get('q', '').strip()
+        if not q:
+            return jsonify({"status": "success", "count": 0, "articles": []})
+
+        limit = min(int(request.args.get('limit', 30)), 100)
+        query = NewsArticle.query.filter(
+            (NewsArticle.title.ilike(f'%{q}%')) |
+            (NewsArticle.summary.ilike(f'%{q}%')) |
+            (NewsArticle.symbols.ilike(f'%{q}%')) |
+            (NewsArticle.companies.ilike(f'%{q}%'))
+        ).order_by(NewsArticle.published_at.desc()).limit(limit)
+
+        articles = query.all()
+        return jsonify({
+            "status": "success",
+            "query": q,
+            "count": len(articles),
+            "articles": [a.to_dict() for a in articles]
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route('/api/news/watchlist', methods=['GET'])
+@login_required
+def get_watchlist_news_route():
+    try:
+        wallet = UserWallet.query.filter_by(user_id=current_user.user_id).first()
+        watchlist = []
+        if wallet and wallet.watchlist_json:
+            try:
+                watchlist = json.loads(wallet.watchlist_json)
+            except Exception:
+                watchlist = []
+
+        if not watchlist:
+            return jsonify({"status": "success", "count": 0, "watchlist": [], "articles": []})
+
+        limit = min(int(request.args.get('limit', 30)), 100)
+        
+        # Build OR filter for all symbols in user watchlist
+        filters = []
+        for sym in watchlist:
+            clean = sym.strip().upper()
+            filters.append(NewsArticle.symbols.like(f'%"{clean}"%'))
+            filters.append(NewsArticle.title.ilike(f'%{clean}%'))
+
+        from sqlalchemy import or_
+        query = NewsArticle.query.filter(or_(*filters)).order_by(NewsArticle.published_at.desc()).limit(limit)
+        articles = query.all()
+
+        return jsonify({
+            "status": "success",
+            "watchlist": watchlist,
+            "count": len(articles),
+            "articles": [a.to_dict() for a in articles]
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route('/api/news/stream', methods=['GET'])
+def stream_news_route():
+    """SSE endpoint for real-time live news updates."""
+    return Response(
+        news_sse_broadcaster.subscribe(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+            'Access-Control-Allow-Origin': '*'
+        }
+    )
+
+@app.route('/api/news/health', methods=['GET'])
+def get_news_health_route():
+    try:
+        health = news_scheduler.get_health()
+        health["connected_clients"] = news_sse_broadcaster.get_client_count()
+        health["total_db_articles"] = NewsArticle.query.count()
+        return jsonify({"status": "success", "health": health})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 # ============================================
 # HEALTH CHECK & KEEP-ALIVE

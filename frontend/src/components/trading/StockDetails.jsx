@@ -318,12 +318,27 @@ const StockDetails = ({
 }) => {
     const [stockInfo, setStockInfo] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'fno' | 'etfs'
+    const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'fno' | 'etfs' | 'news'
     const [watchlist, setWatchlist] = useState([]);
     const [alertSet, setAlertSet] = useState(false);
     const [showOptionChainModal, setShowOptionChainModal] = useState(false);
     const [optionFilter, setOptionFilter] = useState('All'); // 'All' | 'Put' | 'Call'
     const [fnoChainData, setFnoChainData] = useState(null);
+    const [stockNews, setStockNews] = useState([]);
+    const [loadingNews, setLoadingNews] = useState(false);
+
+    const fetchStockNews = useCallback(async () => {
+        if (!symbol) return;
+        try {
+            setLoadingNews(true);
+            const res = await api.getStockNews(symbol);
+            setStockNews(res.articles || []);
+        } catch (e) {
+            console.error('Error fetching stock news:', e);
+        } finally {
+            setLoadingNews(false);
+        }
+    }, [symbol]);
 
     const fetchStockDetails = useCallback(async () => {
         if (!symbol) return;
@@ -361,13 +376,14 @@ const StockDetails = ({
             fetchStockDetails();
             fetchFnoChain();
             fetchWatchlist();
+            fetchStockNews();
             const interval = setInterval(() => {
                 fetchStockDetails();
                 fetchFnoChain();
             }, 3000);
             return () => clearInterval(interval);
         }
-    }, [symbol, fetchStockDetails, fetchFnoChain, fetchWatchlist]);
+    }, [symbol, fetchStockDetails, fetchFnoChain, fetchWatchlist, fetchStockNews]);
 
     const toggleWatchlist = async () => {
         const isStarred = watchlist.includes(symbol);
@@ -691,12 +707,13 @@ const StockDetails = ({
                 showToast={showToast}
             />
 
-            {/* 3. SUB-NAVIGATION TABS BELOW GRAPH (Overview | F&O | ETFs) */}
-            <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
+            {/* 3. SUB-NAVIGATION TABS BELOW GRAPH (Overview | F&O | ETFs | News) */}
+            <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px', overflowX: 'auto' }}>
                 {[
                     { id: 'overview', label: 'Overview' },
                     { id: 'fno', label: 'F&O' },
-                    { id: 'etfs', label: 'ETFs' }
+                    { id: 'etfs', label: 'ETFs' },
+                    { id: 'news', label: 'News' }
                 ].map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (
@@ -1193,6 +1210,75 @@ const StockDetails = ({
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {/* TAB 4: STOCK-SPECIFIC NEWS VIEW */}
+                    {activeTab === 'news' && (
+                        <div className="soft-card" style={{ padding: '24px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                    Live News for {displaySymbol}
+                                </h3>
+                                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                    {stockNews.length} articles found
+                                </span>
+                            </div>
+
+                            {loadingNews ? (
+                                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                                    Fetching latest {displaySymbol} announcements...
+                                </div>
+                            ) : stockNews.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                                    No specific news articles found for {displaySymbol}. Check the global News tab for general market updates.
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {stockNews.map((article, idx) => (
+                                        <div 
+                                            key={article.id || idx}
+                                            style={{
+                                                padding: '14px',
+                                                background: '#111927',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--border-color)',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '6px'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
+                                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                                    <span style={{ fontWeight: '700', color: 'var(--accent-primary)' }}>{article.source}</span>
+                                                    <span>•</span>
+                                                    <span>{article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Recent'}</span>
+                                                </div>
+                                                {article.importance === 'HIGH' && (
+                                                    <span style={{ padding: '1px 5px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', borderRadius: '3px', fontWeight: '700' }}>
+                                                        HIGH IMPACT
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <a 
+                                                href={article.sourceUrl || '#'}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ color: 'var(--text-primary)', fontWeight: '700', fontSize: '14px', textDecoration: 'none', lineHeight: '1.4' }}
+                                                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-primary)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                                            >
+                                                {article.title}
+                                            </a>
+                                            {article.summary && (
+                                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
+                                                    {article.summary}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
