@@ -4,14 +4,15 @@ import api from '../../api';
 const getRelativeTime = (dateStr) => {
     if (!dateStr) return 'just now';
     try {
-        const diffMs = new Date() - new Date(dateStr);
-        const diffMins = Math.floor(diffMs / 60000);
+        const diffSecs = Math.floor((new Date() - new Date(dateStr)) / 1000);
+        if (diffSecs < 60) return 'just now';
+        const diffMins = Math.floor(diffSecs / 60);
+        if (diffMins < 60) return `${diffMins} min ago`;
         const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours} hr ago`;
         const diffDays = Math.floor(diffHours / 24);
-        if (diffMins < 1) return 'just now';
-        if (diffMins < 60) return `${diffMins}m`;
-        if (diffHours < 24) return `${diffHours}h`;
-        return `${diffDays}d`;
+        if (diffDays === 1) return '1 day ago';
+        return `${diffDays} days ago`;
     } catch {
         return 'just now';
     }
@@ -21,6 +22,14 @@ const WatchlistNews = ({ onSelectStock }) => {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [hasWatchlist, setHasWatchlist] = useState(true);
+    const [, setClockTick] = useState(0);
+
+    // Re-render every 15s so relative timestamps progress live
+    // ("just now" -> "1 min ago" -> "2 min ago") between refetches.
+    useEffect(() => {
+        const clockInterval = setInterval(() => setClockTick(t => t + 1), 15000);
+        return () => clearInterval(clockInterval);
+    }, []);
 
     const fetchWatchlistNews = useCallback(async () => {
         try {

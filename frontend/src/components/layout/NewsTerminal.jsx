@@ -6,18 +6,16 @@ const getRelativeTime = (dateStr) => {
     if (!dateStr) return 'just now';
     try {
         const published = new Date(dateStr);
-        const now = new Date();
-        const diffMs = now - published;
-        const diffSecs = Math.floor(diffMs / 1000);
-        const diffMins = Math.floor(diffSecs / 60);
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
+        const diffSecs = Math.floor((new Date() - published) / 1000);
 
-        if (diffSecs < 45) return 'just now';
-        if (diffMins < 60) return `${diffMins}m`;
-        if (diffHours < 24) return `${diffHours}h`;
-        if (diffDays === 1) return '1d';
-        if (diffDays < 7) return `${diffDays}d`;
+        if (diffSecs < 60) return 'just now';
+        const diffMins = Math.floor(diffSecs / 60);
+        if (diffMins < 60) return `${diffMins} min ago`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours} hr ago`;
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffDays === 1) return '1 day ago';
+        if (diffDays < 7) return `${diffDays} days ago`;
         return published.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
     } catch {
         return 'just now';
@@ -56,10 +54,19 @@ export const NewsTerminal = ({ onSelectStock }) => {
     const [connectionStatus, setConnectionStatus] = useState('CONNECTING'); // 'LIVE' | 'CONNECTING' | 'OFFLINE'
     const [unreadCount, setUnreadCount] = useState(0);
     const [isAtTop, setIsAtTop] = useState(true);
+    const [, setClockTick] = useState(0);
 
     const containerRef = useRef(null);
     const eventSourceRef = useRef(null);
     const pendingArticlesRef = useRef([]);
+
+    // Re-render every 15s so "just now" -> "1 min ago" -> "2 min ago" etc.
+    // actually progresses live instead of freezing at whatever it showed
+    // when the article first loaded.
+    useEffect(() => {
+        const clockInterval = setInterval(() => setClockTick(t => t + 1), 15000);
+        return () => clearInterval(clockInterval);
+    }, []);
 
     // Fetch initial news
     const fetchNews = useCallback(async (cat = selectedCategory, offset = 0, isAppend = false) => {

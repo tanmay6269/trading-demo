@@ -517,8 +517,13 @@ class NewsArticle(db.Model):
             "summary": self.summary or "",
             "source": self.source or "Market News",
             "sourceUrl": self.source_url or "",
-            "publishedAt": self.published_at.isoformat() if self.published_at else None,
-            "fetchedAt": self.fetched_at.isoformat() if self.fetched_at else None,
+            # published_at/fetched_at are stored as UTC instants, but SQLite
+            # round-trips DateTime columns as naive (no tz info) — without an
+            # explicit UTC marker here, the browser's `new Date(...)` parses
+            # the string as local time, making every article look ~5-6 hours
+            # older than it actually is for IST users.
+            "publishedAt": (self.published_at.isoformat() + "Z") if self.published_at else None,
+            "fetchedAt": (self.fetched_at.isoformat() + "Z") if self.fetched_at else None,
             "category": self.category or "OTHER",
             "symbols": json.loads(self.symbols) if self.symbols else [],
             "companies": json.loads(self.companies) if self.companies else [],
