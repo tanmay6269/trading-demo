@@ -578,9 +578,26 @@ class NewsScheduler:
         time.sleep(5)
         logger.info("NewsScheduler: Starting initial feed fetch...")
 
+        # This thread has no Flask request/app context of its own, so every
+        # db.session / Model.query call inside _do_fetch_cycle would otherwise
+        # raise "working outside of application context" — silently swallowed
+        # by the broad except blocks below and inside _save_to_db, which is why
+        # articles were fetched (total_fetched/total_new > 0) but never
+        # persisted (total_db_articles stayed 0).
+        flask_app = None
+        if self.db is not None:
+            try:
+                from app import app as flask_app
+            except Exception as e:
+                logger.warning(f"NewsScheduler: could not import Flask app for context ({e}); DB writes will be skipped")
+
         while self._running:
             try:
-                self._do_fetch_cycle()
+                if flask_app is not None:
+                    with flask_app.app_context():
+                        self._do_fetch_cycle()
+                else:
+                    self._do_fetch_cycle()
             except Exception as e:
                 logger.error(f"NewsScheduler error: {e}")
                 self._stats["total_errors"] += 1

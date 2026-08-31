@@ -29,10 +29,6 @@ const formatDateHeader = (dateStr) => {
     if (!dateStr) return 'TODAY';
     try {
         const d = new Date(dateStr);
-        const today = new Date();
-        if (d.toDateString() === today.toDateString()) {
-            return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
-        }
         return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
     } catch {
         return 'TODAY';
@@ -214,34 +210,37 @@ export const NewsTerminal = ({ onSelectStock }) => {
         return acc;
     }, {});
 
+    const statusColor = connectionStatus === 'LIVE' ? 'var(--accent-emerald)' :
+        connectionStatus === 'CONNECTING' ? 'var(--accent-amber)' : 'var(--accent-rose)';
+    const statusSoft = connectionStatus === 'LIVE' ? 'var(--accent-emerald-soft)' :
+        connectionStatus === 'CONNECTING' ? 'var(--accent-amber-soft)' : 'var(--accent-rose-soft)';
+
     return (
-        <div style={{
+        <div className="fade-in" style={{
             display: 'flex',
             flexDirection: 'column',
-            height: 'calc(100vh - 120px)',
-            maxWidth: '1200px',
+            height: 'calc(100vh - 180px)',
+            maxWidth: '900px',
             margin: '0 auto',
-            padding: '16px',
-            color: '#f1f5f9',
-            fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+            gap: '16px'
         }}>
             {/* Header Bar */}
-            <div style={{
+            <div className="soft-card" style={{
+                padding: '18px 20px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingBottom: '14px',
-                borderBottom: '1px solid #1e293b',
-                marginBottom: '14px'
+                flexWrap: 'wrap',
+                gap: '12px'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span style={{ fontSize: '24px' }}>📰</span>
                     <div>
-                        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', letterSpacing: '-0.02em' }}>
+                        <h1 style={{ margin: 0, fontSize: '19px', fontWeight: '800', letterSpacing: '-0.3px', color: 'var(--text-primary)' }}>
                             BullX News Terminal
                         </h1>
-                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                            Live Indian & Global financial market feeds
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            Live Indian &amp; global financial market feeds
                         </span>
                     </div>
                 </div>
@@ -254,23 +253,17 @@ export const NewsTerminal = ({ onSelectStock }) => {
                     padding: '4px 12px',
                     borderRadius: '9999px',
                     fontSize: '12px',
-                    fontWeight: '600',
-                    background: connectionStatus === 'LIVE' ? 'rgba(16, 185, 129, 0.15)' :
-                                connectionStatus === 'CONNECTING' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    color: connectionStatus === 'LIVE' ? '#10b981' :
-                           connectionStatus === 'CONNECTING' ? '#f59e0b' : '#ef4444',
-                    border: `1px solid ${
-                        connectionStatus === 'LIVE' ? 'rgba(16, 185, 129, 0.3)' :
-                        connectionStatus === 'CONNECTING' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)'
-                    }`
+                    fontWeight: '700',
+                    background: statusSoft,
+                    color: statusColor,
+                    border: `1px solid ${statusColor}`
                 }}>
                     <span style={{
                         width: '8px',
                         height: '8px',
                         borderRadius: '50%',
-                        backgroundColor: connectionStatus === 'LIVE' ? '#10b981' :
-                                         connectionStatus === 'CONNECTING' ? '#f59e0b' : '#ef4444',
-                        boxShadow: connectionStatus === 'LIVE' ? '0 0 8px #10b981' : 'none'
+                        backgroundColor: statusColor,
+                        boxShadow: connectionStatus === 'LIVE' ? `0 0 8px ${statusColor}` : 'none'
                     }} />
                     {connectionStatus}
                 </div>
@@ -282,34 +275,15 @@ export const NewsTerminal = ({ onSelectStock }) => {
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '12px',
-                marginBottom: '14px'
+                gap: '12px'
             }}>
                 {/* Compact Category Tabs */}
-                <div style={{
-                    display: 'flex',
-                    gap: '6px',
-                    overflowX: 'auto',
-                    paddingBottom: '4px',
-                    scrollbarWidth: 'none'
-                }}>
+                <div className="pill-tabs no-scrollbar" style={{ overflowX: 'auto', maxWidth: '100%' }}>
                     {CATEGORIES.map(cat => (
                         <button
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat.id)}
-                            style={{
-                                padding: '6px 14px',
-                                borderRadius: '6px',
-                                fontSize: '13px',
-                                fontWeight: selectedCategory === cat.id ? '600' : '500',
-                                background: selectedCategory === cat.id ? '#2563eb' : '#1e293b',
-                                color: selectedCategory === cat.id ? '#ffffff' : '#94a3b8',
-                                border: '1px solid',
-                                borderColor: selectedCategory === cat.id ? '#3b82f6' : '#334155',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                                whiteSpace: 'nowrap'
-                            }}
+                            className={selectedCategory === cat.id ? 'active solid' : ''}
                         >
                             {cat.label}
                         </button>
@@ -320,20 +294,11 @@ export const NewsTerminal = ({ onSelectStock }) => {
                 <div style={{ position: 'relative', minWidth: '220px', flex: '1', maxWidth: '320px' }}>
                     <input
                         type="text"
+                        className="soft-input"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search news, stocks, keywords..."
-                        style={{
-                            width: '100%',
-                            padding: '8px 12px 8px 34px',
-                            background: '#0f172a',
-                            border: '1px solid #334155',
-                            borderRadius: '6px',
-                            color: '#f8fafc',
-                            fontSize: '13px',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                        }}
+                        style={{ padding: '9px 12px 9px 34px' }}
                     />
                     <span style={{
                         position: 'absolute',
@@ -341,7 +306,7 @@ export const NewsTerminal = ({ onSelectStock }) => {
                         top: '50%',
                         transform: 'translateY(-50%)',
                         fontSize: '14px',
-                        color: '#64748b'
+                        color: 'var(--text-muted)'
                     }}>
                         🔍
                     </span>
@@ -355,7 +320,7 @@ export const NewsTerminal = ({ onSelectStock }) => {
                                 transform: 'translateY(-50%)',
                                 background: 'transparent',
                                 border: 'none',
-                                color: '#94a3b8',
+                                color: 'var(--text-secondary)',
                                 cursor: 'pointer',
                                 fontSize: '12px'
                             }}
@@ -370,25 +335,14 @@ export const NewsTerminal = ({ onSelectStock }) => {
             {unreadCount > 0 && (
                 <div
                     onClick={scrollToTop}
+                    className="soft-btn soft-btn-primary"
                     style={{
-                        padding: '8px 16px',
-                        background: '#2563eb',
-                        color: '#ffffff',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        marginBottom: '12px',
-                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        animation: 'bounce 1s infinite alternate'
+                        padding: '10px 16px',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: '0 4px 16px var(--accent-primary-soft)'
                     }}
                 >
-                    ↑ {unreadCount} NEW NEWS • Click to view latest
+                    ↑ {unreadCount} NEW ARTICLE{unreadCount > 1 ? 'S' : ''} • Click to view latest
                 </div>
             )}
 
@@ -396,14 +350,11 @@ export const NewsTerminal = ({ onSelectStock }) => {
             <div
                 ref={containerRef}
                 onScroll={handleScroll}
+                className="soft-card"
                 style={{
                     flex: 1,
                     overflowY: 'auto',
-                    background: '#0f172a',
-                    border: '1px solid #1e293b',
-                    borderRadius: '8px',
-                    padding: '8px 16px',
-                    scrollbarColor: '#334155 #0f172a'
+                    padding: '8px 16px'
                 }}
             >
                 {loading && articles.length === 0 ? (
@@ -413,16 +364,16 @@ export const NewsTerminal = ({ onSelectStock }) => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         height: '300px',
-                        color: '#94a3b8',
+                        color: 'var(--text-secondary)',
                         gap: '12px'
                     }}>
                         <div style={{
                             width: '32px',
                             height: '32px',
-                            border: '3px solid #334155',
-                            borderTopColor: '#3b82f6',
+                            border: '3px solid var(--border-color)',
+                            borderTopColor: 'var(--accent-primary)',
                             borderRadius: '50%',
-                            animation: 'spin 0.8s linear infinite'
+                            animation: 'bxNewsSpin 0.8s linear infinite'
                         }} />
                         <span style={{ fontSize: '14px' }}>Loading live market news...</span>
                     </div>
@@ -433,12 +384,12 @@ export const NewsTerminal = ({ onSelectStock }) => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         height: '300px',
-                        color: '#94a3b8',
+                        color: 'var(--text-secondary)',
                         gap: '8px'
                     }}>
                         <span style={{ fontSize: '32px' }}>📭</span>
-                        <span style={{ fontSize: '15px', fontWeight: '600' }}>No news articles found</span>
-                        <span style={{ fontSize: '13px', color: '#64748b' }}>
+                        <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>No news articles found</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                             {searchQuery ? `No results for "${searchQuery}"` : 'Polling feeds for new updates...'}
                         </span>
                     </div>
@@ -450,24 +401,13 @@ export const NewsTerminal = ({ onSelectStock }) => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '10px',
-                                margin: '14px 0 8px 0',
-                                color: '#64748b',
-                                fontSize: '11px',
-                                fontWeight: '700',
-                                letterSpacing: '0.05em'
+                                margin: '14px 0 8px 0'
                             }}>
-                                <span>{dateHeader}</span>
-                                <span style={{
-                                    fontSize: '9px',
-                                    padding: '2px 6px',
-                                    background: 'rgba(16, 185, 129, 0.1)',
-                                    color: '#10b981',
-                                    borderRadius: '4px',
-                                    fontWeight: '600'
-                                }}>
+                                <span className="sec-label">{dateHeader}</span>
+                                <span className="soft-badge positive" style={{ fontSize: '9px', padding: '1px 6px' }}>
                                     • LIVE
                                 </span>
-                                <div style={{ flex: 1, height: '1px', background: '#1e293b' }} />
+                                <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
                             </div>
 
                             {/* News Items List */}
@@ -477,14 +417,16 @@ export const NewsTerminal = ({ onSelectStock }) => {
                                         key={article.id || article.title}
                                         style={{
                                             padding: '12px 14px',
-                                            background: '#1e293b',
-                                            borderRadius: '6px',
-                                            border: '1px solid #334155',
-                                            transition: 'transform 0.15s ease, border-color 0.15s ease',
+                                            background: 'var(--bg-inset)',
+                                            borderRadius: 'var(--radius-sm)',
+                                            border: '1px solid var(--border-color)',
+                                            transition: 'border-color 0.15s ease',
                                             display: 'flex',
                                             flexDirection: 'column',
                                             gap: '6px'
                                         }}
+                                        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-color-strong)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                                     >
                                         {/* Metadata Row: Source, Time, Importance, Category */}
                                         <div style={{
@@ -492,33 +434,20 @@ export const NewsTerminal = ({ onSelectStock }) => {
                                             alignItems: 'center',
                                             justifyContent: 'space-between',
                                             fontSize: '12px',
-                                            color: '#94a3b8'
+                                            color: 'var(--text-secondary)',
+                                            flexWrap: 'wrap',
+                                            gap: '6px'
                                         }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span style={{
-                                                    padding: '2px 6px',
-                                                    borderRadius: '4px',
-                                                    fontSize: '11px',
-                                                    fontWeight: '600',
-                                                    background: 'rgba(59, 130, 246, 0.15)',
-                                                    color: '#60a5fa'
-                                                }}>
+                                                <span className="soft-badge neutral">
                                                     {article.source || 'News'}
                                                 </span>
-                                                <span style={{ color: '#64748b' }}>•</span>
-                                                <span style={{ fontWeight: '500', color: '#cbd5e1' }}>
+                                                <span style={{ color: 'var(--text-muted)' }}>•</span>
+                                                <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>
                                                     {getRelativeTime(article.publishedAt)}
                                                 </span>
                                                 {article.importance === 'HIGH' && (
-                                                    <span style={{
-                                                        padding: '1px 5px',
-                                                        borderRadius: '3px',
-                                                        fontSize: '10px',
-                                                        fontWeight: '700',
-                                                        background: 'rgba(239, 68, 68, 0.2)',
-                                                        color: '#f87171',
-                                                        border: '1px solid rgba(239, 68, 68, 0.4)'
-                                                    }}>
+                                                    <span className="soft-badge negative" style={{ fontSize: '10px', padding: '1px 5px' }}>
                                                         HIGH IMPACT
                                                     </span>
                                                 )}
@@ -534,17 +463,8 @@ export const NewsTerminal = ({ onSelectStock }) => {
                                                                 e.stopPropagation();
                                                                 if (onSelectStock) onSelectStock(sym);
                                                             }}
-                                                            style={{
-                                                                padding: '2px 6px',
-                                                                background: 'rgba(16, 185, 129, 0.15)',
-                                                                color: '#34d399',
-                                                                border: '1px solid rgba(16, 185, 129, 0.3)',
-                                                                borderRadius: '4px',
-                                                                fontSize: '11px',
-                                                                fontWeight: '600',
-                                                                cursor: 'pointer',
-                                                                transition: 'background 0.15s'
-                                                            }}
+                                                            className="soft-badge positive"
+                                                            style={{ border: '1px solid var(--accent-emerald)', cursor: 'pointer', background: 'none', fontFamily: 'inherit' }}
                                                             title={`View ${sym} trading chart & details`}
                                                         >
                                                             {sym} ↗
@@ -560,15 +480,15 @@ export const NewsTerminal = ({ onSelectStock }) => {
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             style={{
-                                                color: '#f8fafc',
+                                                color: 'var(--text-primary)',
                                                 fontSize: '14px',
-                                                fontWeight: '600',
+                                                fontWeight: '700',
                                                 lineHeight: '1.4',
                                                 textDecoration: 'none',
                                                 cursor: 'pointer'
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.color = '#60a5fa'}
-                                            onMouseLeave={(e) => e.currentTarget.style.color = '#f8fafc'}
+                                            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-primary)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
                                         >
                                             {article.title}
                                         </a>
@@ -578,7 +498,7 @@ export const NewsTerminal = ({ onSelectStock }) => {
                                             <p style={{
                                                 margin: 0,
                                                 fontSize: '12px',
-                                                color: '#94a3b8',
+                                                color: 'var(--text-secondary)',
                                                 lineHeight: '1.45',
                                                 display: '-webkit-box',
                                                 WebkitLineClamp: 2,
@@ -600,7 +520,7 @@ export const NewsTerminal = ({ onSelectStock }) => {
                     <div style={{
                         textAlign: 'center',
                         padding: '16px',
-                        color: '#94a3b8',
+                        color: 'var(--text-secondary)',
                         fontSize: '13px'
                     }}>
                         Loading older articles...
@@ -609,13 +529,9 @@ export const NewsTerminal = ({ onSelectStock }) => {
             </div>
 
             <style>{`
-                @keyframes spin {
+                @keyframes bxNewsSpin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
-                }
-                @keyframes bounce {
-                    0% { transform: translateY(0); }
-                    100% { transform: translateY(-4px); }
                 }
             `}</style>
         </div>
