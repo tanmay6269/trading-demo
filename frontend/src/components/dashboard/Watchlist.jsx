@@ -134,9 +134,9 @@ const Watchlist = ({ onSelectStock }) => {
                                         onSelectStock && onSelectStock(item.symbol);
                                     }}
                                     style={{
-                                        background: 'rgba(59, 130, 246, 0.15)',
-                                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                                        color: '#60a5fa',
+                                        background: 'var(--accent-primary-soft)',
+                                        border: '1px solid var(--accent-primary)',
+                                        color: 'var(--accent-primary)',
                                         borderRadius: '4px',
                                         padding: '3px 8px',
                                         fontSize: '11px',

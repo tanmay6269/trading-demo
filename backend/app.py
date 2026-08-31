@@ -1772,9 +1772,9 @@ def get_watchlist_news_route():
     try:
         wallet = UserWallet.query.filter_by(user_id=current_user.user_id).first()
         watchlist = []
-        if wallet and wallet.watchlist_json:
+        if wallet and wallet.watchlist:
             try:
-                watchlist = json.loads(wallet.watchlist_json)
+                watchlist = json.loads(wallet.watchlist)
             except Exception:
                 watchlist = []
 
