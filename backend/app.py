@@ -1179,59 +1179,80 @@ def get_option_chain_route(symbol):
         expiry = request.args.get('expiry')
         exchange = request.args.get('exchange', 'NSE').upper()
         
-        # 1. High-Speed Redis Option Chain Cache Lookup (1s TTL)
+        # 1. Redis cache (1s TTL)
         cached_data = redis_manager.get_option_chain(exchange, symbol, expiry)
         if cached_data:
             return jsonify(cached_data)
 
-        # 2. Get Real Option Chain directly from Official Groww Trade SDK
-        from real_option_chain import get_live_groww_option_chain, normalize_underlying
-        clean_u = normalize_underlying(symbol)
-        
-        try:
-            data = get_live_groww_option_chain(clean_u, exchange, expiry)
-        except Exception as sdk_err:
-            # Fallback to nse_bse_fetcher resolver if token is not configured on local env
-            from nse_bse_fetcher import get_real_option_chain
-            data = get_real_option_chain(clean_u, exchange, expiry)
+        # 2. Multi-source Market Data Engine (Upstox → DhanHQ → Groww SDK → Groww Free)
+        from market_data_engine import get_engine, normalize_underlying
+        engine = get_engine()
+        data = engine.get_option_chain(symbol, exchange, expiry)
 
         if data and data.get("chain"):
             redis_manager.set_option_chain(exchange, symbol, expiry, data, ttl_seconds=1)
             return jsonify(data)
 
+        # All sources failed — return clean error, NEVER synthetic data
         return jsonify({
             "status": "error",
-            "error": f"Live market data unavailable for {symbol} on {exchange}"
+            "error": f"All live data sources failed for {symbol} on {exchange}",
+            "sources_tried": data.get("sources_tried", []),
+            "errors": data.get("errors", []),
         }), 503
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
-@app.route('/api/debug/groww-option-chain/<symbol>', methods=['GET'])
-def debug_groww_option_chain(symbol):
+@app.route('/api/debug/data-source', methods=['GET'])
+def debug_data_source():
+    """Shows which market data APIs are currently configured and active."""
     try:
-        expiry = request.args.get('expiry')
-        exchange = request.args.get('exchange', 'NSE').upper()
-        from real_option_chain import get_live_groww_option_chain, normalize_underlying
-        clean_u = normalize_underlying(symbol)
-        data = get_live_groww_option_chain(clean_u, exchange, expiry)
-        return jsonify(data)
+        from market_data_engine import get_engine
+        engine = get_engine()
+        sources = engine.get_configured_sources()
+        return jsonify({
+            "status": "success",
+            "configured_sources": sources,
+            "primary": sources[0] if sources else None,
+            "total_sources": len(sources),
+            "note": "Sources are tried in order. First successful response is used."
+        })
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
-@app.route('/api/debug/groww-quote', methods=['GET'])
-def debug_groww_quote():
+@app.route('/api/debug/option-chain/<symbol>', methods=['GET'])
+def debug_option_chain(symbol):
+    """Fetches option chain and returns full debug info including source and timing."""
     try:
+        import time
+        expiry = request.args.get('expiry')
         exchange = request.args.get('exchange', 'NSE').upper()
-        segment = request.args.get('segment', 'FNO').upper()
-        trading_symbol = request.args.get('trading_symbol')
-        
-        if not trading_symbol:
-            return jsonify({"status": "error", "error": "trading_symbol query param is required"}), 400
 
-        from groww_market_data import GrowwMarketData
-        market = GrowwMarketData()
-        quote = market.get_quote(exchange=exchange, segment=segment, trading_symbol=trading_symbol)
-        return jsonify({"status": "success", "quote": quote})
+        from market_data_engine import get_engine, normalize_underlying
+        engine = get_engine()
+        clean_u = normalize_underlying(symbol)
+
+        start = time.time()
+        data = engine.get_option_chain(clean_u, exchange, expiry)
+        elapsed = round(time.time() - start, 3)
+
+        chain = data.get("chain", [])
+        mid_idx = len(chain) // 2 if chain else 0
+        sample_row = chain[mid_idx] if chain else {}
+
+        return jsonify({
+            "data_source": data.get("data_source"),
+            "exchange": exchange,
+            "underlying": clean_u,
+            "expiry": data.get("selected_expiry"),
+            "spot_price": data.get("spot_price"),
+            "pcr": data.get("pcr"),
+            "max_pain": data.get("max_pain"),
+            "total_strikes": len(chain),
+            "sample_contract": sample_row,
+            "response_time_seconds": elapsed,
+            "configured_sources": engine.get_configured_sources(),
+        })
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
 
