@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://127.0.0.1:5000/api';
+// Points at the deployed Render backend in production builds, and at the
+// local Flask dev server otherwise. Override with REACT_APP_API_URL if needed.
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000/api';
 
 const defaultHeaders = {
     'Content-Type': 'application/json',

@@ -58,6 +58,15 @@ else:
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# When deployed, the frontend (Vercel) and backend (Render) live on different
+# domains, so login/session cookies are cross-site. Browsers only send
+# cross-site cookies on fetch/XHR when SameSite=None + Secure — without this,
+# every @login_required route silently fails after deploy even with CORS
+# configured correctly, since it's a separate browser-side cookie policy.
+IS_DEPLOYED = bool(os.getenv('RENDER')) or (bool(db_url) and not db_url.startswith('sqlite'))
+app.config['SESSION_COOKIE_SAMESITE'] = 'None' if IS_DEPLOYED else 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = IS_DEPLOYED
+
 # Initialize database
 db = SQLAlchemy(app)
 
