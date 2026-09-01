@@ -327,5 +327,28 @@ export const api = {
     }
 };
 
+export const getWebSocketUrl = () => {
+    if (typeof window === 'undefined') return 'ws://127.0.0.1:5000/ws/prices';
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    return isLocal ? 'ws://127.0.0.1:5000/ws/prices' : 'wss://trading-demo-backend.onrender.com/ws/prices';
+};
+
+export const createPriceWebSocket = (onMessage, onOpen, onClose) => {
+    const wsUrl = getWebSocketUrl();
+    const ws = new WebSocket(wsUrl);
+    if (onOpen) ws.onopen = onOpen;
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (onMessage) onMessage(data);
+        } catch (err) {
+            console.error('WS Parse Error:', err);
+        }
+    };
+    if (onClose) ws.onclose = onClose;
+    ws.onerror = (err) => console.error('WS Error:', err);
+    return ws;
+};
+
 export { API_BASE_URL };
 export default api;
