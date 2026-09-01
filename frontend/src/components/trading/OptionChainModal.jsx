@@ -14,16 +14,18 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
         if (!isOpen) return;
 
         let isMounted = true;
+        let attempts = 0;
 
         const fetchChain = async () => {
-            setLoading(true);
-            setErrorMsg('');
+            if (attempts === 0) setLoading(true);
             try {
                 const res = await api.getOptionChain(symbol, selectedExpiry, exchange);
                 if (!isMounted) return;
 
                 if (res && res.chain && res.chain.length > 0) {
                     setData(res);
+                    setErrorMsg('');
+                    setRetryCount(0);
                     if (!selectedExpiry || !res.expiries?.includes(selectedExpiry)) {
                         setSelectedExpiry(res.selected_expiry || res.expiries?.[0] || '');
                     }
@@ -34,14 +36,27 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                 }
             } catch (err) {
                 console.error('Option chain fetch error:', err);
-                if (isMounted) setErrorMsg(`Unable to load ${symbol} Option Chain. Retrying...`);
+                attempts += 1;
+                setRetryCount(attempts);
+                if (isMounted) {
+                    if (attempts >= 3) {
+                        setErrorMsg(`Data source temporarily unavailable for ${symbol}. Click 'Retry' to reconnect.`);
+                    } else {
+                        setErrorMsg(`Connecting to live exchange data for ${symbol} (attempt ${attempts}/3)...`);
+                    }
+                }
             } finally {
                 if (isMounted) setLoading(false);
             }
         };
 
         fetchChain();
-        const interval = setInterval(fetchChain, 4000);
+        const interval = setInterval(() => {
+            if (attempts < 3) {
+                fetchChain();
+            }
+        }, 3500);
+
         return () => {
             isMounted = false;
             clearInterval(interval);

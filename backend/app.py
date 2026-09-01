@@ -35,7 +35,8 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
 from redis_cache import cache, TTL_STOCK_PRICE, TTL_OPTION_CHAIN, TTL_INDEX
 from symbol_mapper import get_symbol, canonicalize, SYMBOL_MAP
-from poller import poller, fetch_option_chain_failover, fetch_one_stock
+from poller import poller
+from market_data_engine import fetch_option_chain_failover, validate_broker_tokens
 import httpx
 
 # ------------------------------------------------------------------
@@ -238,6 +239,55 @@ class NewsArticle(Base):
         }
 
 
+class FOUnderlying(Base):
+    __tablename__ = "fo_underlyings"
+    symbol = Column(String(50), primary_key=True, index=True)
+    name = Column(String(200))
+    exchange = Column(String(20), default="NSE")
+    lot_size = Column(Integer, default=100)
+    step_size = Column(Float, default=10.0)
+    is_index = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    last_refreshed_at = Column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "symbol": self.symbol,
+            "name": self.name,
+            "exchange": self.exchange,
+            "lot_size": self.lot_size,
+            "step_size": self.step_size,
+            "is_index": self.is_index,
+            "is_active": self.is_active,
+            "last_refreshed_at": self.last_refreshed_at.isoformat() if self.last_refreshed_at else None
+        }
+
+
+class FOPCRSnapshot(Base):
+    __tablename__ = "fo_pcr_snapshots"
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String(50), index=True)
+    expiry = Column(String(30))
+    pcr = Column(Float)
+    total_ce_oi = Column(Integer)
+    total_pe_oi = Column(Integer)
+    spot_price = Column(Float)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class FOValidationLog(Base):
+    __tablename__ = "fo_validation_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String(50), index=True)
+    source_primary = Column(String(50))
+    source_secondary = Column(String(50), default="NSE_PUBLIC")
+    max_ltp_drift_pct = Column(Float)
+    max_oi_drift_pct = Column(Float)
+    status = Column(String(20))
+    details = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 Base.metadata.create_all(bind=engine)
 
 
@@ -291,19 +341,34 @@ news_scheduler = init_scheduler(db=SessionLocal, sse_broadcaster=news_sse_broadc
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 1. Background async market poller (leader-locked, safe with multi workers)
+    # 0. Check broker token validity on startup
+    try:
+        token_report = validate_broker_tokens()
+        print(f"[TOKEN STATUS] Upstox: {token_report['upstox']['status']}, Dhan: {token_report['dhan']['status']}")
+    except Exception as e:
+        print(f"[tokens] validation error: {e}")
+
+    # 1. Sync official F&O underlyings DB
+    try:
+        from fo_discovery import refresh_fo_underlyings_db
+        db = SessionLocal()
+        refresh_fo_underlyings_db(db)
+        db.close()
+    except Exception as e:
+        print(f"[fo_discovery] startup refresh error: {e}")
+
+    # 2. Background async market poller (leader-locked, safe with multi workers)
     poller_task = asyncio.create_task(poller.start())
 
-    # 2. Background news engine (own DB session)
+    # 3. Background news engine (own DB session)
     try:
         news_scheduler.start()
     except Exception as e:
         print(f"[news] scheduler start failed: {e}")
 
-    print("[BULLX FASTAPI] Server initialized with async Redis cache and WebSocket engine")
+    print("[BULLX FASTAPI] Server initialized with async Redis cache, full 180+ F&O engine, and WebSocket streaming")
     yield
     # Shutdown
-    poller.stop()
     try:
         poller_task.cancel()
     except Exception:
@@ -577,10 +642,21 @@ def _search_stocks_sync(query):
     return search_stocks(query)
 
 
+@app.get("/api/fo-underlyings")
+async def get_fo_underlyings_route(db: Session = Depends(get_db)):
+    """Return official list of all 180+ active NSE F&O-eligible underlyings."""
+    underlyings = db.query(FOUnderlying).filter(FOUnderlying.is_active == True).all()
+    if underlyings:
+        return [u.to_dict() for u in underlyings]
+    from fo_discovery import OFFICIAL_NSE_FO_LIST
+    return OFFICIAL_NSE_FO_LIST
+
+
 @app.get("/api/option-chain/{symbol}")
 async def get_option_chain_route(symbol: str, expiry: Optional[str] = None):
     """Real-time Option Chain with multi-source failover (Upstox -> Dhan -> Groww -> NSE)."""
     clean_u = canonicalize(symbol)
+    poller.register(clean_u)
     cached = await cache.get_option_chain("NSE", clean_u, expiry or "default")
     if cached:
         return cached
@@ -590,6 +666,71 @@ async def get_option_chain_route(symbol: str, expiry: Optional[str] = None):
         return chain
     local_chain = await asyncio.to_thread(_generate_local_chain_sync, clean_u, expiry)
     return local_chain
+
+
+@app.get("/api/option-chain/{symbol}/oi-buildup")
+async def get_oi_buildup_route(symbol: str, expiry: Optional[str] = None):
+    """Open Interest distribution across all strikes, PCR, and Max Pain level."""
+    chain = await get_option_chain_route(symbol, expiry)
+    from fo_analytics import calculate_oi_buildup
+    return calculate_oi_buildup(chain)
+
+
+@app.get("/api/option-chain/{symbol}/pcr-history")
+async def get_pcr_history_route(symbol: str, db: Session = Depends(get_db)):
+    """Historical Put-Call Ratio trend snapshots."""
+    clean_u = canonicalize(symbol)
+    snaps = db.query(FOPCRSnapshot).filter(FOPCRSnapshot.symbol == clean_u).order_by(FOPCRSnapshot.timestamp.desc()).limit(30).all()
+    if snaps:
+        return [{
+            "timestamp": s.timestamp.isoformat() + "Z",
+            "pcr": s.pcr,
+            "total_ce_oi": s.total_ce_oi,
+            "total_pe_oi": s.total_pe_oi,
+            "spot_price": s.spot_price
+        } for s in reversed(snaps)]
+    
+    # Live instant point if no historical DB records yet
+    chain = await get_option_chain_route(symbol)
+    from fo_analytics import calculate_oi_buildup
+    res = calculate_oi_buildup(chain)
+    return [{
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "pcr": res.get("pcr", 1.0),
+        "total_ce_oi": res.get("total_ce_oi", 0),
+        "total_pe_oi": res.get("total_pe_oi", 0),
+        "spot_price": res.get("spot_price", 0.0)
+    }]
+
+
+@app.get("/api/option-chain/{symbol}/iv-skew")
+async def get_iv_skew_route(symbol: str, expiry: Optional[str] = None):
+    """Implied Volatility (IV) smile/skew across strikes."""
+    chain = await get_option_chain_route(symbol, expiry)
+    from fo_analytics import calculate_iv_skew
+    return calculate_iv_skew(chain)
+
+
+@app.get("/api/admin/data-health")
+async def get_data_health_route():
+    """Administrative data health, validation drift metrics, and reliability status."""
+    from fo_validator import get_data_health_report
+    return get_data_health_report()
+
+
+@app.get("/api/admin/token-health")
+async def get_token_health_route():
+    """Diagnostic check for Upstox & Dhan broker credentials."""
+    from market_data_engine import validate_broker_tokens
+    return validate_broker_tokens()
+
+
+@app.post("/api/admin/refresh-fo-underlyings")
+async def admin_refresh_fo_underlyings(db: Session = Depends(get_db)):
+    """Trigger on-demand refresh of official NSE F&O underlyings list."""
+    from fo_discovery import refresh_fo_underlyings_db
+    count = refresh_fo_underlyings_db(db)
+    return {"status": "ok", "refreshed_count": count, "timestamp": time.time()}
 
 
 def _generate_local_chain_sync(clean_u, expiry):
