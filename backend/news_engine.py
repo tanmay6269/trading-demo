@@ -42,12 +42,27 @@ IST = timezone(timedelta(hours=5, minutes=30))
 # Default RSS Feed Configuration
 # ============================================================
 DEFAULT_FEEDS = [
+    # ============ STOCKS ============
     {
         "name": "Economic Times - Stocks",
         "url": "https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms",
         "source": "Economic Times",
         "category_hint": "STOCKS",
         "poll_interval": 300,
+    },
+    {
+        "name": "Economic Times - Markets",
+        "url": "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
+        "source": "Economic Times",
+        "category_hint": "STOCKS",
+        "poll_interval": 300,
+    },
+    {
+        "name": "Economic Times - Companies",
+        "url": "https://economictimes.indiatimes.com/industry/rssfeeds/13352306.cms",
+        "source": "Economic Times",
+        "category_hint": "STOCKS",
+        "poll_interval": 600,
     },
     {
         "name": "LiveMint - Markets",
@@ -57,9 +72,23 @@ DEFAULT_FEEDS = [
         "poll_interval": 300,
     },
     {
+        "name": "LiveMint - Companies",
+        "url": "https://www.livemint.com/rss/companies",
+        "source": "LiveMint",
+        "category_hint": "STOCKS",
+        "poll_interval": 600,
+    },
+    {
         "name": "Business Standard - Markets",
         "url": "https://www.business-standard.com/rss/markets.xml",
         "source": "Business Standard",
+        "category_hint": "STOCKS",
+        "poll_interval": 600,
+    },
+    {
+        "name": "Moneycontrol - Top Stories",
+        "url": "https://www.moneycontrol.com/rss/latestnews.xml",
+        "source": "Moneycontrol",
         "category_hint": "STOCKS",
         "poll_interval": 600,
     },
@@ -69,13 +98,6 @@ DEFAULT_FEEDS = [
         "source": "Moneycontrol",
         "category_hint": "STOCKS",
         "poll_interval": 900,
-    },
-    {
-        "name": "Google News - India Markets",
-        "url": "https://news.google.com/rss/search?q=NSE+OR+BSE+OR+Nifty+OR+Sensex&hl=en-IN&gl=IN&ceid=IN:en",
-        "source": "Google News",
-        "category_hint": "GLOBAL",
-        "poll_interval": 300,
     },
     {
         "name": "NDTV Profit",
@@ -91,6 +113,125 @@ DEFAULT_FEEDS = [
         "category_hint": "STOCKS",
         "poll_interval": 600,
     },
+    {
+        "name": "The Hindu - Business",
+        "url": "https://www.thehindu.com/business/feeder/default.rss",
+        "source": "The Hindu Business",
+        "category_hint": "STOCKS",
+        "poll_interval": 600,
+    },
+    {
+        "name": "Business Today",
+        "url": "https://www.businesstoday.in/rss/feed",
+        "source": "Business Today",
+        "category_hint": "STOCKS",
+        "poll_interval": 600,
+    },
+    {
+        "name": "Investing.com - News",
+        "url": "https://www.investing.com/rss/news.rss",
+        "source": "Investing.com",
+        "category_hint": "STOCKS",
+        "poll_interval": 600,
+    },
+
+    # ============ IPOs & LISTINGS ============
+    {
+        "name": "Economic Times - IPO",
+        "url": "https://economictimes.indiatimes.com/markets/ipo/rssfeeds/2146842.cms",
+        "source": "Economic Times",
+        "category_hint": "IPO",
+        "poll_interval": 900,
+    },
+    {
+        "name": "Moneycontrol - IPO News",
+        "url": "https://www.moneycontrol.com/rss/iponews.xml",
+        "source": "Moneycontrol",
+        "category_hint": "IPO",
+        "poll_interval": 900,
+    },
+    {
+        "name": "Google News - IPO India",
+        "url": "https://news.google.com/rss/search?q=IPO+India+listing+allotment+subscription%20-when:1d&hl=en-IN&gl=IN&ceid=IN:en",
+        "source": "Google News",
+        "category_hint": "IPO",
+        "poll_interval": 600,
+    },
+
+    # ============ COMMODITIES ============
+    {
+        "name": "Economic Times - Commodities",
+        "url": "https://economictimes.indiatimes.com/markets/commodities/rssfeeds/1977021501.cms",
+        "source": "Economic Times",
+        "category_hint": "COMMODITIES",
+        "poll_interval": 600,
+    },
+    {
+        "name": "Google News - Commodities",
+        "url": "https://news.google.com/rss/search?q=gold+silver+crude+oil+MCX+commodities&hl=en-IN&gl=IN&ceid=IN:en",
+        "source": "Google News",
+        "category_hint": "COMMODITIES",
+        "poll_interval": 600,
+    },
+
+    # ============ ECONOMY / MACRO ============
+    {
+        "name": "LiveMint - Economy",
+        "url": "https://www.livemint.com/rss/economy",
+        "source": "LiveMint",
+        "category_hint": "ECONOMY",
+        "poll_interval": 600,
+    },
+    {
+        "name": "Economic Times - Economy",
+        "url": "https://economictimes.indiatimes.com/news/economy/rssfeeds/1218232804.cms",
+        "source": "Economic Times",
+        "category_hint": "ECONOMY",
+        "poll_interval": 600,
+    },
+    {
+        "name": "Google News - Economy & RBI",
+        "url": "https://news.google.com/rss/search?q=RBI+Indian+economy+GDP+inflation+repo+rate&hl=en-IN&gl=IN&ceid=IN:en",
+        "source": "Google News",
+        "category_hint": "ECONOMY",
+        "poll_interval": 600,
+    },
+
+    # ============ RESULTS ============
+    {
+        "name": "Moneycontrol - Results",
+        "url": "https://www.moneycontrol.com/rss/results.xml",
+        "source": "Moneycontrol",
+        "category_hint": "RESULTS",
+        "poll_interval": 900,
+    },
+    {
+        "name": "Google News - Earnings Q1 Q2 Q3 Q4",
+        "url": "https://news.google.com/rss/search?q=company+quarterly+results+net+profit+revenue+India&hl=en-IN&gl=IN&ceid=IN:en",
+        "source": "Google News",
+        "category_hint": "RESULTS",
+        "poll_interval": 600,
+    },
+
+    # ============ F&O (FUTURES & OPTIONS) ============
+    {
+        "name": "Google News - F&O Nifty Options",
+        "url": "https://news.google.com/rss/search?q=Nifty+futures+options+expiry+%22F%26O%22&hl=en-IN&gl=IN&ceid=IN:en",
+        "source": "Google News",
+        "category_hint": "F&O",
+        "poll_interval": 600,
+    },
+
+    # ============ GLOBAL ============
+    {
+        "name": "Google News - India Markets Global",
+        "url": "https://news.google.com/rss/search?q=NSE+OR+BSE+OR+Nifty+OR+Sensex&hl=en-IN&gl=IN&ceid=IN:en",
+        "source": "Google News",
+        "category_hint": "GLOBAL",
+        "poll_interval": 300,
+    },
+
+    # ============ CORPORATE ============
     {
         "name": "BSE India - Notices",
         "url": "https://www.bseindia.com/data/xml/notices.xml",
@@ -182,15 +323,15 @@ FALSE_POSITIVE_WORDS = {
 # Category Classification Keywords
 # ============================================================
 CATEGORY_KEYWORDS = {
-    "RESULTS": ["q1", "q2", "q3", "q4", "quarterly", "profit", "revenue", "earnings", "net profit", "pat", "ebitda", "results"],
-    "IPO": ["ipo", "initial public offering", "listing", "allotment", "subscription"],
-    "DIVIDEND": ["dividend", "interim dividend", "final dividend", "record date"],
-    "CORPORATE": ["merger", "acquisition", "demerger", "buyback", "bonus", "split", "rights issue", "board meeting", "agm", "egm"],
-    "REGULATORY": ["sebi", "rbi", "regulatory", "compliance", "penalty", "ban", "circular", "guideline"],
-    "ECONOMY": ["gdp", "inflation", "cpi", "wpi", "fiscal", "monetary", "repo rate", "interest rate", "fed", "rbi policy"],
-    "F&O": ["futures", "options", "f&o", "expiry", "rollover", "open interest", "nifty options", "banknifty options"],
-    "COMMODITIES": ["gold", "silver", "crude oil", "brent", "natural gas", "copper", "commodity", "mcx"],
-    "GLOBAL": ["wall street", "nasdaq", "dow jones", "s&p 500", "fed", "us market", "global market", "ftse", "dax", "nikkei", "hang seng"],
+    "F&O": ["futures", "options", "f&o", "expiry", "rollover", "open interest", "nifty options", "banknifty options", "nifty futures", "options chain", "oi data", "covered call", "straddle"],
+    "IPO": ["ipo", "ipo news", "initial public offering", "listing", "listing date", "listing gains", "allotment", "subscription", "smest", "anchor book", "price band", "grey market"],
+    "RESULTS": ["q1", "q2", "q3", "q4", "h1", "h2", "fy", "quarterly", "quarter", "profit", "revenue", "earnings", "net profit", "net loss", "pat", "ebitda", "results", "earnings call", "guidance", "revenue grew", "profit rise", "profit falls", "dividend declared with results"],
+    "DIVIDEND": ["dividend", "interim dividend", "final dividend", "record date", "ex-dividend", "ex-date", "buyback", "shareholder return"],
+    "CORPORATE": ["merger", "acquisition", "demerger", "buyback", "bonus", "stock split", "rights issue", "board meeting", "agm", "egm", "stake sale", "fundraising", "qip", "warrants", "board approves"],
+    "REGULATORY": ["sebi", "rbi", "regulatory", "compliance", "penalty", "fine", "ban", "circular", "guideline", "show cause", "surveillance", "investigation", "mas", "insider trading"],
+    "ECONOMY": ["gdp", "gd growth", "inflation", "cpi", "wpi", "fiscal", "monetary policy", "repo rate", "reppo", "interest rate", "fed", "rbi policy", "rbi", "rate cut", "rate hike", "economic growth", "current account", "forex reserves", "trade deficit", "industrial production", "iip"],
+    "COMMODITIES": ["gold", "silver", "crude oil", "brent", "natural gas", "copper", "commodity", "commodities", "mcx", "bullion", "palm oil", "wheat", "zinc", "aluminium", "soybean", "mentha", "gasoline", "heating oil", "precious metals", "base metals"],
+    "GLOBAL": ["wall street", "nasdaq", "dow jones", "s&p 500", "fed", "federal reserve", "us market", "global market", "ftse", "dax", "nikkei", "hang seng", "us fed", "us treasury", "dxy", "dollar index", "global cues"],
 }
 
 # ============================================================
@@ -474,15 +615,41 @@ class NewsClassifier:
     """Classifies articles by category, importance, and sentiment."""
 
     def classify_category(self, title, summary="", hint="OTHER"):
-        """Determine article category."""
+        """Determine article category.
+
+        Strategy:
+        1. First check the feed's explicit category_hint (source is the most
+           reliable signal of a story's domain). If it is a specific non-default
+           category, prefer it unless a much stronger specific keyword is found.
+        2. Score keyword matches across all categories. Category with the most
+           matched keywords wins (ties broken by priority).
+        3. Fall back to the feed hint, or STOCKS as a last resort.
+        """
         text = f"{title} {summary}".lower()
 
+        # Weighted score per category based on keyword matches
+        scores = {}
         for category, keywords in CATEGORY_KEYWORDS.items():
+            hits = 0
             for kw in keywords:
-                if kw in text:
-                    return category
+                if re.search(r"\b" + re.escape(kw) + r"\b", text):
+                    hits += 1
+            scores[category] = hits
 
-        return hint if hint != "OTHER" else "STOCKS"
+        best_match = max(scores, key=scores.get)
+        best_score = scores[best_match]
+
+        # If a strong specific match is found, use it regardless of hint
+        if best_score >= 2:
+            return best_match
+
+        # If a single clear keyword matched, still trust it over a generic hint
+        if best_score == 1:
+            return best_match
+
+        # No strong keyword match — trust the feed's known category hint
+        h = (hint or "OTHER").upper()
+        return h if h in scores or h == "STOCKS" else "STOCKS"
 
     def score_importance(self, title, summary=""):
         """Rate article importance: HIGH, MEDIUM, LOW."""

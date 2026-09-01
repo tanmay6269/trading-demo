@@ -40,9 +40,35 @@ const CATEGORIES = [
     { id: 'COMMODITIES', label: 'Commodities' },
     { id: 'RESULTS', label: 'Results' },
     { id: 'IPO', label: 'IPO' },
+    { id: 'ECONOMY', label: 'Economy' },
+    { id: 'F&O', label: 'F&O' },
     { id: 'CORPORATE', label: 'Corporate' },
+    { id: 'REGULATORY', label: 'Regulatory' },
+    { id: 'DIVIDEND', label: 'Dividend' },
     { id: 'OTHER', label: 'Other' },
 ];
+
+// Colours for each category badge so a user instantly sees which section a
+// story belongs to (share / commodity / IPO / results / etc.).
+const CATEGORY_STYLE = {
+    STOCKS:      { color: 'var(--accent-primary)',    bg: 'var(--accent-primary-soft)' },
+    GLOBAL:      { color: 'var(--accent-violet)',     bg: 'var(--accent-violet-soft)' },
+    COMMODITIES: { color: 'var(--accent-amber)',      bg: 'var(--accent-amber-soft)' },
+    RESULTS:     { color: 'var(--accent-emerald)',    bg: 'var(--accent-emerald-soft)' },
+    IPO:         { color: 'var(--accent-rose)',       bg: 'var(--accent-rose-soft)' },
+    ECONOMY:     { color: 'var(--accent-cyan)',       bg: 'var(--accent-cyan-soft)' },
+    'F&O':       { color: 'var(--accent-lime)',       bg: 'var(--accent-lime-soft)' },
+    CORPORATE:   { color: 'var(--text-primary)',      bg: 'var(--bg-inset)' },
+    REGULATORY:  { color: 'var(--accent-violet)',     bg: 'var(--accent-violet-soft)' },
+    DIVIDEND:    { color: 'var(--accent-emerald)',    bg: 'var(--accent-emerald-soft)' },
+    OTHER:       { color: 'var(--text-secondary)',    bg: 'var(--bg-inset)' },
+};
+const CATEGORY_LABEL = {
+    STOCKS: 'Share Market', GLOBAL: 'Global', COMMODITIES: 'Commodities',
+    RESULTS: 'Results', IPO: 'IPO', ECONOMY: 'Economy', 'F&O': 'F&O',
+    CORPORATE: 'Corporate', REGULATORY: 'Regulatory', DIVIDEND: 'Dividend',
+    OTHER: 'Other',
+};
 
 export const NewsTerminal = ({ onSelectStock }) => {
     const [articles, setArticles] = useState([]);
@@ -59,6 +85,13 @@ export const NewsTerminal = ({ onSelectStock }) => {
     const containerRef = useRef(null);
     const eventSourceRef = useRef(null);
     const pendingArticlesRef = useRef([]);
+    const selectedCategoryRef = useRef(selectedCategory);
+
+    // Keep the ref in sync with the selected category so the SSE live-update
+    // handler always has the latest value (it is bound once on mount).
+    useEffect(() => {
+        selectedCategoryRef.current = selectedCategory;
+    }, [selectedCategory]);
 
     // Re-render every 15s so "just now" -> "1 min ago" -> "2 min ago" etc.
     // actually progresses live instead of freezing at whatever it showed
@@ -135,6 +168,11 @@ export const NewsTerminal = ({ onSelectStock }) => {
                     try {
                         const newArticle = JSON.parse(event.data);
                         if (!newArticle || !newArticle.id) return;
+
+                        // Only surface a new article if it belongs to the
+                        // currently selected category (or we're on All).
+                        const cat = selectedCategoryRef.current;
+                        if (cat !== 'ALL' && (newArticle.category || 'OTHER') !== cat) return;
 
                         // If user is at top of the feed, insert immediately
                         if (isAtTop) {
@@ -460,25 +498,44 @@ export const NewsTerminal = ({ onSelectStock }) => {
                                                 )}
                                             </div>
 
-                                            {/* Stock Badges */}
-                                            {article.symbols && article.symbols.length > 0 && (
-                                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                                                    {article.symbols.map(sym => (
-                                                        <button
-                                                            key={sym}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (onSelectStock) onSelectStock(sym);
-                                                            }}
-                                                            className="soft-badge positive"
-                                                            style={{ border: '1px solid var(--accent-emerald)', cursor: 'pointer', background: 'none', fontFamily: 'inherit' }}
-                                                            title={`View ${sym} trading chart & details`}
-                                                        >
-                                                            {sym} ↗
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
+                                            {/* Category + Stock Badges (right side) */}
+                                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                                {/* Category badge — which section this news belongs to */}
+                                                <span
+                                                    className="soft-badge"
+                                                    style={{
+                                                        fontSize: '10px',
+                                                        padding: '2px 7px',
+                                                        fontWeight: '700',
+                                                        letterSpacing: '0.3px',
+                                                        textTransform: 'uppercase',
+                                                        color: (CATEGORY_STYLE[article.category] || CATEGORY_STYLE.OTHER).color,
+                                                        background: (CATEGORY_STYLE[article.category] || CATEGORY_STYLE.OTHER).bg,
+                                                        border: `1px solid ${(CATEGORY_STYLE[article.category] || CATEGORY_STYLE.OTHER).color}`
+                                                    }}
+                                                    title={`This news belongs to: ${CATEGORY_LABEL[article.category] || article.category}`}
+                                                >
+                                                    {CATEGORY_LABEL[article.category] || article.category || 'Other'}
+                                                </span>
+                                                {article.symbols && article.symbols.length > 0 && (
+                                                    <span style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                        {article.symbols.map(sym => (
+                                                            <button
+                                                                key={sym}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (onSelectStock) onSelectStock(sym);
+                                                                }}
+                                                                className="soft-badge positive"
+                                                                style={{ border: '1px solid var(--accent-emerald)', cursor: 'pointer', background: 'none', fontFamily: 'inherit' }}
+                                                                title={`View ${sym} trading chart & details`}
+                                                            >
+                                                                {sym} ↗
+                                                            </button>
+                                                        ))}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Headline */}
