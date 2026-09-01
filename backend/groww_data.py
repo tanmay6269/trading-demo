@@ -1297,14 +1297,17 @@ def get_live_price(symbol):
             quote = fetch_direct_quote(f"{target_sym}.BO")
             
         if quote and quote.get('price'):
-            price_cache[cache_key] = (quote['price'], time.time())
+            price_cache[cache_key] = (quote if isinstance(quote, dict) else {'price': quote['price']}, time.time())
             return quote['price']
 
         # Yfinance secondary fallback
         ticker = yf.Ticker(target)
         df = ticker.history(period="5d", timeout=5)
         if not df.empty and 'Close' in df.columns:
-            p = round(df['Close'].dropna().iloc[-1], 2)
+            closes = df['Close'].dropna().tolist()
+            p = round(float(closes[-1]), 2)
+            # Previous close from SAME source (yfinance history)
+            prev_close = round(float(closes[-2]), 2) if len(closes) >= 2 else p
             price_cache[cache_key] = (p, time.time())
             return p
 
@@ -1500,10 +1503,26 @@ def fetch_stock_quote(symbol):
                 'change_percent': pct
             }
 
-        # Fallback to single price lookup
+        # Fallback to single price lookup (same-source prev_close so % is correct)
         p = get_live_price(symbol)
         if p:
-            return {'price': p, 'prev_close': p, 'change': 0.0, 'change_percent': 0.0}
+            prev_c = None
+            try:
+                target_sym = SYMBOL_MAP.get(clean_sym, clean_sym)
+                fq = fetch_direct_quote(format_symbol(target_sym))
+                if fq and fq.get('prev_close'):
+                    prev_c = fq['prev_close']
+            except Exception:
+                prev_c = None
+            if prev_c is None or prev_c <= 0:
+                prev_c = p
+            chg = round(p - prev_c, 2)
+            return {
+                'price': p,
+                'prev_close': prev_c,
+                'change': chg,
+                'change_percent': round((chg / prev_c) * 100, 2) if prev_c else 0.0
+            }
     except Exception as e:
         print(f"Error fetching stock quote for {symbol}: {e}")
 

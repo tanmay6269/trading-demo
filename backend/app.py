@@ -26,6 +26,8 @@ from groww_data import (
 )
 
 from redis_client import redis_manager
+import redis_cache as market_cache
+from symbol_mapper import canonicalize as _canonicalize_sym
 
 # Load environment variables
 load_dotenv()
@@ -1889,52 +1891,10 @@ def health_check():
         'commit': 'fa15a3ca-v2'
     }), 200
 
-def start_market_data_poller():
-    """
-    Dedicated High-Performance Background Poller:
-    - Calls external market APIs every 1.5-2.0 seconds in ONE background thread
-    - Writes fresh live quotes & indices directly into Redis cache
-    - All 500+ demo users read strictly from Redis memory (0ms lag, zero rate limits)
-    """
-    import threading, time
-    
-    TOP_WATCHED_STOCKS = [
-        'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL',
-        'ITC', 'TATAMOTORS', 'LT', 'MARUTI', 'BAJFINANCE', 'SUNPHARMA', 'ASIANPAINT',
-        'TITAN', 'ZOMATO', 'PAYTM', 'SUZLON', 'JIOFIN', 'SWIGGY', 'WIPRO', 'HCLTECH',
-        'ADANIENT', 'ADANIPORTS', 'POWERGRID', 'NTPC', 'COALINDIA', 'ONGC', 'TATASTEEL',
-        'JSWSTEEL', 'M&M', 'EICHERMOT', 'BAJAJ-AUTO', 'CIPLA', 'DIVISLAB', 'DRREDDY',
-        'VEDL', 'TATAPOWER', 'HAL', 'BEL', 'RVNL', 'IRFC', 'PFC', 'REC', 'CDSL', 'BSE'
-    ]
+from price_poller import start_background_poller
+import redis_cache as cache
 
-    def _poller():
-        time.sleep(2)
-        print("🚀 [MARKET POLLER] Dedicated background market poller started (1.5s interval -> Redis)")
-        while True:
-            try:
-                from groww_data import get_index_data, get_prices
-                
-                # 1. Update Index Header Cache in Redis
-                indices = get_index_data()
-                if indices:
-                    redis_manager.set_indices(indices, ttl_seconds=6)
-
-                # 2. Batch fetch & warm top 46 active stocks in Redis
-                quotes = get_prices(TOP_WATCHED_STOCKS)
-                for sym, q in quotes.items():
-                    if q and q.get('price'):
-                        redis_manager.set_stock_quote(sym, q, ttl_seconds=6)
-
-            except Exception as e:
-                # Poller handles all network hiccups gracefully without crashing
-                pass
-
-            time.sleep(1.5)
-
-    t = threading.Thread(target=_poller, daemon=True)
-    t.start()
-
-start_market_data_poller()
+start_background_poller()
 
 if __name__ == '__main__':
     import sys

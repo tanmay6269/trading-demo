@@ -19,3 +19,5 @@ uvicorn>=0.25.0
 upstox-python-sdk>=2.0
 dhanhq>=2.0
 feedparser>=6.0.0
+bsedata>=0.6.0
+nsepython>=0.1.0
