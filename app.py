@@ -1,6 +1,6 @@
 """
 Root app.py wrapper for Render/Heroku deployments.
-Ensures app:app resolves cleanly without circular import.
+Ensures app:app and app:wsgi_app resolve cleanly in every environment.
 """
 
 import sys
@@ -18,3 +18,9 @@ sys.modules["backend_app_module"] = backend_app_mod
 spec.loader.exec_module(backend_app_mod)
 
 app = backend_app_mod.app
+
+try:
+    from a2wsgi import ASGIMiddleware
+    wsgi_app = ASGIMiddleware(app)
+except Exception:
+    wsgi_app = app

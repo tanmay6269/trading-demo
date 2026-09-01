@@ -1440,6 +1440,13 @@ async def health_check():
     }
 
 
+try:
+    from a2wsgi import ASGIMiddleware
+    wsgi_app = ASGIMiddleware(app)
+except Exception:
+    wsgi_app = app
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)
