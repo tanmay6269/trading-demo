@@ -40,7 +40,8 @@ class FODataValidator:
 
     async def validate_sample_symbol(self, symbol: str, primary_chain: dict):
         """Cross-check primary option chain snapshot against NSE public data."""
-        if not primary_chain or "strikes" not in primary_chain:
+        rows = (primary_chain or {}).get("chain") or []
+        if not rows:
             return
 
         try:
@@ -53,22 +54,21 @@ class FODataValidator:
                 return
 
             nse_records = {r.get("strikePrice"): r for r in nse_data["records"].get("data", [])}
-            primary_strikes = primary_chain.get("strikes", [])
 
             max_ltp_drift = 0.0
             max_oi_drift = 0.0
             drift_details = []
 
             # Compare near ATM strikes
-            for row in primary_strikes[:15]:
-                strike = row.get("strike_price") or row.get("strikePrice")
+            for row in rows[:15]:
+                strike = float(row.get("strike") or 0)
                 if strike in nse_records:
                     nse_row = nse_records[strike]
-                    
+                    p_ce = row.get("ce") or {}
+
                     # CE Comparison
-                    p_ce = row.get("call_options") or row.get("CE") or {}
                     n_ce = nse_row.get("CE") or {}
-                    
+
                     p_ltp = float(p_ce.get("ltp") or p_ce.get("last_price") or 0)
                     n_ltp = float(n_ce.get("lastPrice") or 0)
                     if p_ltp > 5 and n_ltp > 5:
@@ -78,7 +78,7 @@ class FODataValidator:
                         if drift > self.ltp_tol:
                             drift_details.append(f"Strike {strike} CE LTP diff {drift:.1f}% (Primary: {p_ltp}, NSE: {n_ltp})")
 
-                    p_oi = float(p_ce.get("open_interest") or p_ce.get("oi") or 0)
+                    p_oi = float(p_ce.get("oi") or p_ce.get("open_interest") or 0)
                     n_oi = float(n_ce.get("openInterest") or 0)
                     if p_oi > 500 and n_oi > 500:
                         drift = abs(p_oi - n_oi) / n_oi * 100.0
@@ -87,10 +87,10 @@ class FODataValidator:
                         if drift > self.oi_tol:
                             drift_details.append(f"Strike {strike} CE OI diff {drift:.1f}% (Primary: {p_oi}, NSE: {n_oi})")
 
-            src = primary_chain.get("source", "primary")
+            src = (primary_chain or {}).get("data_source", "primary")
             if max_ltp_drift > self.ltp_tol or max_oi_drift > self.oi_tol:
                 msg = f"Data Drift Detected: {', '.join(drift_details[:3])}"
-                logger.warning(f"⚠️ [DATA VALIDATION WARNING] {symbol}: {msg}")
+                logger.warning(f"[DATA VALIDATION WARNING] {symbol}: {msg}")
                 self.record_health(symbol, src, "DRIFT_WARNING", max_ltp_drift, max_oi_drift, msg)
             else:
                 self.record_health(symbol, src, "HEALTHY", max_ltp_drift, max_oi_drift, "100% In Tolerance")

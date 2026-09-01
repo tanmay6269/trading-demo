@@ -87,7 +87,7 @@ class MarketPoller:
             timeout=4.0,
             limits=httpx.Limits(max_keepalive_connections=50, max_connections=100)
         )
-        logger.info(f"🚀 BullX F&O Market Poller started ({len(self._all_fo_symbols)} total underlyings)")
+        logger.info(f"BullX F&O Market Poller started ({len(self._all_fo_symbols)} total underlyings)")
 
         try:
             await asyncio.gather(
@@ -266,7 +266,7 @@ class MarketPoller:
     async def fetch_option_chain_one_symbol(self, symbol: str, expiry: Optional[str] = None) -> Optional[dict]:
         from market_data_engine import fetch_option_chain_failover
         try:
-            chain = await fetch_option_chain_failover("NSE", symbol, expiry)
+            chain = await asyncio.to_thread(fetch_option_chain_failover, "NSE", symbol, expiry)
             if chain and chain.get("chain"):
                 return chain
         except Exception as e:

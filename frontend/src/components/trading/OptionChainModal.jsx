@@ -9,12 +9,23 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
     const [activeSide, setActiveSide] = useState('all'); // 'all' | 'ce' | 'pe'
     const [columnView, setColumnView] = useState('compact'); // 'compact' | 'greeks' | 'full'
     const [errorMsg, setErrorMsg] = useState('');
+    const [retryKey, setRetryKey] = useState(0);
 
     useEffect(() => {
         if (!isOpen) return;
 
         let isMounted = true;
         let attempts = 0;
+
+        const fail = (msg) => {
+            attempts += 1;
+            if (!isMounted) return;
+            if (attempts >= 3) {
+                setErrorMsg(`${msg} Please click 'Retry'.`);
+            } else {
+                setErrorMsg(`${msg} (retry ${attempts}/3 in 3.5s)`);
+            }
+        };
 
         const fetchChain = async () => {
             if (attempts === 0) setLoading(true);
@@ -29,20 +40,13 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                         setSelectedExpiry(res.selected_expiry || res.expiries?.[0] || '');
                     }
                 } else if (res && res.error) {
-                    setErrorMsg(res.error);
+                    fail(res.error);
                 } else {
-                    setErrorMsg(`Option chain temporarily unavailable for ${symbol} on ${exchange}.`);
+                    fail(`Option chain temporarily unavailable for ${symbol} on ${exchange}.`);
                 }
             } catch (err) {
                 console.error('Option chain fetch error:', err);
-                attempts += 1;
-                if (isMounted) {
-                    if (attempts >= 3) {
-                        setErrorMsg(`Data source temporarily unavailable for ${symbol}. Click 'Retry' to reconnect.`);
-                    } else {
-                        setErrorMsg(`Connecting to live exchange data for ${symbol} (attempt ${attempts}/3)...`);
-                    }
-                }
+                fail(`Could not load ${symbol} option chain from the server.`);
             } finally {
                 if (isMounted) setLoading(false);
             }
@@ -59,7 +63,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
             isMounted = false;
             clearInterval(interval);
         };
-    }, [isOpen, symbol, selectedExpiry, exchange]);
+    }, [isOpen, symbol, selectedExpiry, exchange, retryKey]);
 
     if (!isOpen) return null;
 
@@ -255,6 +259,11 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
 
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                             📦 Lot Size: <strong style={{ color: 'var(--text-primary)' }}>{data?.lot_size || 25} Qty</strong>
+                            {data?.data_source && (
+                                <>
+                                    {' · Source: '}<strong style={{ color: '#34d399' }}>{data.data_source}</strong>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -318,7 +327,22 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                         </div>
                     ) : errorMsg ? (
                         <div style={{ padding: '40px', textAlign: 'center', color: '#ef4444', fontWeight: '700' }}>
-                            ⚠️ {errorMsg}
+                            <div style={{ marginBottom: '16px' }}>⚠️ {errorMsg}</div>
+                            <button
+                                onClick={() => setRetryKey(k => k + 1)}
+                                style={{
+                                    backgroundColor: 'var(--accent-primary)',
+                                    border: 'none',
+                                    color: '#ffffff',
+                                    padding: '10px 24px',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    fontWeight: '800',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                ↻ Retry
+                            </button>
                         </div>
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>

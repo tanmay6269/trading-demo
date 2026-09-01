@@ -264,7 +264,7 @@ def refresh_fo_underlyings_db(session):
                 session.add(record)
             count += 1
         session.commit()
-        logger.info(f"✅ Successfully refreshed {count} F&O Underlyings in database.")
+        logger.info(f"Successfully refreshed {count} F&O Underlyings in database.")
         return count
     except Exception as e:
         session.rollback()

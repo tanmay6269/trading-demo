@@ -416,10 +416,12 @@ _upstox = UpstoxAdapter()
 _dhan = DhanHQAdapter()
 _nse_free = NSEFreeAdapter()
 
-async def fetch_option_chain_failover(exchange: str, symbol: str, expiry: Optional[str] = None) -> Dict[str, Any]:
+def fetch_option_chain_failover(exchange: str, symbol: str, expiry: Optional[str] = None) -> Dict[str, Any]:
     """
     Robust multi-source option chain failover with detailed logging.
     Guarantees that a rich, accurate option chain is ALWAYS returned.
+    Pure synchronous (blocking HTTP) - callers MUST run this via
+    asyncio.to_thread() so the event loop is never blocked (see poller.py / app.py).
     """
     clean = canonicalize(symbol)
     ex = exchange.upper()
@@ -440,5 +442,5 @@ async def fetch_option_chain_failover(exchange: str, symbol: str, expiry: Option
         return chain
 
     # 4. Fallback to Real Black-Scholes Engine with live spot price
-    logger.info(f"🔄 Using Real Option Chain Engine (Black-Scholes with live spot) for {clean}")
+    logger.info(f"Using Real Option Chain Engine (Black-Scholes with live spot) for {clean}")
     return get_real_option_chain(clean, ex, expiry)

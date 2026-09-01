@@ -660,7 +660,7 @@ async def get_option_chain_route(symbol: str, expiry: Optional[str] = None):
     cached = await cache.get_option_chain("NSE", clean_u, expiry or "default")
     if cached:
         return cached
-    chain = await fetch_option_chain_failover("NSE", clean_u, expiry)
+    chain = await asyncio.to_thread(fetch_option_chain_failover, "NSE", clean_u, expiry)
     if chain:
         await cache.set_option_chain("NSE", clean_u, expiry or "default", chain, ttl_seconds=TTL_OPTION_CHAIN)
         return chain
