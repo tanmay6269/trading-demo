@@ -77,10 +77,18 @@ class RedisManager:
         key = f"quote:{exchange.upper()}:{segment.upper()}:{symbol.upper()}"
         return self.set(key, data, ttl_seconds)
 
+    def get_stock_quote(self, symbol):
+        clean = symbol.strip().upper().replace('.NS', '').replace('.BO', '')
+        return self.get(f"quote:stock:{clean}")
+
+    def set_stock_quote(self, symbol, data, ttl_seconds=4):
+        clean = symbol.strip().upper().replace('.NS', '').replace('.BO', '')
+        return self.set(f"quote:stock:{clean}", data, ttl_seconds)
+
     def get_indices(self):
         return self.get("indices:header")
 
-    def set_indices(self, data, ttl_seconds=2):
+    def set_indices(self, data, ttl_seconds=3):
         return self.set("indices:header", data, ttl_seconds)
 
     def get_news_feed(self, category=None, limit=30, offset=0):

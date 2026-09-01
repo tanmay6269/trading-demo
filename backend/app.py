@@ -1150,13 +1150,28 @@ def logout():
 @app.route('/api/price/<symbol>', methods=['GET'])
 def get_price(symbol):
     try:
-        q = fetch_stock_quote(symbol)
-        if q and q.get('price'):
+        clean_sym = symbol.strip().upper()
+        # 1. High-speed Redis Cache Lookup (0ms latency)
+        cached_q = redis_manager.get_stock_quote(clean_sym)
+        if cached_q and cached_q.get('price'):
             return jsonify({
-                'symbol': symbol,
+                'symbol': clean_sym,
+                'price': cached_q['price'],
+                'change': cached_q.get('change', 0.0),
+                'change_percent': cached_q.get('change_percent', 0.0),
+                'prev_close': cached_q.get('prev_close')
+            })
+
+        # 2. Live fetch if cache miss
+        q = fetch_stock_quote(clean_sym)
+        if q and q.get('price'):
+            redis_manager.set_stock_quote(clean_sym, q, ttl_seconds=5)
+            return jsonify({
+                'symbol': clean_sym,
                 'price': q['price'],
                 'change': q.get('change', 0.0),
-                'change_percent': q.get('change_percent', 0.0)
+                'change_percent': q.get('change_percent', 0.0),
+                'prev_close': q.get('prev_close')
             })
         return jsonify({'error': 'Symbol not found'}), 404
     except Exception as e:
@@ -1167,7 +1182,28 @@ def get_prices_route():
     try:
         data = request.get_json() or {}
         symbols = data.get('symbols', [])
-        quotes = get_prices(symbols)
+        if not symbols:
+            return jsonify({})
+
+        quotes = {}
+        missing_symbols = []
+
+        # 1. Read all available quotes directly from Redis memory
+        for s in symbols:
+            clean_s = s.strip().upper()
+            cached = redis_manager.get_stock_quote(clean_s)
+            if cached and cached.get('price'):
+                quotes[clean_s] = cached
+            else:
+                missing_symbols.append(clean_s)
+
+        # 2. Fetch only missing symbols in parallel from external API
+        if missing_symbols:
+            fresh_quotes = get_prices(missing_symbols)
+            for sym, q in fresh_quotes.items():
+                quotes[sym] = q
+                redis_manager.set_stock_quote(sym, q, ttl_seconds=5)
+
         return jsonify(quotes)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1175,8 +1211,15 @@ def get_prices_route():
 @app.route('/api/stock-info/<symbol>', methods=['GET'])
 def stock_info(symbol):
     try:
+        clean = symbol.strip().upper().replace('.NS', '').replace('.BO', '')
+        cache_key = f"stock_info:{clean}"
+        cached = redis_manager.get(cache_key)
+        if cached:
+            return jsonify(cached)
+
         info = get_stock_info(symbol)
         if info:
+            redis_manager.set(cache_key, info, ttl_seconds=15)
             return jsonify(info)
         return jsonify({'error': 'Symbol not found'}), 404
     except Exception as e:
@@ -1846,23 +1889,52 @@ def health_check():
         'commit': 'fa15a3ca-v2'
     }), 200
 
-def start_keep_alive_ping():
+def start_market_data_poller():
+    """
+    Dedicated High-Performance Background Poller:
+    - Calls external market APIs every 1.5-2.0 seconds in ONE background thread
+    - Writes fresh live quotes & indices directly into Redis cache
+    - All 500+ demo users read strictly from Redis memory (0ms lag, zero rate limits)
+    """
     import threading, time
-    def _ping():
-        time.sleep(3)
+    
+    TOP_WATCHED_STOCKS = [
+        'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN', 'BHARTIARTL',
+        'ITC', 'TATAMOTORS', 'LT', 'MARUTI', 'BAJFINANCE', 'SUNPHARMA', 'ASIANPAINT',
+        'TITAN', 'ZOMATO', 'PAYTM', 'SUZLON', 'JIOFIN', 'SWIGGY', 'WIPRO', 'HCLTECH',
+        'ADANIENT', 'ADANIPORTS', 'POWERGRID', 'NTPC', 'COALINDIA', 'ONGC', 'TATASTEEL',
+        'JSWSTEEL', 'M&M', 'EICHERMOT', 'BAJAJ-AUTO', 'CIPLA', 'DIVISLAB', 'DRREDDY',
+        'VEDL', 'TATAPOWER', 'HAL', 'BEL', 'RVNL', 'IRFC', 'PFC', 'REC', 'CDSL', 'BSE'
+    ]
+
+    def _poller():
+        time.sleep(2)
+        print("🚀 [MARKET POLLER] Dedicated background market poller started (1.5s interval -> Redis)")
         while True:
             try:
-                # Background price cache pre-warming for 0ms user response speed
                 from groww_data import get_index_data, get_prices
-                get_index_data()
-                get_prices(['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'TATAMOTORS', 'ICICIBANK', 'SBIN', 'BHARTIARTL'])
-            except Exception:
+                
+                # 1. Update Index Header Cache in Redis
+                indices = get_index_data()
+                if indices:
+                    redis_manager.set_indices(indices, ttl_seconds=6)
+
+                # 2. Batch fetch & warm top 46 active stocks in Redis
+                quotes = get_prices(TOP_WATCHED_STOCKS)
+                for sym, q in quotes.items():
+                    if q and q.get('price'):
+                        redis_manager.set_stock_quote(sym, q, ttl_seconds=6)
+
+            except Exception as e:
+                # Poller handles all network hiccups gracefully without crashing
                 pass
-            time.sleep(25)
-    t = threading.Thread(target=_ping, daemon=True)
+
+            time.sleep(1.5)
+
+    t = threading.Thread(target=_poller, daemon=True)
     t.start()
 
-start_keep_alive_ping()
+start_market_data_poller()
 
 if __name__ == '__main__':
     import sys

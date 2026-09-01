@@ -1984,22 +1984,20 @@ def get_stock_info(symbol):
 
         quote = fetch_stock_quote(symbol) or {}
         price = quote.get('price') or get_live_price(symbol)
-        change = quote.get('change', 0.0)
-        change_pct = quote.get('change_percent', 0.0)
+        prev_close = quote.get('prev_close') or info.get('previousClose') or info.get('regularMarketPreviousClose')
         
         day_high = info.get('dayHigh') or info.get('regularMarketDayHigh')
         day_low = info.get('dayLow') or info.get('regularMarketDayLow')
         fifty_two_high = info.get('fiftyTwoWeekHigh')
         fifty_two_low = info.get('fiftyTwoWeekLow')
         open_price = info.get('open') or info.get('regularMarketOpen')
-        prev_close = quote.get('prev_close') or info.get('previousClose') or info.get('regularMarketPreviousClose')
 
         # Fallback OHLC from direct V8 chart if yfinance info is empty for index symbols
         if not day_high or not day_low or not prev_close:
             try:
                 encoded_sym = requests.utils.quote(target)
                 url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded_sym}?interval=1d&range=5d"
-                r = requests.get(url, headers=HEADERS, timeout=4)
+                r = HTTP_SESSION.get(url, timeout=3)
                 if r.status_code == 200:
                     res = r.json()['chart']['result'][0]
                     q_ind = res['indicators']['quote'][0]
@@ -2018,6 +2016,16 @@ def get_stock_info(symbol):
                         open_price = opens[-1]
             except Exception:
                 pass
+
+        # Strict percentage calculation: (Current Price - Previous Close) / Previous Close * 100
+        if price and prev_close and float(prev_close) > 0:
+            price = round(float(price), 2)
+            prev_close = round(float(prev_close), 2)
+            change = round(price - prev_close, 2)
+            change_pct = round((change / prev_close) * 100, 2)
+        else:
+            change = quote.get('change', 0.0)
+            change_pct = quote.get('change_percent', 0.0)
 
         INDEX_NAMES = {
             '^NSEI': 'NIFTY 50',
