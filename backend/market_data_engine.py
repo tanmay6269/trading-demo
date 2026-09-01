@@ -27,16 +27,9 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 # ============================================================
-# Symbol normalization
+# Symbol normalization (single source of truth: nse_bse_fetcher)
 # ============================================================
-UNDERLYING_MAP = {
-    "NIFTY 50": "NIFTY", "NIFTY": "NIFTY", "^NSEI": "NIFTY",
-    "BANK NIFTY": "BANKNIFTY", "BANKNIFTY": "BANKNIFTY", "^NSEBANK": "BANKNIFTY",
-    "FIN NIFTY": "FINNIFTY", "FINNIFTY": "FINNIFTY",
-    "MIDCAP NIFTY": "MIDCPNIFTY", "MIDCPNIFTY": "MIDCPNIFTY",
-    "SENSEX": "SENSEX", "BSE SENSEX": "SENSEX", "^BSESN": "SENSEX",
-    "BANKEX": "BANKEX",
-}
+from nse_bse_fetcher import normalize_underlying
 
 # DhanHQ uses numeric security IDs for underlying indices
 DHAN_SECURITY_IDS = {
@@ -56,10 +49,6 @@ UPSTOX_INSTRUMENT_KEYS = {
     "MIDCPNIFTY": "NSE_INDEX|NIFTY MID SELECT",
     "SENSEX": "BSE_INDEX|SENSEX",
 }
-
-def normalize_underlying(symbol):
-    s = symbol.strip().upper().replace('.NS', '').replace('.BO', '')
-    return UNDERLYING_MAP.get(s, s)
 
 
 # ============================================================
@@ -440,35 +429,6 @@ class DhanAdapter:
 # ============================================================
 # Groww SDK Adapter (existing, kept as fallback)
 # ============================================================
-class GrowwAdapter:
-    """Fetches option chain from Groww Trade API SDK (requires paid token)."""
-
-    def __init__(self):
-        self.token = os.getenv("GROWW_API_TOKEN", "")
-
-    def is_configured(self):
-        return bool(self.token)
-
-    def get_option_chain(self, underlying, exchange="NSE", expiry=None):
-        try:
-            logger.info(f"========== GROWW SDK OPTION CHAIN ==========")
-            logger.info(f"  underlying={underlying}, exchange={exchange}, expiry={expiry}")
-
-            from real_option_chain import get_live_groww_option_chain
-            data = get_live_groww_option_chain(underlying, exchange, expiry)
-
-            if data and data.get("chain"):
-                logger.info(f"  Groww SDK: {len(data['chain'])} strikes returned")
-                return data
-            else:
-                logger.warning("  Groww SDK: no chain data returned")
-                return None
-
-        except Exception as e:
-            logger.error(f"  Groww SDK exception: {e}")
-            return None
-
-
 # ============================================================
 # Groww Free API Adapter (existing REST API, no SDK)
 # ============================================================

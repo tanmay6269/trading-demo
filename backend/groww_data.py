@@ -1541,24 +1541,35 @@ def fetch_stock_quote(symbol):
 from concurrent.futures import ThreadPoolExecutor
 
 def get_prices(symbols):
-    """Get rich live quotes for multiple symbols in parallel (Blazing Fast 0ms Guarantee)"""
+    """Get live quotes for multiple symbols. Cache-first (poller keeps 0ms prices
+    in Redis); only symbols missing from cache hit the network, bounded by timeout."""
     quotes = {}
     if not symbols:
         return quotes
-    
-    def _fetch_one(s):
-        return s, fetch_stock_quote(s)
-        
-    with ThreadPoolExecutor(max_workers=min(20, len(symbols))) as executor:
-        futures = [executor.submit(_fetch_one, s) for s in symbols]
-        for f in futures:
-            try:
-                sym, q = f.result()
-                if q:
-                    quotes[sym] = q
-            except Exception:
-                pass
-            
+
+    from redis_cache import cache
+    missing = []
+    for s in symbols:
+        clean_s = s.strip().upper()
+        cached = cache.get_stock_quote(clean_s)
+        if cached and cached.get("price") is not None:
+            quotes[clean_s] = cached
+        else:
+            missing.append(clean_s)
+
+    if missing:
+        def _fetch_one(s):
+            return s, fetch_stock_quote(s)
+        with ThreadPoolExecutor(max_workers=min(20, len(missing))) as executor:
+            futures = [executor.submit(_fetch_one, s) for s in missing]
+            for f in futures:
+                try:
+                    sym, q = f.result(timeout=8)
+                    if q:
+                        quotes[sym] = q
+                except Exception:
+                    pass
+
     for s in symbols:
         clean_s = s.strip().upper()
         if clean_s not in quotes and clean_s in DEFAULT_STOCK_FALLBACKS:
@@ -1656,8 +1667,16 @@ def _fetch_search_option_chain(clean_u, exchange):
     by the Option Chain modal, so search suggestions show real per-strike prices
     instead of a fabricated symbol that live quote lookups can't resolve."""
     try:
+        from redis_cache import cache
+        key = f"optionchain:{exchange.upper()}:{clean_u.upper()}:default"
+        cached = cache.get_sync(key)
+        if cached and cached.get("chain"):
+            return cached
         from nse_bse_fetcher import get_real_option_chain
-        return get_real_option_chain(clean_u, exchange)
+        data = get_real_option_chain(clean_u, exchange)
+        if data and data.get("chain"):
+            cache.set_sync(key, data, ttl_seconds=15)
+        return data
     except Exception:
         return None
 
@@ -1805,7 +1824,7 @@ def search_stocks(query):
                 results.append(_build_option_search_result(symbol, atm, 'PE', chain_data=shared_chain))
     
     if not opt_match and not results and len(query) >= 2:
-        for suffix in ['.NS', '.BO', '']:
+        for suffix in ['.NS', '']:
             sym_candidate = f"{query}{suffix}" if not (query.endswith('.NS') or query.endswith('.BO') or query.startswith('^')) else query
             q = fetch_stock_quote(sym_candidate)
             if q and q.get('price') and not any(r['symbol'] == query for r in results):
@@ -1891,35 +1910,46 @@ def get_historical_data(symbol, period='1d', interval='1m'):
                 if len(opt_candles) >= 5:
                     return opt_candles
 
-        mapped_target = SYMBOL_MAP.get(clean_sym)
-        
+        from symbol_mapper import get_symbol
+        yahoo_target = None
+        try:
+            yahoo_target = get_symbol(clean_sym, 'yahoo')
+        except Exception:
+            pass
+
         targets = []
-        if mapped_target:
-            targets.append(mapped_target)
+        if yahoo_target:
+            targets.append(yahoo_target)
         
         if not clean_sym.endswith('.NS') and not clean_sym.endswith('.BO') and not clean_sym.startswith('^'):
             targets.extend([f'{clean_sym}.NS', f'{clean_sym}.BO', clean_sym])
         else:
-            targets.append(clean_sym)
+            if clean_sym not in targets:
+                targets.append(clean_sym)
 
         period_range_map = {
-            '1d': [('1d', '5m'), ('5d', '15m')],
-            '5d': [('5d', '15m'), ('1mo', '1h')],
-            '1mo': [('1mo', '1h'), ('3mo', '1d')],
-            '3mo': [('3mo', '1d'), ('6mo', '1d')],
+            '1d': [('1d', '1m'), ('1d', '5m'), ('5d', '5m')],
+            '5d': [('5d', '5m'), ('5d', '15m'), ('1mo', '1h')],
+            '1mo': [('1mo', '15m'), ('1mo', '1h'), ('3mo', '1d')],
+            '3mo': [('3mo', '1h'), ('3mo', '1d'), ('6mo', '1d')],
             '6mo': [('6mo', '1d'), ('1y', '1d')],
             '1y': [('1y', '1d'), ('5y', '1wk')],
             '5y': [('5y', '1wk'), ('max', '1mo')],
             'max': [('max', '1mo'), ('5y', '1wk')]
         }
         
-        tries = period_range_map.get(period, [('5d', '5m')])
+        tries = list(period_range_map.get(period, [('1d', '1m'), ('5d', '5m')]))
+        if interval and (period, interval) not in tries:
+            tries.insert(0, (period, interval))
 
         for range_val, interval_val in tries:
             for target in targets:
-                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{target}?interval={interval_val}&range={range_val}"
+                if not isinstance(target, str):
+                    continue
+                encoded = requests.utils.quote(target)
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded}?interval={interval_val}&range={range_val}"
                 try:
-                    r = requests.get(url, headers=HEADERS, timeout=5)
+                    r = HTTP_SESSION.get(url, timeout=3.5)
                     if r.status_code == 200:
                         data = r.json()
                         if 'chart' in data and 'result' in data['chart'] and data['chart']['result']:

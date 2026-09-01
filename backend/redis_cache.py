@@ -25,9 +25,9 @@ except ImportError:
     SYNC_REDIS_AVAILABLE = False
 
 # Standard Centralized TTLs (in seconds)
-TTL_STOCK_PRICE = 2
-TTL_OPTION_CHAIN = 2
-TTL_INDEX = 5
+TTL_STOCK_PRICE = 15
+TTL_OPTION_CHAIN = 15
+TTL_INDEX = 15
 TTL_NEWS = 30
 TTL_STOCK_INFO = 20
 
@@ -117,6 +117,30 @@ class AsyncRedisCacheManager:
     def _key(self, kind: str, symbol: str) -> str:
         clean = symbol.strip().upper().replace('.NS', '').replace('.BO', '')
         return f"{kind}:{clean}"
+
+    # ---------------- Async Leader Lock (one poller among N workers) ----------------
+    async def try_acquire_lock(self, key: str, ttl_seconds: int = 30) -> bool:
+        """SET key value NX EX ttl — returns True only if THIS process won the lock.
+        Falls back to a process-local flag when Redis is unavailable so a single
+        worker still polls locally."""
+        client = await self.get_async_client()
+        if client:
+            try:
+                got = await client.set(key, "1", nx=True, ex=ttl_seconds)
+                return bool(got)
+            except Exception:
+                pass
+        return self._memory_lock_acquire(key, ttl_seconds)
+
+    def _memory_lock_acquire(self, key: str, ttl_seconds: int) -> bool:
+        with self._lock:
+            now = time.time()
+            if key in self._memory_cache:
+                _, expire_at = self._memory_cache[key]
+                if now < expire_at:
+                    return False
+            self._memory_cache[key] = (True, now + ttl_seconds)
+            return True
 
     # ---------------- Async API for FastAPI & Poller ----------------
     async def get_async(self, key: str) -> Optional[Any]:

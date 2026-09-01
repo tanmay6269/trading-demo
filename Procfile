@@ -1,1 +1,1 @@
-web: cd backend && gunicorn --workers 4 --threads 4 --timeout 60 app:app
+web: cd backend && uvicorn app:app --host 0.0.0.0 --port $PORT --workers 4

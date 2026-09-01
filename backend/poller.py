@@ -121,7 +121,7 @@ async def fetch_stock_nse(client: httpx.AsyncClient, symbol: str) -> Optional[Di
         from nsepython import nse_eq
         loop = asyncio.get_event_loop()
         nse_sym = get_symbol(symbol, "nse")
-        data = await loop.run_in_executor(None, nse_eq, nse_sym)
+        data = await asyncio.wait_for(loop.run_in_executor(None, nse_eq, nse_sym), timeout=2.0)
         if data and "priceInfo" in data:
             pi = data["priceInfo"]
             ltp = float(pi.get("lastPrice", 0))
@@ -155,7 +155,7 @@ async def fetch_stock_bse(client: httpx.AsyncClient, symbol: str) -> Optional[Di
             b = BSE(update_codes=False)
             return b.getQuote(str(scrip_code))
 
-        quote = await loop.run_in_executor(None, _get_bse)
+        quote = await asyncio.wait_for(loop.run_in_executor(None, _get_bse), timeout=2.0)
         if quote and quote.get("currentValue"):
             ltp = float(quote["currentValue"])
             prev_close = float(quote.get("previousClose") or ltp)
@@ -272,7 +272,7 @@ async def fetch_option_chain_failover(exchange: str, underlying: str, expiry: st
     # 1. Try market_data_engine (Upstox / Dhan / Groww)
     try:
         from market_data_engine import market_engine
-        data = await loop.run_in_executor(None, market_engine.get_option_chain, exchange, underlying, expiry)
+        data = await asyncio.wait_for(loop.run_in_executor(None, market_engine.get_option_chain, exchange, underlying, expiry), timeout=5.0)
         if data and data.get("status") == "success" and data.get("strikes"):
             return data
     except Exception:
@@ -282,7 +282,7 @@ async def fetch_option_chain_failover(exchange: str, underlying: str, expiry: st
     try:
         from nsepython import nse_optionchain_scrapper
         clean_u = get_symbol(underlying, "nse")
-        nse_data = await loop.run_in_executor(None, nse_optionchain_scrapper, clean_u)
+        nse_data = await asyncio.wait_for(loop.run_in_executor(None, nse_optionchain_scrapper, clean_u), timeout=3.0)
         if nse_data and "records" in nse_data:
             records = nse_data.get("records", {})
             underlying_value = records.get("underlyingValue", 0.0)
@@ -344,9 +344,23 @@ class AsyncMarketPoller:
     def __init__(self):
         self.is_running = False
         self._task = None
+        self._extra_symbols = set()
+
+    def register(self, symbol: str):
+        """Register a symbol for the poller to keep warm (routes stay Redis-only)."""
+        if symbol:
+            self._extra_symbols.add(symbol.strip().upper())
 
     async def poll_cycle(self, client: httpx.AsyncClient):
-        # A. Poll Indices
+        # A, B, C run concurrently so the slowest block bounds the cycle,
+        # keeping cache TTLs comfortably ahead of the poll period.
+        await asyncio.gather(
+            self._poll_indices(client),
+            self._poll_equities(client),
+            self._poll_option_chains(),
+        )
+
+    async def _poll_indices(self, client: httpx.AsyncClient):
         indices_dict = {}
         index_tasks = [fetch_one_stock(client, sym) for sym in INDICES_TO_POLL]
         index_results = await asyncio.gather(*index_tasks, return_exceptions=True)
@@ -366,27 +380,49 @@ class AsyncMarketPoller:
         if indices_dict:
             await cache.set_all_indices(indices_dict, ttl_seconds=TTL_INDEX)
 
-        # B. Poll Equities
-        stock_tasks = [fetch_one_stock(client, sym) for sym in STOCKS_TO_POLL]
+    async def _poll_equities(self, client: httpx.AsyncClient):
+        poll_symbols = list(STOCKS_TO_POLL) + list(self._extra_symbols)
+        stock_tasks = [fetch_one_stock(client, sym) for sym in poll_symbols]
         stock_results = await asyncio.gather(*stock_tasks, return_exceptions=True)
-        for sym, res in zip(STOCKS_TO_POLL, stock_results):
+        for sym, res in zip(poll_symbols, stock_results):
             if isinstance(res, dict) and res.get("price"):
                 await cache.set_stock_price(sym, res, ttl_seconds=TTL_STOCK_PRICE)
 
-        # C. Poll Active Option Chains
-        for exch, und in OPTION_UNDERLYINGS_TO_POLL:
+    async def _poll_option_chains(self):
+        tasks = [
+            asyncio.create_task(self._fetch_and_cache_chain(exch, und))
+            for exch, und in OPTION_UNDERLYINGS_TO_POLL
+        ]
+        for t in tasks:
             try:
-                chain = await fetch_option_chain_failover(exch, und)
-                if chain:
-                    await cache.set_option_chain(exch, und, chain.get("expiry"), chain, ttl_seconds=TTL_OPTION_CHAIN)
+                await t
             except Exception:
                 pass
+
+    async def _fetch_and_cache_chain(self, exch, und):
+        chain = await fetch_option_chain_failover(exch, und)
+        if chain:
+            await cache.set_option_chain(exch, und, chain.get("expiry"), chain, ttl_seconds=TTL_OPTION_CHAIN)
 
     async def start(self):
         if self.is_running:
             return
         self.is_running = True
-        logger.info("🚀 [poller] Standalone async market poller initialized (1.5s loop -> Redis)")
+
+        # Leader election: with multiple uvicorn/gunicorn workers, only ONE
+        # may run the market poller (otherwise N pollers would spam the APIs).
+        # Redis SET NX gives us a distributed lock; local-process flag when
+        # Redis is off.
+        try:
+            is_leader = await cache.try_acquire_lock("bullx:poller:leader", ttl_seconds=30)
+        except Exception:
+            is_leader = True
+        if not is_leader:
+            logger.info("[poller] Another worker holds the leader lock — standing by (no duplicate polling).")
+            self.is_running = False
+            return
+
+        logger.info("[poller] Standalone async market poller initialized (1.5s loop -> Redis)")
 
         async with httpx.AsyncClient(timeout=3.0) as client:
             while self.is_running:

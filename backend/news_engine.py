@@ -417,7 +417,7 @@ class RSSNewsProvider:
     def _parse_entry(self, entry, source, category_hint):
         """Parse a single RSS entry into a normalized article dict."""
         title = (entry.get("title") or "").strip()
-        if not title:
+        if not title or title.lower() in ("undefined", "null", "none"):
             return None
 
         # Extract link
@@ -427,6 +427,10 @@ class RSSNewsProvider:
                 if l.get("rel") == "alternate" and l.get("href"):
                     link = l["href"]
                     break
+        if link and not link.startswith(("http://", "https://")):
+            link = ""
+        if not link or link.lower().startswith(("undefined", "null")):
+            return None
 
         # Extract summary
         summary = ""
@@ -745,26 +749,13 @@ class NewsScheduler:
         time.sleep(5)
         logger.info("NewsScheduler: Starting initial feed fetch...")
 
-        # This thread has no Flask request/app context of its own, so every
-        # db.session / Model.query call inside _do_fetch_cycle would otherwise
-        # raise "working outside of application context" — silently swallowed
-        # by the broad except blocks below and inside _save_to_db, which is why
-        # articles were fetched (total_fetched/total_new > 0) but never
-        # persisted (total_db_articles stayed 0).
-        flask_app = None
-        if self.db is not None:
-            try:
-                from app import app as flask_app
-            except Exception as e:
-                logger.warning(f"NewsScheduler: could not import Flask app for context ({e}); DB writes will be skipped")
-
+        # NOTE: On FastAPI there is no Flask app context. The scheduler uses
+        # its OWN scoped SQLAlchemy session (imported lazily from app) so every
+        # _save_to_db / _load_existing_fingerprints call opens a fresh session
+        # per operation instead of relying on a request/app context.
         while self._running:
             try:
-                if flask_app is not None:
-                    with flask_app.app_context():
-                        self._do_fetch_cycle()
-                else:
-                    self._do_fetch_cycle()
+                self._do_fetch_cycle()
             except Exception as e:
                 logger.error(f"NewsScheduler error: {e}")
                 self._stats["total_errors"] += 1
@@ -848,10 +839,15 @@ class NewsScheduler:
         """Load existing article URLs and title hashes from DB for dedup."""
         if not self.db:
             return
+        session = None
         try:
             # Import here to avoid circular imports
             from app import NewsArticle
-            recent = NewsArticle.query.order_by(
+            # self.db is a session factory (SessionLocal); open one fresh session
+            session = self.db() if callable(self.db) else self.db
+            if session is None:
+                return
+            recent = session.query(NewsArticle).order_by(
                 NewsArticle.published_at.desc()
             ).limit(500).all()
 
@@ -866,6 +862,12 @@ class NewsScheduler:
             self.deduper.load_existing(urls, title_hashes)
         except Exception as e:
             logger.warning(f"Failed to load existing fingerprints: {e}")
+        finally:
+            if session is not None:
+                try:
+                    session.close()
+                except Exception:
+                    pass
 
     def _save_to_db(self, articles):
         """Save new articles to database. Returns list of saved article dicts."""
@@ -877,8 +879,9 @@ class NewsScheduler:
                 saved.append(self._article_to_dict(a))
             return saved
 
+        session = self.db() if callable(self.db) else self.db
         try:
-            from app import NewsArticle, db as app_db
+            from app import NewsArticle
             for a in articles:
                 try:
                     news = NewsArticle(
@@ -897,22 +900,26 @@ class NewsScheduler:
                         importance=a.get("importance", "LOW")[:10],
                         sentiment=a.get("sentiment", "NEUTRAL")[:10],
                     )
-                    app_db.session.add(news)
-                    app_db.session.flush()
+                    session.add(news)
+                    session.flush()
                     saved.append(self._article_to_dict(a, news.id))
                 except Exception as e:
                     logger.warning(f"Failed to save article '{a['title'][:50]}': {e}")
-                    app_db.session.rollback()
+                    session.rollback()
                     # Still include in broadcast even if DB save fails
                     a["id"] = int(time.time() * 1000)
                     saved.append(self._article_to_dict(a))
 
-            app_db.session.commit()
+            session.commit()
         except Exception as e:
             logger.error(f"DB commit failed: {e}")
             try:
-                from app import db as app_db
-                app_db.session.rollback()
+                session.rollback()
+            except Exception:
+                pass
+        finally:
+            try:
+                session.close()
             except Exception:
                 pass
 
