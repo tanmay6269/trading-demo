@@ -324,6 +324,34 @@ export const api = {
     getNewsHealth: async () => {
         const response = await fetch(`${API_BASE_URL}/news/health`);
         return handleResponse(response);
+    },
+
+    // F&O Underlyings & Analytics
+    getFOUnderlyings: async () => {
+        const res = await fetch(`${API_BASE_URL}/fo-underlyings`);
+        return handleResponse(res);
+    },
+    getOIBuildup: async (symbol, expiry = '') => {
+        const q = expiry ? `?expiry=${encodeURIComponent(expiry)}` : '';
+        const res = await fetch(`${API_BASE_URL}/option-chain/${symbol}/oi-buildup${q}`);
+        return handleResponse(res);
+    },
+    getPCRHistory: async (symbol) => {
+        const res = await fetch(`${API_BASE_URL}/option-chain/${symbol}/pcr-history`);
+        return handleResponse(res);
+    },
+    getIVSkew: async (symbol, expiry = '') => {
+        const q = expiry ? `?expiry=${encodeURIComponent(expiry)}` : '';
+        const res = await fetch(`${API_BASE_URL}/option-chain/${symbol}/iv-skew${q}`);
+        return handleResponse(res);
+    },
+    getDataHealth: async () => {
+        const res = await fetch(`${API_BASE_URL}/admin/data-health`);
+        return handleResponse(res);
+    },
+    getTokenHealth: async () => {
+        const res = await fetch(`${API_BASE_URL}/admin/token-health`);
+        return handleResponse(res);
     }
 };
 

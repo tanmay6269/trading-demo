@@ -25,7 +25,6 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                 if (res && res.chain && res.chain.length > 0) {
                     setData(res);
                     setErrorMsg('');
-                    setRetryCount(0);
                     if (!selectedExpiry || !res.expiries?.includes(selectedExpiry)) {
                         setSelectedExpiry(res.selected_expiry || res.expiries?.[0] || '');
                     }
@@ -37,7 +36,6 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
             } catch (err) {
                 console.error('Option chain fetch error:', err);
                 attempts += 1;
-                setRetryCount(attempts);
                 if (isMounted) {
                     if (attempts >= 3) {
                         setErrorMsg(`Data source temporarily unavailable for ${symbol}. Click 'Retry' to reconnect.`);

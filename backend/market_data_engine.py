@@ -62,10 +62,10 @@ def validate_broker_tokens() -> Dict[str, Any]:
             )
             if r.status_code == 200:
                 report["upstox"] = {"status": "VALID", "message": "Token active and verified with Upstox API"}
-                logger.info("✅ [TOKEN CHECK] Upstox Token is VALID")
+                logger.info("[TOKEN CHECK] Upstox Token is VALID")
             elif r.status_code == 401:
                 report["upstox"] = {"status": "EXPIRED", "message": "Upstox token expired (daily expiry) — regenerate in Upstox Developer portal"}
-                logger.warning("⚠️ [TOKEN CHECK] Upstox Token is EXPIRED (HTTP 401)")
+                logger.warning("[TOKEN CHECK] Upstox Token is EXPIRED (HTTP 401)")
             else:
                 report["upstox"] = {"status": "ERROR", "message": f"Upstox returned HTTP {r.status_code}"}
         except Exception as e:
@@ -81,10 +81,10 @@ def validate_broker_tokens() -> Dict[str, Any]:
             )
             if r.status_code == 200:
                 report["dhan"] = {"status": "VALID", "message": "Token active and verified with Dhan API"}
-                logger.info("✅ [TOKEN CHECK] Dhan Credentials are VALID")
+                logger.info("[TOKEN CHECK] Dhan Credentials are VALID")
             elif r.status_code in [401, 403]:
                 report["dhan"] = {"status": "EXPIRED", "message": "Dhan access token expired or unauthorized"}
-                logger.warning("⚠️ [TOKEN CHECK] Dhan Credentials EXPIRED/INVALID")
+                logger.warning("[TOKEN CHECK] Dhan Credentials EXPIRED/INVALID")
             else:
                 report["dhan"] = {"status": "ERROR", "message": f"Dhan returned HTTP {r.status_code}"}
         except Exception as e:
@@ -125,14 +125,14 @@ class UpstoxAdapter:
             if r.status_code == 200:
                 data = r.json()
                 if data.get("status") == "success" and data.get("data"):
-                    logger.info(f"✅ Upstox: SUCCESS for {underlying} ({len(data['data'])} strikes)")
+                    logger.info(f"Upstox: SUCCESS for {underlying} ({len(data['data'])} strikes)")
                     return self._normalize(data["data"], underlying, exchange, expiry)
             elif r.status_code == 401:
-                logger.warning("⚠️ Upstox: Token EXPIRED (HTTP 401) — falling over to next provider")
+                logger.warning("Upstox: Token EXPIRED (HTTP 401) - falling over to next provider")
             else:
-                logger.warning(f"Upstox: HTTP {r.status_code} for {underlying} — falling over")
+                logger.warning(f"Upstox: HTTP {r.status_code} for {underlying} - falling over")
         except Exception as e:
-            logger.warning(f"Upstox: Exception ({e}) — falling over to next provider")
+            logger.warning(f"Upstox: Exception ({e}) - falling over to next provider")
         return None
 
     def _normalize(self, raw_data, underlying, exchange, expiry):
@@ -236,20 +236,87 @@ class DhanHQAdapter:
         try:
             r = SESSION.post(
                 f"{self.BASE}/optionchain",
-                json={"UnderlyingSymbol": dhan_sym},
+                json={"UnderlyingSymbol": dhan_sym, "UnderlyingSeg": "EQ", "Expiry": expiry or ""},
                 headers={"client-id": self.client_id, "access-token": self.access_token},
                 timeout=6
             )
             if r.status_code == 200:
                 data = r.json()
                 if data.get("data"):
-                    logger.info(f"✅ DhanHQ: SUCCESS for {underlying}")
-                    return data
+                    logger.info(f"DhanHQ: SUCCESS for {underlying}")
+                    return self._normalize(data["data"], underlying, exchange, expiry)
             else:
-                logger.warning(f"DhanHQ: HTTP {r.status_code} for {underlying} — falling over")
+                logger.warning(f"DhanHQ: HTTP {r.status_code} for {underlying} - falling over")
         except Exception as e:
-            logger.warning(f"DhanHQ: Exception ({e}) — falling over")
+            logger.warning(f"DhanHQ: Exception ({e}) - falling over")
         return None
+
+    def _normalize(self, raw_data, underlying, exchange, expiry):
+        """Normalize Dhan optionchain response (expiries + oc map) into unified format."""
+        spot_price = raw_data.get("last_price")
+        if spot_price is not None:
+            spot_price = float(spot_price)
+
+        expiries = raw_data.get("expiries") or []
+        oc = raw_data.get("oc") or {}
+        rows = []
+        total_ce_oi = 0
+        total_pe_oi = 0
+
+        for strike_key, contract in oc.items():
+            try:
+                strike = float(strike_key)
+            except (ValueError, TypeError):
+                continue
+            ce = self._parse_leg(contract.get("ce") or {}) if contract.get("ce") else None
+            pe = self._parse_leg(contract.get("pe") or {}) if contract.get("pe") else None
+            if ce:
+                total_ce_oi += (ce.get("oi") or 0)
+            if pe:
+                total_pe_oi += (pe.get("oi") or 0)
+            rows.append({"strike": strike, "ce": ce, "pe": pe})
+
+        rows.sort(key=lambda x: x["strike"])
+        if spot_price and rows:
+            atm = min(rows, key=lambda x: abs(x["strike"] - spot_price))
+            for r in rows:
+                r["is_atm"] = (r["strike"] == atm["strike"])
+        else:
+            for r in rows:
+                r["is_atm"] = False
+
+        pcr = round(total_pe_oi / total_ce_oi, 2) if total_ce_oi > 0 else 1.0
+
+        return {
+            "status": "success",
+            "data_source": "DHAN_API",
+            "symbol": underlying,
+            "exchange": exchange,
+            "spot_price": spot_price,
+            "expiries": expiries,
+            "selected_expiry": expiry or (expiries[0] if expiries else None),
+            "pcr": pcr,
+            "chain": rows,
+            "received_at": datetime.utcnow().isoformat() + "Z",
+        }
+
+    def _parse_leg(self, raw):
+        greeks = raw.get("greeks") or {}
+        return {
+            "symbol": raw.get("security_id") or raw.get("identifier"),
+            "ltp": raw.get("ltp") or raw.get("last_price"),
+            "oi": raw.get("oi") or raw.get("open_interest"),
+            "volume": raw.get("volume"),
+            "iv": raw.get("implied_volatility") or greeks.get("iv"),
+            "delta": greeks.get("delta"),
+            "gamma": greeks.get("gamma"),
+            "theta": greeks.get("theta"),
+            "vega": greeks.get("vega"),
+            "bid_price": raw.get("bid_price"),
+            "bid_qty": raw.get("bid_qty"),
+            "ask_price": raw.get("ask_price"),
+            "ask_qty": raw.get("ask_qty")
+        }
 
 
 # ============================================================
@@ -262,10 +329,10 @@ class NSEFreeAdapter:
             nse_sym = get_symbol(underlying, "nse")
             data = nse_optionchain_scrapper(nse_sym)
             if data and "records" in data and data["records"].get("data"):
-                logger.info(f"✅ NSE Free Public: SUCCESS for {underlying}")
+                logger.info(f"NSE Free Public: SUCCESS for {underlying}")
                 return self._normalize(data, underlying, exchange, expiry)
         except Exception as e:
-            logger.warning(f"NSE Free Public: Exception ({e}) — falling over to Real Option Chain Engine")
+            logger.warning(f"NSE Free Public: Exception ({e}) - falling over to Real Option Chain Engine")
         return None
 
     def _normalize(self, data, underlying, exchange, expiry):
