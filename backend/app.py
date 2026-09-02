@@ -38,6 +38,14 @@ from symbol_mapper import get_symbol, canonicalize, SYMBOL_MAP
 from poller import poller
 from market_data_engine import fetch_option_chain_failover, validate_broker_tokens
 import httpx
+import logging
+
+logger = logging.getLogger("bullx_app")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] [app] %(message)s"))
+    logger.addHandler(_h)
 
 # ------------------------------------------------------------------
 # Database
