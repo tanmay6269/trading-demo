@@ -576,6 +576,8 @@ async def get_index_route(symbol: str):
 
 
 @app.get("/api/index-data")
+@app.get("/api/indices")
+@app.get("/indices")
 async def get_index_data_route():
     """Live Indian market header indices from Redis."""
     cached = await cache.get_all_indices()
@@ -1495,7 +1497,10 @@ async def get_news_health():
 # HEALTH & PING
 # =====================================================================
 
+@app.get("/")
+@app.head("/")
 @app.get("/health")
+@app.head("/health")
 @app.get("/api/health")
 @app.get("/api/ping")
 async def health_check():

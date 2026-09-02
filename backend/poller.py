@@ -19,7 +19,7 @@ from typing import Dict, Any, List, Optional, Set
 import httpx
 
 from symbol_mapper import canonicalize, get_symbol
-import redis_cache as cache
+from redis_cache import cache
 from fo_discovery import OFFICIAL_NSE_FO_LIST
 from fo_validator import validator
 

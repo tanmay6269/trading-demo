@@ -266,3 +266,13 @@ class AsyncRedisCacheManager:
 # Singleton global instance
 cache = AsyncRedisCacheManager()
 redis_manager = cache
+
+# Module-level convenience forwarders
+get_stock_price = cache.get_stock_price
+set_stock_price = cache.set_stock_price
+get_index = cache.get_index
+set_index = cache.set_index
+get_all_indices = cache.get_all_indices
+set_all_indices = cache.set_all_indices
+get_option_chain = cache.get_option_chain
+set_option_chain = cache.set_option_chain
