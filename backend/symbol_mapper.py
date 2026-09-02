@@ -34,6 +34,8 @@ CANONICAL_INDEX_MAP = {
         "display": "NIFTY 50",
         "yahoo": "^NSEI",
         "upstox": "NSE_INDEX|Nifty 50",
+        "angelone": "26000",
+        "angelone_symbol": "NIFTY",
         "dhan": "NIFTY",
         "dhan_sec_id": "13",
         "nse": "NIFTY",
@@ -44,6 +46,8 @@ CANONICAL_INDEX_MAP = {
         "display": "BANK NIFTY",
         "yahoo": "^NSEBANK",
         "upstox": "NSE_INDEX|Nifty Bank",
+        "angelone": "26009",
+        "angelone_symbol": "BANKNIFTY",
         "dhan": "BANKNIFTY",
         "dhan_sec_id": "25",
         "nse": "BANKNIFTY",
@@ -54,6 +58,8 @@ CANONICAL_INDEX_MAP = {
         "display": "FIN NIFTY",
         "yahoo": "NIFTY_FIN_SERVICE.NS",
         "upstox": "NSE_INDEX|Nifty Fin Service",
+        "angelone": "26037",
+        "angelone_symbol": "FINNIFTY",
         "dhan": "FINNIFTY",
         "dhan_sec_id": "27",
         "nse": "FINNIFTY",
@@ -64,6 +70,8 @@ CANONICAL_INDEX_MAP = {
         "display": "MIDCAP NIFTY",
         "yahoo": "NIFTY_MID_SELECT.NS",
         "upstox": "NSE_INDEX|NIFTY MID SELECT",
+        "angelone": "26074",
+        "angelone_symbol": "MIDCPNIFTY",
         "dhan": "MIDCPNIFTY",
         "dhan_sec_id": "44",
         "nse": "MIDCPNIFTY",
@@ -74,6 +82,8 @@ CANONICAL_INDEX_MAP = {
         "display": "SENSEX",
         "yahoo": "^BSESN",
         "upstox": "BSE_INDEX|SENSEX",
+        "angelone": "99919000",
+        "angelone_symbol": "SENSEX",
         "dhan": "SENSEX",
         "dhan_sec_id": "51",
         "nse": "SENSEX",
@@ -84,6 +94,8 @@ CANONICAL_INDEX_MAP = {
         "display": "BSE BANKEX",
         "yahoo": "^BSEBANK",
         "upstox": "BSE_INDEX|BANKEX",
+        "angelone": "99919012",
+        "angelone_symbol": "BANKEX",
         "dhan": "BANKEX",
         "dhan_sec_id": "52",
         "nse": "BANKEX",
@@ -94,6 +106,8 @@ CANONICAL_INDEX_MAP = {
         "display": "INDIA VIX",
         "yahoo": "^INDIAVIX",
         "upstox": "NSE_INDEX|India VIX",
+        "angelone": "26017",
+        "angelone_symbol": "INDIA VIX",
         "dhan": "INDIAVIX",
         "nse": "INDIA VIX",
         "groww": "INDIA VIX",
@@ -247,8 +261,25 @@ def get_symbol(canonical_symbol: str, source: str) -> str:
     if src == "nse":
         return clean
 
-    if src == "groww":
+    if src in ["angelone", "angel_token", "angelone_token"]:
+        try:
+            from angel_one_adapter import angel_adapter
+            info = angel_adapter.get_token_info(clean)
+            if info:
+                return info.get("token", clean)
+        except Exception:
+            pass
         return clean
+
+    if src == "angelone_symbol":
+        try:
+            from angel_one_adapter import angel_adapter
+            info = angel_adapter.get_token_info(clean)
+            if info:
+                return info.get("symbol", f"{clean}-EQ")
+        except Exception:
+            pass
+        return f"{clean}-EQ"
 
     if src == "bse":
         return BSE_SCRIP_CODES.get(clean, clean)
