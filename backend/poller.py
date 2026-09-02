@@ -253,6 +253,8 @@ class MarketPoller:
         return None
 
     async def fetch_price_one_symbol(self, symbol: str) -> Optional[dict]:
+        if not self.client:
+            self.client = httpx.AsyncClient(timeout=4.0)
         for fetcher in (self.fetch_price_upstox, self.fetch_price_groww, self.fetch_price_yahoo):
             try:
                 data = await fetcher(symbol)
@@ -260,13 +262,31 @@ class MarketPoller:
                     return data
             except Exception:
                 continue
+        # Fallback to groww_data quote
+        try:
+            from groww_data import fetch_stock_quote
+            q = fetch_stock_quote(symbol)
+            if q and q.get("price"):
+                ltp = float(q["price"])
+                pc = float(q.get("prev_close") or ltp)
+                return {
+                    "price": ltp,
+                    "ltp": ltp,
+                    "prev_close": pc,
+                    "change": float(q.get("change") or round(ltp - pc, 2)),
+                    "change_percent": float(q.get("change_percent") or _correct_pct_change(ltp, pc)),
+                    "source": "groww_fallback",
+                    "ts": time.time()
+                }
+        except Exception:
+            pass
         return None
 
-    # ---------- OPTION CHAIN INGESTION (Upstox -> Dhan -> Groww -> NSE) ----------
+    # ---------- OPTION CHAIN INGESTION (Angel One -> Upstox -> Groww -> BS) ----------
     async def fetch_option_chain_one_symbol(self, symbol: str, expiry: Optional[str] = None) -> Optional[dict]:
         from market_data_engine import fetch_option_chain_failover
         try:
-            chain = await asyncio.to_thread(fetch_option_chain_failover, "NSE", symbol, expiry)
+            chain = await fetch_option_chain_failover("NSE", symbol, expiry)
             if chain and chain.get("chain"):
                 return chain
         except Exception as e:
