@@ -22,11 +22,8 @@ import OptionChainModal from './components/trading/OptionChainModal';
 
 function App() {
   // Auth & Security state
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLocked, setIsLocked] = useState(() => {
-    // Only lock on initial load if saved_trader exists in localStorage
-    return !!localStorage.getItem('saved_trader');
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLocked, setIsLocked] = useState(false);
   const [username, setUsername] = useState('DemoTrader');
   const [toastMsg, setToastMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +37,7 @@ function App() {
   // Trading state
   const [symbol, setSymbol] = useState('RELIANCE');
   const [price, setPrice] = useState(null);
-  const [balance, setBalance] = useState(100000);
+  const [balance, setBalance] = useState(1000000);
   const [portfolio, setPortfolio] = useState([]);
   const [activeTab, setActiveTab] = useState('explore');
 
@@ -58,8 +55,9 @@ function App() {
   const handleAuthSuccess = (userData) => {
     setIsLoggedIn(true);
     setIsLocked(false);
-    if (userData.username) setUsername(userData.username);
-    if (userData.balance !== undefined) setBalance(userData.balance);
+    if (userData && userData.username) setUsername(userData.username);
+    if (userData && userData.balance !== undefined) setBalance(userData.balance);
+    checkSession();
   };
 
   const handleLogout = async () => {
@@ -69,22 +67,32 @@ function App() {
     try {
       localStorage.removeItem('saved_trader');
     } catch (e) {}
-    setIsLoggedIn(false);
     setIsLocked(false);
     setIsProfileOpen(false);
-    showToast('Logged out');
+    showToast('Logged out to Demo Mode');
+    checkSession();
   };
 
   const checkSession = useCallback(async () => {
     try {
       const data = await api.getMe();
-      if (data.logged_in) {
+      if (data && data.logged_in) {
         setIsLoggedIn(true);
-        setUsername(data.username);
-        setBalance(data.balance || 100000);
+        setUsername(data.username || 'DemoTrader');
+        setBalance(data.balance !== undefined ? data.balance : 1000000);
         setUserInfo(data);
+      } else {
+        const guest = await api.loginGuest();
+        if (guest && guest.user) {
+          setIsLoggedIn(true);
+          setUsername(guest.user || 'DemoTrader');
+          setBalance(guest.balance !== undefined ? guest.balance : 1000000);
+          setUserInfo(guest);
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      setIsLoggedIn(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -167,11 +175,12 @@ function App() {
     setTimeout(() => fetchPrice(), 100);
   };
 
-  // Render Auth & PIN Lock Screen if not logged in or locked
-  if (!isLoggedIn || isLocked) {
+  // Render Auth & PIN Lock Screen if locked
+  if (isLocked) {
     return (
       <AuthScreen 
         onLoginSuccess={handleAuthSuccess}
+        onClose={() => setIsLocked(false)}
         showToast={showToast}
       />
     );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import BullMarketIcon from './BullMarketIcon';
 
-const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
+const AuthScreen = ({ onLoginSuccess, onClose, showToast = () => {} }) => {
     const [mode, setMode] = useState('login'); // 'login' | 'register' | 'pin_unlock'
     const [step, setStep] = useState(1); // 1: Form, 2: OTP, 3: Set MPIN
 
@@ -328,11 +328,30 @@ const AuthScreen = ({ onLoginSuccess, showToast = () => {} }) => {
                 textAlign: 'left'
             }}>
                 {/* Logo & Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-                    <BullMarketIcon size={36} />
-                    <span style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-                        Bull<span style={{ color: 'var(--accent-primary)' }}>X</span>
-                    </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <BullMarketIcon size={36} />
+                        <span style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
+                            Bull<span style={{ color: 'var(--accent-primary)' }}>X</span>
+                        </span>
+                    </div>
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-secondary)',
+                                fontSize: '18px',
+                                cursor: 'pointer',
+                                padding: '4px 8px',
+                                borderRadius: '4px'
+                            }}
+                            title="Close to Live Platform"
+                        >
+                            ✕
+                        </button>
+                    )}
                 </div>
 
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', fontWeight: '500' }}>
