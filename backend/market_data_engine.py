@@ -100,7 +100,18 @@ class UpstoxAdapter:
     BASE = "https://api.upstox.com/v2"
 
     def __init__(self):
-        self.token = os.getenv("UPSTOX_ACCESS_TOKEN", "").strip()
+        pass
+
+    @property
+    def token(self):
+        try:
+            from upstox_auth import get_access_token
+            t = get_access_token()
+            if t:
+                return t
+        except Exception:
+            pass
+        return os.getenv("UPSTOX_ACCESS_TOKEN", "").strip()
 
     def is_configured(self):
         return bool(self.token)

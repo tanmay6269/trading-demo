@@ -725,6 +725,50 @@ async def get_token_health_route():
     return validate_broker_tokens()
 
 
+@app.get("/api/admin/upstox/login")
+async def upstox_login_redirect():
+    """Redirects to official Upstox OAuth 2.0 authorization dialog."""
+    from fastapi.responses import RedirectResponse
+    from upstox_auth import get_login_url
+    return RedirectResponse(url=get_login_url())
+
+
+@app.get("/api/admin/upstox/callback")
+async def upstox_oauth_callback(code: Optional[str] = None, error: Optional[str] = None):
+    """Handles Upstox OAuth callback, exchanges code for token, and activates live Upstox data stream."""
+    from fastapi.responses import HTMLResponse
+    from upstox_auth import exchange_code_for_token
+    
+    if error:
+        return HTMLResponse(f"<h3>Upstox Authorization Failed:</h3><p>{error}</p>", status_code=400)
+    if not code:
+        return HTMLResponse("<h3>Error: No authorization code received from Upstox.</h3>", status_code=400)
+    
+    res = exchange_code_for_token(code)
+    if res.get("status") == "success":
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>BullX — Upstox Authorization Success</title></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0f19; color: #fff; padding: 40px; text-align: center;">
+            <div style="background: #151c2c; max-width: 500px; margin: 40px auto; padding: 30px; border-radius: 12px; border: 1px solid #22c55e;">
+                <h2 style="color: #22c55e; margin-bottom: 10px;">✅ Upstox Connected Successfully!</h2>
+                <p style="color: #94a3b8; font-size: 14px;">BullX is now streaming live low-latency market quotes and option chains directly via Upstox API v2.</p>
+                <div style="margin: 20px 0; padding: 12px; background: #0b0f19; border-radius: 8px; font-size: 13px; text-align: left;">
+                    <div><strong>User:</strong> {res.get('user_name')} ({res.get('user_id')})</div>
+                    <div><strong>Status:</strong> Active</div>
+                    <div><strong>Valid for:</strong> 24 Hours</div>
+                </div>
+                <a href="https://trading-demo-neon.vercel.app" style="display: inline-block; padding: 10px 20px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 500;">Return to BullX Platform</a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html, status_code=200)
+    else:
+        return HTMLResponse(f"<h3>Failed to exchange Upstox token:</h3><pre>{res}</pre>", status_code=500)
+
+
 @app.post("/api/admin/refresh-fo-underlyings")
 async def admin_refresh_fo_underlyings(db: Session = Depends(get_db)):
     """Trigger on-demand refresh of official NSE F&O underlyings list."""
