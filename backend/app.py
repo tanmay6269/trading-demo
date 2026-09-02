@@ -341,35 +341,33 @@ news_scheduler = init_scheduler(db=SessionLocal, sse_broadcaster=news_sse_broadc
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 0. Check broker token validity on startup
-    try:
-        token_report = validate_broker_tokens()
-        print(f"[TOKEN STATUS] Upstox: {token_report['upstox']['status']}, Dhan: {token_report['dhan']['status']}")
-    except Exception as e:
-        print(f"[tokens] validation error: {e}")
+    # Asynchronous non-blocking background initialization
+    async def _init_services_background():
+        try:
+            await asyncio.to_thread(validate_broker_tokens)
+        except Exception as e:
+            logger.warning(f"[tokens] startup check: {e}")
+        try:
+            from fo_discovery import refresh_fo_underlyings_db
+            db = SessionLocal()
+            await asyncio.to_thread(refresh_fo_underlyings_db, db)
+            db.close()
+        except Exception as e:
+            logger.warning(f"[fo_discovery] startup refresh: {e}")
+        try:
+            news_scheduler.start()
+        except Exception as e:
+            logger.warning(f"[news] scheduler start: {e}")
 
-    # 1. Sync official F&O underlyings DB
-    try:
-        from fo_discovery import refresh_fo_underlyings_db
-        db = SessionLocal()
-        refresh_fo_underlyings_db(db)
-        db.close()
-    except Exception as e:
-        print(f"[fo_discovery] startup refresh error: {e}")
-
-    # 2. Background async market poller (leader-locked, safe with multi workers)
+    init_task = asyncio.create_task(_init_services_background())
     poller_task = asyncio.create_task(poller.start())
 
-    # 3. Background news engine (own DB session)
-    try:
-        news_scheduler.start()
-    except Exception as e:
-        print(f"[news] scheduler start failed: {e}")
-
-    print("[BULLX FASTAPI] Server initialized with async Redis cache, full 180+ F&O engine, and WebSocket streaming")
+    logger.info("⚡ BullX High-Performance FastAPI Engine booted instantly")
     yield
-    # Shutdown
+
+    # Graceful Shutdown
     try:
+        init_task.cancel()
         poller_task.cancel()
     except Exception:
         pass
