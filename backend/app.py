@@ -660,7 +660,7 @@ async def get_option_chain_route(symbol: str, expiry: Optional[str] = None):
     cached = await cache.get_option_chain("NSE", clean_u, expiry or "default")
     if cached:
         return cached
-    chain = await asyncio.to_thread(fetch_option_chain_failover, "NSE", clean_u, expiry)
+    chain = await fetch_option_chain_failover("NSE", clean_u, expiry)
     if chain:
         await cache.set_option_chain("NSE", clean_u, expiry or "default", chain, ttl_seconds=TTL_OPTION_CHAIN)
         return chain
@@ -720,9 +720,26 @@ async def get_data_health_route():
 
 @app.get("/api/admin/token-health")
 async def get_token_health_route():
-    """Diagnostic check for Upstox & Dhan broker credentials."""
+    """Diagnostic check for Angel One & Upstox broker credentials."""
     from market_data_engine import validate_broker_tokens
     return validate_broker_tokens()
+
+
+@app.get("/api/admin/provider-status")
+async def get_provider_status_route():
+    """Diagnostic report on active Primary (Angel One) and Backup (Upstox) data providers."""
+    from market_data_engine import _engine_manager
+    return _engine_manager.get_status()
+
+
+@app.post("/api/admin/debug/force-failover")
+async def debug_force_failover(mode: str = "AUTO"):
+    """
+    Debug simulation endpoint to force failover between providers.
+    Modes: 'AUTO' | 'FORCE_ANGEL_ONE' | 'FORCE_UPSTOX'
+    """
+    from market_data_engine import _engine_manager
+    return _engine_manager.set_override_mode(mode)
 
 
 @app.get("/api/admin/upstox/login")
