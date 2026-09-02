@@ -23,7 +23,6 @@ import threading
 from datetime import datetime, date
 from typing import Optional, Dict, Any, List, Tuple
 import requests
-from scipy.stats import norm
 
 from symbol_mapper import canonicalize, get_symbol
 from angel_one_auth import get_valid_jwt, ANGEL_API_KEY
@@ -42,6 +41,16 @@ _expiries_index: Dict[str, List[str]] = {}
 _underlying_lots: Dict[str, int] = {}
 _master_loaded = False
 _master_lock = threading.Lock()
+
+
+def _norm_cdf(x: float) -> float:
+    """Standard normal cumulative distribution function (CDF)."""
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def _norm_pdf(x: float) -> float:
+    """Standard normal probability density function (PDF)."""
+    return (1.0 / math.sqrt(2.0 * math.pi)) * math.exp(-0.5 * x * x)
 
 
 # ------------------------------------------------------------------
@@ -91,15 +100,15 @@ def calculate_bs_greeks(
     d2 = d1 - iv * math.sqrt(tte)
 
     if is_call:
-        price = spot * norm.cdf(d1) - strike * math.exp(-r * tte) * norm.cdf(d2)
-        delta = norm.cdf(d1)
+        price = spot * _norm_cdf(d1) - strike * math.exp(-r * tte) * _norm_cdf(d2)
+        delta = _norm_cdf(d1)
     else:
-        price = strike * math.exp(-r * tte) * norm.cdf(-d2) - spot * norm.cdf(-d1)
-        delta = norm.cdf(d1) - 1.0
+        price = strike * math.exp(-r * tte) * _norm_cdf(-d2) - spot * _norm_cdf(-d1)
+        delta = _norm_cdf(d1) - 1.0
 
-    gamma = norm.pdf(d1) / (spot * iv * math.sqrt(tte))
-    vega = (spot * norm.pdf(d1) * math.sqrt(tte)) / 100.0  # per 1% change
-    theta = (-(spot * norm.pdf(d1) * iv) / (2 * math.sqrt(tte)) - r * strike * math.exp(-r * tte) * (norm.cdf(d2) if is_call else norm.cdf(-d2))) / 365.0
+    gamma = _norm_pdf(d1) / (spot * iv * math.sqrt(tte))
+    vega = (spot * _norm_pdf(d1) * math.sqrt(tte)) / 100.0  # per 1% change
+    theta = (-(spot * _norm_pdf(d1) * iv) / (2 * math.sqrt(tte)) - r * strike * math.exp(-r * tte) * (_norm_cdf(d2) if is_call else _norm_cdf(-d2))) / 365.0
 
     return round(price, 2), round(delta, 3), round(gamma, 5), round(theta, 2), round(vega, 2)
 

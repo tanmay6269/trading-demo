@@ -1,6 +1,6 @@
 """
 Root app.py wrapper for Render/Heroku deployments.
-Ensures app:app and app:wsgi_app resolve cleanly in every environment.
+Ensures 'gunicorn app:app' (WSGI) and 'uvicorn app:asgi_app' (ASGI) both work flawlessly.
 """
 
 import sys
@@ -17,10 +17,13 @@ backend_app_mod = importlib.util.module_from_spec(spec)
 sys.modules["backend_app_module"] = backend_app_mod
 spec.loader.exec_module(backend_app_mod)
 
-app = backend_app_mod.app
+asgi_app = backend_app_mod.app
 
 try:
     from a2wsgi import ASGIMiddleware
-    wsgi_app = ASGIMiddleware(app)
-except Exception:
+    # Wrap FastAPI as WSGI application so default 'gunicorn app:app' on Render works seamlessly
+    app = ASGIMiddleware(asgi_app)
     wsgi_app = app
+except Exception:
+    app = asgi_app
+    wsgi_app = asgi_app
