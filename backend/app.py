@@ -1501,11 +1501,31 @@ async def health_check():
     }
 
 
-try:
-    from a2wsgi import ASGIMiddleware
-    wsgi_app = ASGIMiddleware(app)
-except Exception:
-    wsgi_app = app
+# Save the raw FastAPI ASGI application
+fastapi_app = app
+asgi_app = fastapi_app
+
+
+class UniversalCallable:
+    """Universal dispatcher supporting both WSGI (gunicorn sync) and ASGI (uvicorn)."""
+    def __init__(self, target_asgi_app):
+        self.asgi_app = target_asgi_app
+        try:
+            from a2wsgi import ASGIMiddleware
+            self.wsgi_app = ASGIMiddleware(target_asgi_app)
+        except Exception:
+            self.wsgi_app = target_asgi_app
+
+    def __call__(self, scope, receive=None, send=None):
+        if send is None:
+            # WSGI mode: (environ, start_response)
+            return self.wsgi_app(scope, receive)
+        # ASGI mode: (scope, receive, send)
+        return self.asgi_app(scope, receive, send)
+
+
+app = UniversalCallable(fastapi_app)
+wsgi_app = app
 
 
 if __name__ == "__main__":

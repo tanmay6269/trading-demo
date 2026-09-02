@@ -1,6 +1,6 @@
 """
 Root app.py wrapper for Render/Heroku deployments.
-Ensures 'gunicorn app:app' (WSGI) and 'uvicorn app:asgi_app' (ASGI) both work flawlessly.
+Provides UniversalCallable supporting both WSGI ('gunicorn app:app') and ASGI ('uvicorn app:app').
 """
 
 import sys
@@ -17,13 +17,27 @@ backend_app_mod = importlib.util.module_from_spec(spec)
 sys.modules["backend_app_module"] = backend_app_mod
 spec.loader.exec_module(backend_app_mod)
 
-asgi_app = backend_app_mod.app
+# Use the pure FastAPI ASGI application instance
+asgi_app = getattr(backend_app_mod, "fastapi_app", backend_app_mod.app)
 
-try:
-    from a2wsgi import ASGIMiddleware
-    # Wrap FastAPI as WSGI application so default 'gunicorn app:app' on Render works seamlessly
-    app = ASGIMiddleware(asgi_app)
-    wsgi_app = app
-except Exception:
-    app = asgi_app
-    wsgi_app = asgi_app
+
+class UniversalCallable:
+    """Universal dispatcher supporting both WSGI (gunicorn sync) and ASGI (uvicorn)."""
+    def __init__(self, target_asgi_app):
+        self.asgi_app = target_asgi_app
+        try:
+            from a2wsgi import ASGIMiddleware
+            self.wsgi_app = ASGIMiddleware(target_asgi_app)
+        except Exception:
+            self.wsgi_app = target_asgi_app
+
+    def __call__(self, scope, receive=None, send=None):
+        if send is None:
+            # WSGI: called synchronously by gunicorn sync worker with (environ, start_response)
+            return self.wsgi_app(scope, receive)
+        # ASGI: called asynchronously by uvicorn worker with (scope, receive, send)
+        return self.asgi_app(scope, receive, send)
+
+
+app = UniversalCallable(asgi_app)
+wsgi_app = app
