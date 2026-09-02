@@ -1,10 +1,30 @@
-// Points at the deployed Render backend in production builds, and at the
-// local Flask dev server otherwise. Override with REACT_APP_API_URL if needed.
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000/api';
+// Production Render backend vs local dev server
+const isLocal = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+);
 
-const defaultHeaders = {
-    'Content-Type': 'application/json',
+const API_BASE_URL = process.env.REACT_APP_API_URL || (
+    isLocal ? 'http://127.0.0.1:5000/api' : 'https://trading-demo-backend.onrender.com/api'
+);
+
+const getHeaders = () => {
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    try {
+        const saved = localStorage.getItem('saved_trader');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && (parsed.user_id || parsed.id)) {
+                headers['X-User-Id'] = String(parsed.user_id || parsed.id);
+            }
+        }
+    } catch (e) {}
+    return headers;
 };
+
+const defaultHeaders = getHeaders();
 
 const handleResponse = async (response) => {
     let data;

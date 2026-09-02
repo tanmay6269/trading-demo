@@ -78,8 +78,8 @@ def get_db():
 
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String(36), unique=True, index=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    id = Column(Integer, nullable=True)
     username = Column(String(80), unique=False, nullable=True)
     email = Column(String(255), unique=True, index=True)
     phone_number = Column(String(20), unique=True, index=True, nullable=True)
@@ -299,6 +299,54 @@ class FOValidationLog(Base):
 Base.metadata.create_all(bind=engine)
 
 
+def ensure_db_schema():
+    """Auto-migrate PostgreSQL and SQLite schemas, adding any missing columns."""
+    from sqlalchemy import text
+    try:
+        with engine.connect() as conn:
+            is_postgres = "postgres" in str(engine.url) or "psycopg2" in str(engine.url)
+            
+            user_cols = [
+                ("user_id", "VARCHAR(36)"),
+                ("id", "INTEGER"),
+                ("username", "VARCHAR(80)"),
+                ("full_name", "VARCHAR(100) DEFAULT 'Demo Trader'"),
+                ("email", "VARCHAR(255)"),
+                ("phone_number", "VARCHAR(20)"),
+                ("password_hash", "VARCHAR(255)"),
+                ("mpin_hash", "VARCHAR(255)"),
+                ("demo_balance", "FLOAT DEFAULT 100000.0"),
+                ("is_verified", "BOOLEAN DEFAULT TRUE"),
+                ("watchlist", "TEXT DEFAULT '[]'"),
+                ("profile_pic", "TEXT"),
+                ("dob", "VARCHAR(20) DEFAULT '15-08-1998'"),
+                ("pan_number", "VARCHAR(20) DEFAULT 'ABCDE1234F'"),
+                ("gender", "VARCHAR(20) DEFAULT 'Male'"),
+                ("marital_status", "VARCHAR(20) DEFAULT 'Single'"),
+                ("occupation", "VARCHAR(40) DEFAULT 'Professional'"),
+                ("income_range", "VARCHAR(40) DEFAULT '5-10 Lakhs'"),
+                ("father_name", "VARCHAR(60) DEFAULT 'Rajesh Sharma'"),
+                ("created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+            ]
+            
+            for col, col_type in user_cols:
+                try:
+                    if is_postgres:
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {col_type}"))
+                    else:
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {col_type}"))
+                    conn.commit()
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"[schema] ensure_db_schema warning: {e}")
+
+try:
+    ensure_db_schema()
+except Exception:
+    pass
+
+
 # =====================================================================
 # HELPERS
 # =====================================================================
@@ -390,10 +438,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"^https?://.*$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
