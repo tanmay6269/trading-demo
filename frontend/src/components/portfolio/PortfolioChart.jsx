@@ -19,7 +19,6 @@ import {
     ChartTooltip,
     ChartTooltipContent,
     ChartLegend,
-    ChartLegendContent,
 } from '../ui/chart';
 
 // Chart config — maps dataKey → { label, color }
@@ -39,7 +38,6 @@ const PortfolioChart = ({ portfolio = [], balance = 1000000 }) => {
     const data = useMemo(() => {
         const invested = portfolio.reduce((sum, p) => sum + (p.buy_price || 0) * (p.quantity || 0), 0);
         const currentValue = portfolio.reduce((sum, p) => sum + ((p.current_price || p.buy_price || 0) * (p.quantity || 0)), 0);
-        const totalValue = balance + currentValue;
 
         // Generate 10-point simulated intraday curve
         const now = Date.now();

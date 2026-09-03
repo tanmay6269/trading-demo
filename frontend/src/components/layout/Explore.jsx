@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../api';
 import StockLogo from '../ui/StockLogo';
+import IndexSparkline from '../ui/IndexSparkline';
 
 const CATEGORY_DEFINITIONS = {
     'large': [
@@ -590,6 +591,11 @@ const Explore = ({ onSelectStock, onOpenAllIndices, onOpenOptionChain, portfolio
                                             {stk.price && (
                                                 <div style={{ fontSize: '12px', fontWeight: '700', color: isPos ? 'var(--accent-emerald)' : 'var(--accent-rose)' }}>
                                                     {formatChangeAndPct(stk.change, stk.change_percent)}
+                                                </div>
+                                            )}
+                                            {stk.price && (
+                                                <div style={{ marginTop: '6px', height: '36px' }}>
+                                                    <IndexSparkline changePercent={stk.change_percent || 0} height={36} />
                                                 </div>
                                             )}
                                         </div>
