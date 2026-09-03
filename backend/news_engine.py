@@ -870,10 +870,13 @@ class NewsScheduler:
                     pass
 
     def _save_to_db(self, articles):
-        """Save new articles to database. Returns list of saved article dicts."""
+        """Save new articles to database. Returns list of saved article dicts.
+        Uses INSERT ... ON CONFLICT DO NOTHING so duplicate canonical_url rows
+        are silently skipped without raising UniqueViolation errors.
+        """
         saved = []
         if not self.db:
-            # No DB — just return articles as-is with generated IDs
+            # No DB — return articles as-is with generated IDs
             for i, a in enumerate(articles):
                 a["id"] = int(time.time() * 1000) + i
                 saved.append(self._article_to_dict(a))
@@ -882,31 +885,59 @@ class NewsScheduler:
         session = self.db() if callable(self.db) else self.db
         try:
             from app import NewsArticle
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+            from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+            import sqlalchemy
+
+            db_url = str(session.bind.url) if hasattr(session, 'bind') and session.bind else ""
+            use_postgres = "postgresql" in db_url or "postgres" in db_url
+
             for a in articles:
                 try:
-                    news = NewsArticle(
-                        provider_id=str(a.get("provider_id", ""))[:255],
-                        title=a["title"][:500],
-                        summary=(a.get("summary") or "")[:2000],
-                        source=a.get("source", "Unknown")[:100],
-                        source_url=(a.get("source_url") or "")[:1000],
-                        canonical_url=(a.get("canonical_url") or "")[:1000],
-                        published_at=a.get("published_at"),
-                        fetched_at=a.get("fetched_at", datetime.now(timezone.utc)),
-                        category=a.get("category", "OTHER")[:50],
-                        symbols=json.dumps(a.get("symbols", [])),
-                        companies=json.dumps(a.get("companies", [])),
-                        image_url=(a.get("image_url") or "")[:1000] if a.get("image_url") else None,
-                        importance=a.get("importance", "LOW")[:10],
-                        sentiment=a.get("sentiment", "NEUTRAL")[:10],
-                    )
-                    session.add(news)
-                    session.flush()
-                    saved.append(self._article_to_dict(a, news.id))
+                    row = {
+                        "provider_id": str(a.get("provider_id", ""))[:255],
+                        "title": a["title"][:500],
+                        "summary": (a.get("summary") or "")[:2000],
+                        "source": a.get("source", "Unknown")[:100],
+                        "source_url": (a.get("source_url") or "")[:1000],
+                        "canonical_url": (a.get("canonical_url") or "")[:1000],
+                        "published_at": a.get("published_at"),
+                        "fetched_at": a.get("fetched_at", datetime.now(timezone.utc)),
+                        "category": a.get("category", "OTHER")[:50],
+                        "symbols": json.dumps(a.get("symbols", [])),
+                        "companies": json.dumps(a.get("companies", [])),
+                        "image_url": (a.get("image_url") or "")[:1000] if a.get("image_url") else None,
+                        "importance": a.get("importance", "LOW")[:10],
+                        "sentiment": a.get("sentiment", "NEUTRAL")[:10],
+                        "created_at": datetime.now(timezone.utc),
+                    }
+
+                    if use_postgres:
+                        stmt = pg_insert(NewsArticle.__table__).values(**row)
+                        stmt = stmt.on_conflict_do_nothing(index_elements=["canonical_url"])
+                        result = session.execute(stmt)
+                        session.flush()
+                        # Fetch the inserted or existing row ID
+                        inserted = result.inserted_primary_key
+                        db_id = inserted[0] if inserted else None
+                        if not db_id:
+                            existing = session.query(NewsArticle.id).filter_by(
+                                canonical_url=row["canonical_url"]
+                            ).scalar()
+                            db_id = existing
+                    else:
+                        # SQLite: use INSERT OR IGNORE
+                        stmt = sqlite_insert(NewsArticle.__table__).values(**row)
+                        stmt = stmt.on_conflict_do_nothing(index_elements=["canonical_url"])
+                        result = session.execute(stmt)
+                        session.flush()
+                        db_id = result.lastrowid or None
+
+                    saved.append(self._article_to_dict(a, db_id))
+
                 except Exception as e:
-                    logger.warning(f"Failed to save article '{a['title'][:50]}': {e}")
+                    logger.debug(f"Skipped article '{a['title'][:50]}': {e}")
                     session.rollback()
-                    # Still include in broadcast even if DB save fails
                     a["id"] = int(time.time() * 1000)
                     saved.append(self._article_to_dict(a))
 
@@ -924,6 +955,7 @@ class NewsScheduler:
                 pass
 
         return saved
+
 
     def _article_to_dict(self, article, db_id=None):
         """Convert article to JSON-serializable dict for API/SSE."""

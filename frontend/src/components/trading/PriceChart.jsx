@@ -82,6 +82,9 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
     const bbUpperRef = useRef(null);
     const bbMidRef = useRef(null);
     const bbLowerRef = useRef(null);
+    // Generation counter: increments on every chart re-init so stale async
+    // fetchData calls (from previous symbol/period) can detect they are obsolete.
+    const chartGenRef = useRef(0);
     
     const [loading, setLoading] = useState(true);
     const [selectedPeriod, setSelectedPeriod] = useState('1D');
@@ -124,11 +127,19 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
     }, [symbol]);
 
     const fetchData = useCallback(async (seriesInstance, pLabel, cType) => {
+        // Capture current generation; bail out if the chart is replaced mid-fetch
+        const myGen = chartGenRef.current;
         setLoading(true);
         setErrorMsg('');
         try {
             const pConfig = PERIODS.find(p => p.label === pLabel) || PERIODS[0];
             const data = await api.getHistoricalData(symbol, pConfig.value, pConfig.interval);
+
+            // Chart was replaced while we were fetching — discard stale data
+            if (chartGenRef.current !== myGen || !seriesInstanceRef.current) {
+                setLoading(false);
+                return;
+            }
             
             if (data && data.length > 0) {
                 let cleanData = [];
@@ -193,13 +204,25 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
             }
         } catch (error) {
             console.error('Error fetching chart data:', error);
-            setErrorMsg('Unable to load chart. Please check backend connection.');
+            if (chartGenRef.current === myGen) {
+                setErrorMsg('Unable to load chart. Retrying with live price...');
+                // Attempt to load a live price tick even if chart history fails
+                try {
+                    const quoteData = await api.getPrice(symbol);
+                    const price = typeof quoteData === 'object' ? quoteData.price : quoteData;
+                    if (price && price > 0) setLivePrice(price);
+                } catch (e2) {}
+            }
         }
         setLoading(false);
     }, [symbol]);
 
+
     useEffect(() => {
         if (!chartContainerRef.current) return;
+
+        // Bump generation so any in-flight fetchData from previous render is invalidated
+        chartGenRef.current += 1;
 
         if (chartInstanceRef.current) {
             const chartToDispose = chartInstanceRef.current;
