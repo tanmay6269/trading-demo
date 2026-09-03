@@ -14,4 +14,6 @@ backend/instruments_master/
 *.json
 !package.json
 !frontend/package.json
+!frontend/components.json
+!frontend/jsconfig.json
 !users_backup.json

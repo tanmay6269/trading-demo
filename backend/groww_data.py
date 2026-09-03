@@ -1910,6 +1910,16 @@ def get_historical_data(symbol, period='1d', interval='1m'):
                 if len(opt_candles) >= 5:
                     return opt_candles
 
+        # Primary source: Angel One SmartAPI (real broker feed). Falls through
+        # silently to Yahoo/synthetic below if unauthenticated or unresolvable.
+        try:
+            from angel_one_adapter import angel_adapter
+            angel_candles = angel_adapter.get_historical_candles(clean_sym, period, interval)
+            if angel_candles:
+                return angel_candles
+        except Exception:
+            pass
+
         from symbol_mapper import get_symbol
         yahoo_target = None
         try:

@@ -14,6 +14,7 @@ import os
 import json
 import time
 import logging
+from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 import requests
 
@@ -23,6 +24,30 @@ logger.setLevel(logging.INFO)
 ANGEL_ONE_API_KEY = os.getenv("ANGEL_ONE_API_KEY", "qM6i2EyY").strip()
 ANGEL_BASE_URL = "https://apiconnect.angelbroking.com"
 SCRIP_MASTER_URL = "https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json"
+
+# Maps our internal interval strings to SmartAPI's historical candle interval enum
+ANGEL_INTERVAL_MAP = {
+    "1m": "ONE_MINUTE",
+    "3m": "THREE_MINUTE",
+    "5m": "FIVE_MINUTE",
+    "10m": "TEN_MINUTE",
+    "15m": "FIFTEEN_MINUTE",
+    "30m": "THIRTY_MINUTE",
+    "1h": "ONE_HOUR",
+    "1d": "ONE_DAY",
+}
+
+# Requested chart period -> (lookback days, default interval if ours isn't in ANGEL_INTERVAL_MAP)
+ANGEL_PERIOD_LOOKBACK = {
+    "1d": (5, "5m"),
+    "5d": (10, "15m"),
+    "1mo": (35, "1h"),
+    "3mo": (100, "1d"),
+    "6mo": (200, "1d"),
+    "1y": (370, "1d"),
+    "5y": (1800, "1d"),
+    "max": (1800, "1d"),
+}
 
 _scrip_cache: Dict[str, Dict[str, Any]] = {}
 _scrip_loaded = False
@@ -145,6 +170,80 @@ class AngelOneAdapter:
             "token": token_info.get("token"),
             "trading_symbol": token_info.get("symbol"),
         }
+
+    def get_historical_candles(self, symbol: str, period: str = "1d", interval: str = "1m") -> Optional[List[Dict[str, Any]]]:
+        """
+        Fetch OHLCV candles via SmartAPI's authenticated historical data endpoint.
+        Requires ANGEL_ONE_CLIENT_CODE / ANGEL_ONE_PASSWORD / ANGEL_ONE_TOTP_KEY to be
+        configured (full login), not just the API key. Returns None if unauthenticated,
+        the symbol can't be resolved, or the request fails, so callers can fall back.
+        """
+        from angel_one_auth import get_valid_jwt
+
+        jwt = get_valid_jwt()
+        if not jwt:
+            return None
+
+        clean = symbol.strip().upper()
+        token_info = self.get_token_info(clean, "NSE") or self.get_token_info(clean, "BSE")
+        if not token_info:
+            return None
+
+        angel_interval = ANGEL_INTERVAL_MAP.get(interval)
+        lookback_days, fallback_interval = ANGEL_PERIOD_LOOKBACK.get(period, (5, "5m"))
+        if not angel_interval:
+            angel_interval = ANGEL_INTERVAL_MAP.get(fallback_interval, "ONE_DAY")
+
+        now = datetime.now()
+        to_date = now.strftime("%Y-%m-%d %H:%M")
+        from_date = (now - timedelta(days=lookback_days)).strftime("%Y-%m-%d %H:%M")
+
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Bearer {jwt}",
+            "X-PrivateKey": self.api_key,
+            "X-SourceID": "WEB",
+            "X-ClientLocalIP": "127.0.0.1",
+            "X-ClientPublicIP": "106.193.147.98",
+            "X-MACAddress": "fe80::216e:6507:4b83:3701",
+            "X-UserType": "USER",
+        }
+        payload = {
+            "exchange": token_info.get("exchange", "NSE"),
+            "symboltoken": token_info.get("token"),
+            "interval": angel_interval,
+            "fromdate": from_date,
+            "todate": to_date,
+        }
+
+        try:
+            r = requests.post(
+                f"{ANGEL_BASE_URL}/rest/secure/angelbroking/historical/v1/getCandleData",
+                json=payload, headers=headers, timeout=8
+            )
+            data = r.json()
+            if r.status_code == 200 and data.get("status") and data.get("data"):
+                candles = []
+                for row in data["data"]:
+                    ts_str, o, h, l, c, v = row
+                    dt = datetime.fromisoformat(ts_str)
+                    candles.append({
+                        "time": int(dt.timestamp()),
+                        "open": round(float(o), 2),
+                        "high": round(float(h), 2),
+                        "low": round(float(l), 2),
+                        "close": round(float(c), 2),
+                        "volume": int(v or 0),
+                    })
+                if len(candles) >= 5:
+                    return candles
+            else:
+                logger.warning(f"Angel One historical candle request failed for {clean}: {data.get('message')}")
+        except Exception as e:
+            logger.warning(f"Angel One candle fetch exception for {clean}: {e}")
+
+        return None
 
 
 # Singleton instance

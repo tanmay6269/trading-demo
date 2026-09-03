@@ -539,22 +539,22 @@ const StockDetails = ({
                 list.push({
                     type: 'Call',
                     strike: row.strike,
-                    price: row.ce.ltp,
-                    change: row.ce.change_percent,
-                    oi: row.ce.oi.toLocaleString(),
-                    oiChange: `${row.ce.oi_change >= 0 ? '+' : ''}${row.ce.oi_change}`,
-                    volume: row.ce.volume.toLocaleString(),
+                    price: row.ce.ltp ?? 0,
+                    change: row.ce.change_percent ?? 0,
+                    oi: (row.ce.oi ?? 0).toLocaleString(),
+                    oiChange: `${row.ce.oi_change >= 0 ? '+' : ''}${row.ce.oi_change ?? 0}`,
+                    volume: (row.ce.volume ?? 0).toLocaleString(),
                     expiry: fnoChainData.selected_expiry || "29 Sep '26",
                     symbol: row.ce.symbol
                 });
                 list.push({
                     type: 'Put',
                     strike: row.strike,
-                    price: row.pe.ltp,
-                    change: row.pe.change_percent,
-                    oi: row.pe.oi.toLocaleString(),
-                    oiChange: `${row.pe.oi_change >= 0 ? '+' : ''}${row.pe.oi_change}`,
-                    volume: row.pe.volume.toLocaleString(),
+                    price: row.pe.ltp ?? 0,
+                    change: row.pe.change_percent ?? 0,
+                    oi: (row.pe.oi ?? 0).toLocaleString(),
+                    oiChange: `${row.pe.oi_change >= 0 ? '+' : ''}${row.pe.oi_change ?? 0}`,
+                    volume: (row.pe.volume ?? 0).toLocaleString(),
                     expiry: fnoChainData.selected_expiry || "29 Sep '26",
                     symbol: row.pe.symbol
                 });
