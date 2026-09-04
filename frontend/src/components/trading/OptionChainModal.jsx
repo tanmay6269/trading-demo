@@ -70,6 +70,18 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
     const spotPrice = data?.spot_price || 0;
     const isSpotPos = (data?.change || 0) >= 0;
 
+    const buildContractPayload = (leg, strike, type) => ({
+        symbol: leg.symbol || `${symbol}${strike}${type}`,
+        token: leg.token,
+        exchange: leg.exchange,
+        type,
+        strike,
+        ltp: leg.ltp || 0,
+        underlying: symbol,
+        underlyingExchange: exchange,
+        expiry: selectedExpiry,
+    });
+
     return (
         <div style={{
             position: 'fixed',
@@ -455,7 +467,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                     </td>
                                                     <td 
                                                         onClick={() => {
-                                                            onSelectContract(ce.symbol || `${symbol}${row.strike}CE`, 'BUY', ce.ltp || 0);
+                                                            onSelectContract(buildContractPayload(ce, row.strike, 'CE'));
                                                             onClose();
                                                         }}
                                                         style={{
@@ -474,7 +486,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                     <td style={{ padding: '8px 10px', textAlign: 'center', backgroundColor: ceItm ? 'rgba(16, 185, 129, 0.08)' : 'transparent' }}>
                                                         <button
                                                             onClick={() => {
-                                                                onSelectContract(ce.symbol || `${symbol}${row.strike}CE`, 'BUY', ce.ltp || 0);
+                                                                onSelectContract(buildContractPayload(ce, row.strike, 'CE'));
                                                                 onClose();
                                                             }}
                                                             style={{
@@ -516,7 +528,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                     <td style={{ padding: '8px 10px', textAlign: 'center', backgroundColor: peItm ? 'rgba(239, 68, 68, 0.08)' : 'transparent' }}>
                                                         <button
                                                             onClick={() => {
-                                                                onSelectContract(pe.symbol || `${symbol}${row.strike}PE`, 'BUY', pe.ltp || 0);
+                                                                onSelectContract(buildContractPayload(pe, row.strike, 'PE'));
                                                                 onClose();
                                                             }}
                                                             style={{
@@ -535,7 +547,7 @@ const OptionChainModal = ({ isOpen, onClose, symbol = 'NIFTY 50', onSelectContra
                                                     </td>
                                                     <td 
                                                         onClick={() => {
-                                                            onSelectContract(pe.symbol || `${symbol}${row.strike}PE`, 'BUY', pe.ltp || 0);
+                                                            onSelectContract(buildContractPayload(pe, row.strike, 'PE'));
                                                             onClose();
                                                         }}
                                                         style={{

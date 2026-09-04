@@ -378,11 +378,29 @@ def _get_or_create_user_details(db: Session, user: User):
     return user
 
 
-async def _live_price(symbol: str) -> Optional[float]:
-    """Read LTP from Redis; if missing do a quick async fetch (should be rare)."""
+async def _live_price(symbol: str, token: Optional[str] = None, exchange: Optional[str] = None) -> Optional[float]:
+    """
+    Read LTP from Redis; if missing, do a live on-demand fetch. The background
+    poller only tracks a fixed underlying universe, so any symbol outside it
+    (every individual option contract) always misses cache -- without a live
+    fallback here, buying/selling an option always 404'd as "Invalid symbol".
+    """
     q = await cache.get_stock_price(canonicalize(symbol))
     if q:
         return q.get("price") or q.get("ltp")
+
+    if token and exchange:
+        from angel_one_option_chain import fetch_live_quotes_batch
+        quotes = await asyncio.to_thread(fetch_live_quotes_batch, {exchange: [token]})
+        live = quotes.get(token)
+        if live and live.get("ltp"):
+            return float(live["ltp"])
+
+    from groww_data import fetch_stock_quote
+    quote = await asyncio.to_thread(fetch_stock_quote, symbol)
+    if quote and quote.get("price"):
+        return float(quote["price"])
+
     return None
 
 
@@ -551,7 +569,7 @@ async def websocket_option_chain_endpoint(websocket: WebSocket, symbol: str):
 
 @app.get("/api/stock/{symbol}")
 @app.get("/api/price/{symbol}")
-async def get_stock_price_route(symbol: str):
+async def get_stock_price_route(symbol: str, token: Optional[str] = None, exchange: Optional[str] = None):
     """Get real-time stock price (0ms latency from Redis cache, instant live fetch fallback)."""
     clean_sym = canonicalize(symbol)
     cached = await cache.get_stock_price(clean_sym)
@@ -564,7 +582,7 @@ async def get_stock_price_route(symbol: str):
             "prev_close": cached.get("prev_close"),
             "status": "ok"
         }
-    
+
     # Instant fallback fetch if cache warming
     from groww_data import fetch_stock_quote
     fresh = await asyncio.to_thread(fetch_stock_quote, clean_sym)
@@ -578,6 +596,20 @@ async def get_stock_price_route(symbol: str):
             "prev_close": fresh.get("prev_close"),
             "status": "ok"
         }
+
+    # Option contracts aren't in the poller's tracked universe or Groww's free
+    # quote endpoint -- resolve directly via SmartAPI when the caller (an
+    # option's own chart/ticker) already knows its instrument token.
+    if token and exchange:
+        from angel_one_option_chain import fetch_live_quotes_batch
+        quotes = await asyncio.to_thread(fetch_live_quotes_batch, {exchange: [token]})
+        live = quotes.get(token)
+        if live and live.get("ltp"):
+            ltp = float(live["ltp"])
+            close = float(live.get("close") or ltp)
+            change = round(ltp - close, 2)
+            change_pct = round((change / close) * 100.0, 2) if close > 0 else 0.0
+            return {"symbol": clean_sym, "price": ltp, "change": change, "change_percent": change_pct, "prev_close": close, "status": "ok"}
 
     return {"status": "error", "message": "Symbol not found", "symbol": clean_sym}
 
@@ -864,14 +896,28 @@ def _generate_local_chain_sync(clean_u, expiry):
 
 
 @app.get("/api/historical/{symbol}")
-async def get_historical_candles(symbol: str, period: str = "1d", interval: str = "1m"):
-    """TradingView OHLCV candle series."""
+async def get_historical_candles(symbol: str, period: str = "1d", interval: str = "1m", token: Optional[str] = None, exchange: Optional[str] = None):
+    """
+    OHLCV candle series. When `token`/`exchange` are supplied (an option chain
+    row already carries its own SmartAPI instrument token), fetch that exact
+    contract's real candles directly -- skipping symbol-name resolution and the
+    Black-Scholes-derived synthetic candles used when only a symbol is given.
+    """
+    if token and exchange:
+        candles = await asyncio.to_thread(_load_historical_by_token_sync, token, exchange, period, interval, symbol)
+        if candles:
+            return candles
     return await asyncio.to_thread(_load_historical_sync, symbol, period, interval)
 
 
 def _load_historical_sync(symbol, period, interval):
     from groww_data import get_historical_data
     return get_historical_data(symbol, period=period, interval=interval)
+
+
+def _load_historical_by_token_sync(token, exchange, period, interval, label):
+    from angel_one_adapter import angel_adapter
+    return angel_adapter.get_historical_candles_by_token(token, exchange, period, interval, label=label)
 
 
 # =====================================================================
@@ -1285,6 +1331,8 @@ async def remove_from_watchlist(req: SymbolRequest, request: Request, db: Sessio
 class TradeRequest(BaseModel):
     symbol: str
     quantity: int = 0
+    token: Optional[str] = None
+    exchange: Optional[str] = None
 
 
 @app.post("/api/buy")
@@ -1295,7 +1343,7 @@ async def buy_stock(req: TradeRequest, request: Request, db: Session = Depends(g
     symbol = req.symbol.strip().upper()
     if not symbol or req.quantity <= 0:
         raise HTTPException(status_code=400, detail="Invalid input")
-    price = await _live_price(symbol)
+    price = await _live_price(symbol, req.token, req.exchange)
     if not price:
         raise HTTPException(status_code=404, detail="Invalid symbol")
     total_cost = price * req.quantity
@@ -1322,7 +1370,7 @@ async def sell_stock(req: TradeRequest, request: Request, db: Session = Depends(
     total_qty = sum(t.quantity for t in open_trades)
     if not open_trades or total_qty < req.quantity:
         raise HTTPException(status_code=400, detail="No/insufficient position to sell")
-    price = await _live_price(symbol)
+    price = await _live_price(symbol, req.token, req.exchange)
     if not price:
         raise HTTPException(status_code=404, detail="Invalid symbol")
     # Reduce quantity across open trades (FIFO avg on price)

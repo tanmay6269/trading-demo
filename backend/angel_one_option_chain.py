@@ -463,6 +463,7 @@ class AngelOneOptionChainEngine:
                 return {
                     "token": tok,
                     "symbol": token_info.get("symbol"),
+                    "exchange": token_info.get("exchange"),
                     "ltp": ltp,
                     "oi": oi,
                     "change_in_oi": oi_change,
@@ -491,6 +492,7 @@ class AngelOneOptionChainEngine:
             return {
                 "token": tok,
                 "symbol": token_info.get("symbol"),
+                "exchange": token_info.get("exchange"),
                 "ltp": price,
                 "oi": oi,
                 "change_in_oi": oi_chg,

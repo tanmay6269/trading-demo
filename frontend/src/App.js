@@ -19,6 +19,7 @@ import HoldingsTable from './components/portfolio/HoldingsTable';
 import AuthScreen from './components/ui/AuthScreen';
 import ProfileModal from './components/ui/ProfileModal';
 import OptionChainModal from './components/trading/OptionChainModal';
+import OptionDetail from './components/trading/OptionDetail';
 
 function App() {
   // Auth & Security state
@@ -36,6 +37,7 @@ function App() {
 
   // Trading state
   const [symbol, setSymbol] = useState('RELIANCE');
+  const [optionMeta, setOptionMeta] = useState(null); // { token, exchange, underlying, underlyingExchange, expiry, type, strike } when `symbol` is an option contract
   const [price, setPrice] = useState(null);
   const [balance, setBalance] = useState(1000000);
   const [portfolio, setPortfolio] = useState([]);
@@ -99,14 +101,14 @@ function App() {
   const fetchPrice = useCallback(async () => {
     if (!symbol) return;
     try {
-      const data = await api.getPrice(symbol);
+      const data = await api.getPrice(symbol, optionMeta?.token, optionMeta?.exchange);
       if (data.price) {
         setPrice(data.price);
       }
     } catch (error) {
       console.error('Error fetching price:', error);
     }
-  }, [symbol]);
+  }, [symbol, optionMeta]);
 
   const fetchPortfolio = useCallback(async () => {
     try {
@@ -139,7 +141,7 @@ function App() {
   const handleBuy = async (quantity) => {
     setLoading(true);
     try {
-      const data = await api.buyStock(symbol, quantity);
+      const data = await api.buyStock(symbol, quantity, optionMeta?.token, optionMeta?.exchange);
       showToast(data.message || 'Order executed!');
       if (data.balance !== undefined) {
         setBalance(data.balance);
@@ -154,7 +156,7 @@ function App() {
   const handleSell = async (quantity) => {
     setLoading(true);
     try {
-      const data = await api.sellStock(symbol, quantity);
+      const data = await api.sellStock(symbol, quantity, optionMeta?.token, optionMeta?.exchange);
       showToast(data.message || 'Order executed!');
       if (data.balance !== undefined) {
         setBalance(data.balance);
@@ -167,7 +169,35 @@ function App() {
   };
 
   const handleSelectStock = (selectedSymbol) => {
+    if (typeof selectedSymbol !== 'string' || !selectedSymbol) {
+      console.warn('handleSelectStock called with a non-string symbol:', selectedSymbol);
+      const extracted = selectedSymbol && typeof selectedSymbol === 'object'
+        ? (selectedSymbol.symbol || selectedSymbol.name)
+        : null;
+      if (typeof extracted !== 'string' || !extracted) return;
+      selectedSymbol = extracted;
+    }
+    setOptionMeta(null);
     setSymbol(selectedSymbol);
+    setActiveTab('trading');
+    setTimeout(() => fetchPrice(), 100);
+  };
+
+  const handleSelectOption = (contract) => {
+    if (!contract || typeof contract.symbol !== 'string' || !contract.symbol) {
+      console.warn('handleSelectOption called with an invalid contract:', contract);
+      return;
+    }
+    setOptionMeta({
+      token: contract.token,
+      exchange: contract.exchange,
+      underlying: contract.underlying,
+      underlyingExchange: contract.underlyingExchange,
+      expiry: contract.expiry,
+      type: contract.type,
+      strike: contract.strike,
+    });
+    setSymbol(contract.symbol);
     setActiveTab('trading');
     setTimeout(() => fetchPrice(), 100);
   };
@@ -257,17 +287,35 @@ function App() {
         );
 
       case 'trading': {
-        const isIndexSymbol = symbol.startsWith('^') || symbol.includes('NIFTY') || symbol.includes('SENSEX') || symbol.includes('VIX');
+        if (optionMeta) {
+          return (
+            <OptionDetail
+              symbol={symbol}
+              optionMeta={optionMeta}
+              price={price}
+              balance={balance}
+              onBuy={handleBuy}
+              onSell={handleSell}
+              loading={loading}
+              onBack={() => setActiveTab('explore')}
+              onSelectStock={handleSelectStock}
+              onOpenOptionChain={handleOpenOptionChain}
+              showToast={showToast}
+            />
+          );
+        }
+        const safeSymbol = typeof symbol === 'string' ? symbol : String(symbol || '');
+        const isIndexSymbol = safeSymbol.startsWith('^') || safeSymbol.includes('NIFTY') || safeSymbol.includes('SENSEX') || safeSymbol.includes('VIX');
         return (
           <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <StockSearch onSelectStock={handleSelectStock} onOpenOptionChain={handleOpenOptionChain} showToast={showToast} />
-            <StockDetails 
-              symbol={symbol} 
+            <StockDetails
+              symbol={symbol}
               portfolio={portfolio}
               onSell={handleSell}
               onBuy={handleBuy}
               onSelectStock={handleSelectStock}
-              showToast={showToast} 
+              showToast={showToast}
             />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
               {!isIndexSymbol && (
@@ -364,9 +412,9 @@ function App() {
         isOpen={isOptionChainOpen}
         onClose={() => setIsOptionChainOpen(false)}
         symbol={optionChainSymbol}
-        onSelectContract={(contractSym, action, contractPrice) => {
-          handleSelectStock(contractSym);
-          showToast(`Selected Option ${contractSym} @ ₹${contractPrice}`);
+        onSelectContract={(contract) => {
+          handleSelectOption(contract);
+          showToast(`Selected ${contract.symbol} @ ₹${contract.ltp}`);
         }}
       />
 

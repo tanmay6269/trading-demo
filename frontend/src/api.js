@@ -199,8 +199,9 @@ export const api = {
         return handleResponse(res);
     },
 
-    getPrice: async (symbol) => {
-        const res = await fetch(`${API_BASE_URL}/price/${symbol}`);
+    getPrice: async (symbol, token = null, exchange = null) => {
+        const params = (token && exchange) ? `?token=${token}&exchange=${exchange}` : '';
+        const res = await fetch(`${API_BASE_URL}/price/${symbol}${params}`);
         return handleResponse(res);
     },
 
@@ -228,8 +229,13 @@ export const api = {
         return handleResponse(res);
     },
 
-    getHistoricalData: async (symbol, period = '1d', interval = '1m') => {
-        const res = await fetch(`${API_BASE_URL}/historical/${symbol}?period=${period}&interval=${interval}`);
+    getHistoricalData: async (symbol, period = '1d', interval = '1m', token = null, exchange = null) => {
+        const params = new URLSearchParams({ period, interval });
+        if (token && exchange) {
+            params.append('token', token);
+            params.append('exchange', exchange);
+        }
+        const res = await fetch(`${API_BASE_URL}/historical/${symbol}?${params.toString()}`);
         return handleResponse(res);
     },
 
@@ -268,22 +274,22 @@ export const api = {
         return handleResponse(res);
     },
 
-    buyStock: async (symbol, quantity) => {
+    buyStock: async (symbol, quantity, token = null, exchange = null) => {
         const res = await fetch(`${API_BASE_URL}/buy`, {
             method: 'POST',
             headers: defaultHeaders,
             credentials: 'include',
-            body: JSON.stringify({ symbol, quantity })
+            body: JSON.stringify({ symbol, quantity, token, exchange })
         });
         return handleResponse(res);
     },
 
-    sellStock: async (symbol, quantity) => {
+    sellStock: async (symbol, quantity, token = null, exchange = null) => {
         const res = await fetch(`${API_BASE_URL}/sell`, {
             method: 'POST',
             headers: defaultHeaders,
             credentials: 'include',
-            body: JSON.stringify({ symbol, quantity })
+            body: JSON.stringify({ symbol, quantity, token, exchange })
         });
         return handleResponse(res);
     },

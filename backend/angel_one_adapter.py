@@ -178,17 +178,29 @@ class AngelOneAdapter:
         configured (full login), not just the API key. Returns None if unauthenticated,
         the symbol can't be resolved, or the request fails, so callers can fall back.
         """
-        from angel_one_auth import get_valid_jwt
-
-        jwt = get_valid_jwt()
-        if not jwt:
-            return None
-
         clean = symbol.strip().upper()
         token_info = self.get_token_info(clean, "NSE") or self.get_token_info(clean, "BSE")
         if not token_info:
             return None
+        return self.get_historical_candles_by_token(
+            token_info.get("token"), token_info.get("exchange", "NSE"), period, interval, label=clean
+        )
 
+    def get_historical_candles_by_token(
+        self, token: str, exchange: str, period: str = "1d", interval: str = "1m", label: str = ""
+    ) -> Optional[List[Dict[str, Any]]]:
+        """
+        Same as get_historical_candles but for a caller that already knows the exact
+        SmartAPI instrument token + exchange segment (e.g. a specific option contract
+        resolved from the option chain, where symbol-name lookup doesn't apply).
+        """
+        from angel_one_auth import get_valid_jwt
+
+        jwt = get_valid_jwt()
+        if not jwt or not token:
+            return None
+
+        clean = label or token
         angel_interval = ANGEL_INTERVAL_MAP.get(interval)
         lookback_days, fallback_interval = ANGEL_PERIOD_LOOKBACK.get(period, (5, "5m"))
         if not angel_interval:
@@ -210,8 +222,8 @@ class AngelOneAdapter:
             "X-UserType": "USER",
         }
         payload = {
-            "exchange": token_info.get("exchange", "NSE"),
-            "symboltoken": token_info.get("token"),
+            "exchange": exchange or "NSE",
+            "symboltoken": token,
             "interval": angel_interval,
             "fromdate": from_date,
             "todate": to_date,

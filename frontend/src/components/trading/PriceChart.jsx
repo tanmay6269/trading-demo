@@ -68,7 +68,7 @@ const calcBollingerBands = (data, period = 20, stdDev = 2) => {
     return { upper, middle, lower };
 };
 
-const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, onBuy = () => {}, showToast = () => {} }) => {
+const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, onBuy = () => {}, showToast = () => {}, token = null, exchange = null, forceLine = false }) => {
     const chartContainerRef = useRef(null);
     const chartInstanceRef = useRef(null);
     const seriesInstanceRef = useRef(null);
@@ -88,7 +88,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
     
     const [loading, setLoading] = useState(true);
     const [selectedPeriod, setSelectedPeriod] = useState('1D');
-    const [chartType, setChartType] = useState('candlestick'); // 'candlestick' | 'line'
+    const [chartType, setChartType] = useState(forceLine ? 'line' : 'candlestick'); // 'candlestick' | 'line'
     const [errorMsg, setErrorMsg] = useState('');
     const [livePrice, setLivePrice] = useState(null);
     const [prevClose, setPrevClose] = useState(null);
@@ -133,7 +133,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         setErrorMsg('');
         try {
             const pConfig = PERIODS.find(p => p.label === pLabel) || PERIODS[0];
-            const data = await api.getHistoricalData(symbol, pConfig.value, pConfig.interval);
+            const data = await api.getHistoricalData(symbol, pConfig.value, pConfig.interval, token, exchange);
 
             // Chart was replaced while we were fetching — discard stale data
             if (chartGenRef.current !== myGen || !seriesInstanceRef.current) {
@@ -208,14 +208,14 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                 setErrorMsg('Unable to load chart. Retrying with live price...');
                 // Attempt to load a live price tick even if chart history fails
                 try {
-                    const quoteData = await api.getPrice(symbol);
+                    const quoteData = await api.getPrice(symbol, token, exchange);
                     const price = typeof quoteData === 'object' ? quoteData.price : quoteData;
                     if (price && price > 0) setLivePrice(price);
                 } catch (e2) {}
             }
         }
         setLoading(false);
-    }, [symbol]);
+    }, [symbol, token, exchange]);
 
 
     useEffect(() => {
@@ -520,7 +520,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         const liveInterval = setInterval(async () => {
             if (!seriesInstanceRef.current || !lastCandleRef.current) return;
             try {
-                const quoteData = await api.getPrice(symbol);
+                const quoteData = await api.getPrice(symbol, token, exchange);
                 const price = typeof quoteData === 'object' ? quoteData.price : quoteData;
                 if (price && price > 0) {
                     setLivePrice(price);
@@ -556,7 +556,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
         }, 5000);
 
         return () => clearInterval(liveInterval);
-    }, [symbol, chartType]);
+    }, [symbol, chartType, token, exchange]);
 
     // Calculate Dynamic Change in Header
     const headerChange = prevClose && livePrice ? livePrice - prevClose : 0;
@@ -575,10 +575,12 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                 gap: '12px'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    {!forceLine && (
                     <h3 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '18px', fontWeight: '800' }}>
                         {chartType === 'line' ? '📈' : '📊'} {symbol} Real-Time Chart
                     </h3>
-                    {livePrice && (
+                    )}
+                    {!forceLine && livePrice && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ 
                                 fontSize: '16px', 
@@ -614,6 +616,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     {/* Technical Indicators Pill Controls (EMA 20, EMA 50, Bollinger Bands) */}
+                    {!forceLine && (
                     <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-inset)', padding: '4px', borderRadius: '10px' }}>
                         <button
                             onClick={() => setShowEma20(!showEma20)}
@@ -667,6 +670,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                             BB
                         </button>
                     </div>
+                    )}
 
                     {/* Timeframe Selector Pills (1D, 1W, 1M, 3M, 6M, 1Y, 5Y, ALL) */}
                     <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-inset)', padding: '4px', borderRadius: '10px' }}>
@@ -695,6 +699,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                     </div>
 
                     {/* Chart Type Toggle Button: 📊 Candlestick vs 📈 Line / Arrow */}
+                    {!forceLine && (
                     <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-inset)', padding: '4px', borderRadius: '10px' }}>
                         <button
                             onClick={() => setChartType('candlestick')}
@@ -737,6 +742,7 @@ const PriceChart = ({ symbol = 'RELIANCE', portfolio = [], onSell = () => {}, on
                             {isHeaderPos ? '📈 Line' : '📉 Line'}
                         </button>
                     </div>
+                    )}
                 </div>
             </div>
 
