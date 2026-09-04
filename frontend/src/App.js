@@ -67,10 +67,12 @@ function App() {
     try {
       localStorage.removeItem('saved_trader');
     } catch (e) {}
-    setIsLocked(false);
     setIsProfileOpen(false);
-    showToast('Logged out to Demo Mode');
-    checkSession();
+    setUsername('DemoTrader');
+    setBalance(1000000);
+    setUserInfo(null);
+    setIsLocked(true);
+    showToast('Logged out');
   };
 
   const checkSession = useCallback(async () => {
@@ -178,9 +180,9 @@ function App() {
   // Render Auth & PIN Lock Screen if locked
   if (isLocked) {
     return (
-      <AuthScreen 
+      <AuthScreen
         onLoginSuccess={handleAuthSuccess}
-        onClose={() => setIsLocked(false)}
+        onClose={() => { setIsLocked(false); checkSession(); }}
         showToast={showToast}
       />
     );
