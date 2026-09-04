@@ -139,14 +139,33 @@ def convert_expiry_to_iso(expiry_str):
             pass
     return expiry_str
 
+def _default_expiry_for_groww(underlying):
+    """
+    Groww's option-chain endpoint requires expiry_date; compute a sensible
+    default when the caller didn't pick one. Indices trade weekly (nearest
+    Thursday); individual stocks are monthly-only (last Thursday of the
+    current month, rolling to next month if this month's has already passed).
+    """
+    today = date.today()
+    if underlying in UNDERLYING_MAP.values():
+        return _get_nearest_thursday(today).isoformat()
+
+    monthly = _get_next_monthly_expiry(today)
+    if monthly < today:
+        if today.month == 12:
+            monthly = _get_next_monthly_expiry(date(today.year + 1, 1, 1))
+        else:
+            monthly = _get_next_monthly_expiry(date(today.year, today.month + 1, 1))
+    return monthly.isoformat()
+
+
 def fetch_groww_option_chain_api(exchange, underlying, expiry_date=None):
     clean_underlying = normalize_underlying(underlying)
     ex = exchange.strip().upper()
-    
+
     url = f"{GROWW_API_BASE}/v1/option-chain/exchange/{ex}/underlying/{clean_underlying}"
-    params = {}
-    if expiry_date:
-        params["expiry_date"] = convert_expiry_to_iso(expiry_date)
+    resolved_expiry = convert_expiry_to_iso(expiry_date) if expiry_date else _default_expiry_for_groww(clean_underlying)
+    params = {"expiry_date": resolved_expiry}
 
     try:
         r = requests.get(url, params=params, headers=groww_headers(), timeout=4)

@@ -21,6 +21,7 @@ Failover Strategy:
 import os
 import json
 import time
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, date
@@ -563,8 +564,14 @@ _engine_manager = MarketDataEngineManager()
 # Public API Endpoints Bridge
 # ------------------------------------------------------------------
 async def fetch_option_chain_failover(exchange: str, symbol: str, expiry: Optional[str] = None) -> Dict[str, Any]:
-    """Top-level async failover dispatcher used across FastAPI routes and poller."""
-    return _engine_manager.get_option_chain(symbol, exchange, expiry)
+    """
+    Top-level async failover dispatcher used across FastAPI routes and poller.
+    The provider chain underneath makes blocking `requests` calls (Groww, Angel
+    One live quotes, Upstox), so it's offloaded to a worker thread rather than
+    run inline -- otherwise it freezes the single asyncio event loop for every
+    other request/websocket/SSE connection for the duration of those calls.
+    """
+    return await asyncio.to_thread(_engine_manager.get_option_chain, symbol, exchange, expiry)
 
 
 def validate_broker_tokens() -> Dict[str, Any]:

@@ -24,6 +24,13 @@ from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 from typing import Optional, List, Dict, Any
 
+from dotenv import load_dotenv
+# Must run before any other backend module import: several modules read
+# credentials (ANGEL_ONE_*, UPSTOX_*, GROWW_*) as module-level constants via
+# os.getenv() at import time, so .env has to be loaded first or those
+# constants silently bake in as empty/default values for the process lifetime.
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse

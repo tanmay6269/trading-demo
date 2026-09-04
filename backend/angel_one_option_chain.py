@@ -27,6 +27,8 @@ import requests
 from symbol_mapper import canonicalize, get_symbol
 from angel_one_auth import get_valid_jwt, ANGEL_API_KEY
 
+MARKET_QUOTE_URL = "https://apiconnect.angelbroking.com/rest/secure/angelbroking/market/v1/quote/"
+
 logger = logging.getLogger("angel_one_option_chain")
 logger.setLevel(logging.INFO)
 
@@ -35,12 +37,20 @@ CACHE_DIR = os.path.join(os.path.dirname(__file__), "instruments_master")
 os.makedirs(CACHE_DIR, exist_ok=True)
 CACHE_FILE = os.path.join(CACHE_DIR, "angel_scrip_master.json")
 
-# In-Memory Option Contracts Index: (underlying, expiry) -> { strike: {"CE": token_item, "PE": token_item} }
-_options_index: Dict[str, Dict[str, Dict[float, Dict[str, Any]]]] = {}
-_expiries_index: Dict[str, List[str]] = {}
-_underlying_lots: Dict[str, int] = {}
+# In-Memory Option Contracts Index, segmented by exchange (NFO=NSE F&O, BFO=BSE F&O):
+# segment -> underlying -> expiry -> strike -> {"CE": token_item, "PE": token_item}
+# Segmenting matters: NSE and BSE both list options on the same underlying name, and
+# BSE's are typically near-dead (zero OI/volume/depth). Without keeping them separate,
+# a strike/expiry collision would silently let whichever loaded last overwrite the
+# other -- which was quietly serving illiquid, meaningless BSE contract data instead
+# of the real, actively-traded NSE one for some strikes.
+_options_index: Dict[str, Dict[str, Dict[str, Dict[float, Dict[str, Any]]]]] = {}
+_expiries_index: Dict[str, Dict[str, List[str]]] = {}
+_underlying_lots: Dict[str, Dict[str, int]] = {}
 _master_loaded = False
 _master_lock = threading.Lock()
+
+EXCHANGE_TO_SEGMENT = {"NSE": "NFO", "BSE": "BFO"}
 
 
 def _norm_cdf(x: float) -> float:
@@ -80,6 +90,58 @@ rate_limiter = RateLimiter(max_rate=3.0)
 
 
 # ------------------------------------------------------------------
+# Live Market Quote Fetcher (real LTP/OI/Volume/Depth via SmartAPI)
+# ------------------------------------------------------------------
+def fetch_live_quotes_batch(exchange_tokens: Dict[str, List[str]]) -> Dict[str, Dict[str, Any]]:
+    """
+    Fetch real live market quotes for a batch of instrument tokens via Angel One
+    SmartAPI's authenticated Market Quote endpoint (mode=FULL: LTP, OI, volume,
+    depth, day change). Chunks each exchange's tokens into groups of 50 to respect
+    SmartAPI's per-request limit. Returns {token: quote_dict}; empty if unauthenticated.
+    """
+    jwt = get_valid_jwt()
+    if not jwt or not exchange_tokens:
+        return {}
+
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Bearer {jwt}",
+        "X-PrivateKey": ANGEL_API_KEY,
+        "X-SourceID": "WEB",
+        "X-ClientLocalIP": "127.0.0.1",
+        "X-ClientPublicIP": "106.193.147.98",
+        "X-MACAddress": "fe80::216e:6507:4b83:3701",
+        "X-UserType": "USER",
+    }
+
+    result: Dict[str, Dict[str, Any]] = {}
+    for exch, tokens in exchange_tokens.items():
+        tokens = [t for t in tokens if t]
+        for i in range(0, len(tokens), 50):
+            chunk = tokens[i:i + 50]
+            rate_limiter.acquire()
+            try:
+                r = requests.post(
+                    MARKET_QUOTE_URL,
+                    json={"mode": "FULL", "exchangeTokens": {exch: chunk}},
+                    headers=headers,
+                    timeout=8
+                )
+                data = r.json()
+                if r.status_code == 200 and data.get("status") and data.get("data"):
+                    for item in data["data"].get("fetched", []) or []:
+                        tok = str(item.get("symbolToken", "")).strip()
+                        if tok:
+                            result[tok] = item
+                else:
+                    logger.warning(f"Angel One live quote batch non-success for {exch}: {data.get('message')}")
+            except Exception as e:
+                logger.warning(f"Angel One live quote batch fetch failed for {exch}: {e}")
+    return result
+
+
+# ------------------------------------------------------------------
 # Black-Scholes Greeks & IV Calculation Engine
 # ------------------------------------------------------------------
 def calculate_bs_greeks(
@@ -114,27 +176,35 @@ def calculate_bs_greeks(
 
 
 def calculate_iv_from_price(spot: float, strike: float, tte: float, market_price: float, is_call: bool = True) -> float:
-    """Calculate Implied Volatility using Newton-Raphson approximation."""
+    """
+    Calculate Implied Volatility via bisection. Black-Scholes price is monotonic
+    in volatility, so bisection is guaranteed to converge -- unlike Newton-Raphson,
+    which is numerically unstable here for short-dated contracts (small tte means
+    small vega, so a fixed-size Newton step can overshoot wildly and never settle
+    within a handful of iterations).
+    """
     if tte <= 0 or market_price <= 0 or spot <= 0 or strike <= 0:
         return 15.0
 
-    sigma = 0.20
-    for _ in range(12):
-        price, _, _, _, vega_100 = calculate_bs_greeks(spot, strike, tte, iv=sigma, is_call=is_call)
-        diff = price - market_price
-        if abs(diff) < 0.05:
-            return round(sigma * 100.0, 2)
-        vega_raw = vega_100 * 100.0
-        if abs(vega_raw) < 1e-4:
-            break
-        sigma = sigma - diff / vega_raw
-        if sigma <= 0.01:
-            sigma = 0.01
-            break
-        if sigma > 3.0:
-            sigma = 3.0
-            break
-    return round(sigma * 100.0, 2)
+    lo, hi = 0.01, 3.0
+    price_lo = calculate_bs_greeks(spot, strike, tte, iv=lo, is_call=is_call)[0]
+    price_hi = calculate_bs_greeks(spot, strike, tte, iv=hi, is_call=is_call)[0]
+
+    if market_price <= price_lo:
+        return round(lo * 100.0, 2)
+    if market_price >= price_hi:
+        return round(hi * 100.0, 2)
+
+    for _ in range(60):
+        mid = (lo + hi) / 2.0
+        price_mid = calculate_bs_greeks(spot, strike, tte, iv=mid, is_call=is_call)[0]
+        if abs(price_mid - market_price) < 0.01:
+            return round(mid * 100.0, 2)
+        if price_mid < market_price:
+            lo = mid
+        else:
+            hi = mid
+    return round(((lo + hi) / 2.0) * 100.0, 2)
 
 
 # ------------------------------------------------------------------
@@ -197,9 +267,9 @@ def load_and_index_scrip_master() -> bool:
         if not raw_data:
             return False
 
-        options_map: Dict[str, Dict[str, Dict[float, Dict[str, Any]]]] = {}
-        expiries_map: Dict[str, set] = {}
-        lots_map: Dict[str, int] = {}
+        options_map: Dict[str, Dict[str, Dict[str, Dict[float, Dict[str, Any]]]]] = {"NFO": {}, "BFO": {}}
+        expiries_map: Dict[str, Dict[str, set]] = {"NFO": {}, "BFO": {}}
+        lots_map: Dict[str, Dict[str, int]] = {"NFO": {}, "BFO": {}}
 
         for item in raw_data:
             exch = item.get("exch_seg", "")
@@ -224,25 +294,28 @@ def load_and_index_scrip_master() -> bool:
                 continue
 
             lot_size = int(float(item.get("lotsize") or 1))
-            lots_map[clean_name] = lot_size
+            lots_map[exch][clean_name] = lot_size
 
             # Determine CE / PE
             opt_type = "CE" if symbol_str.endswith("CE") else ("PE" if symbol_str.endswith("PE") else "")
             if not opt_type:
                 continue
 
-            if clean_name not in options_map:
-                options_map[clean_name] = {}
-                expiries_map[clean_name] = set()
+            seg_options = options_map[exch]
+            seg_expiries = expiries_map[exch]
 
-            if expiry_str not in options_map[clean_name]:
-                options_map[clean_name][expiry_str] = {}
-                expiries_map[clean_name].add(expiry_str)
+            if clean_name not in seg_options:
+                seg_options[clean_name] = {}
+                seg_expiries[clean_name] = set()
 
-            if strike not in options_map[clean_name][expiry_str]:
-                options_map[clean_name][expiry_str][strike] = {}
+            if expiry_str not in seg_options[clean_name]:
+                seg_options[clean_name][expiry_str] = {}
+                seg_expiries[clean_name].add(expiry_str)
 
-            options_map[clean_name][expiry_str][strike][opt_type] = {
+            if strike not in seg_options[clean_name][expiry_str]:
+                seg_options[clean_name][expiry_str][strike] = {}
+
+            seg_options[clean_name][expiry_str][strike][opt_type] = {
                 "token": str(item.get("token", "")),
                 "symbol": symbol_str,
                 "exchange": exch,
@@ -250,11 +323,24 @@ def load_and_index_scrip_master() -> bool:
                 "strike": strike
             }
 
+        def _expiry_sort_key(expiry_str: str):
+            try:
+                return datetime.strptime(expiry_str.strip().upper(), "%d%b%Y")
+            except Exception:
+                return datetime.max
+
         _options_index = options_map
         _underlying_lots = lots_map
-        _expiries_index = {k: sorted(list(v)) for k, v in expiries_map.items()}
+        # Sort chronologically (by actual date), not lexicographically -- "23NOV2026"
+        # sorts before "24SEP2026" as plain strings, which previously made the
+        # engine default to an expiry months further out than the nearest one.
+        _expiries_index = {
+            seg: {k: sorted(v, key=_expiry_sort_key) for k, v in seg_map.items()}
+            for seg, seg_map in expiries_map.items()
+        }
         _master_loaded = True
-        logger.info(f"✅ Angel One Option Master Indexed: {len(_options_index)} F&O underlyings active")
+        total_underlyings = sum(len(seg_map) for seg_map in _options_index.values())
+        logger.info(f"✅ Angel One Option Master Indexed: {total_underlyings} F&O underlyings active (NFO+BFO)")
         return True
 
 
@@ -267,15 +353,17 @@ class AngelOneOptionChainEngine:
     def __init__(self):
         load_and_index_scrip_master()
 
-    def get_expiries(self, symbol: str) -> List[str]:
+    def get_expiries(self, symbol: str, exchange: str = "NSE") -> List[str]:
         clean = canonicalize(symbol)
+        segment = EXCHANGE_TO_SEGMENT.get(exchange.upper(), "NFO")
         if not _master_loaded:
             load_and_index_scrip_master()
-        return _expiries_index.get(clean, [])
+        return _expiries_index.get(segment, {}).get(clean, [])
 
-    def get_lot_size(self, symbol: str) -> int:
+    def get_lot_size(self, symbol: str, exchange: str = "NSE") -> int:
         clean = canonicalize(symbol)
-        return _underlying_lots.get(clean, 1)
+        segment = EXCHANGE_TO_SEGMENT.get(exchange.upper(), "NFO")
+        return _underlying_lots.get(segment, {}).get(clean, 1)
 
     def build_option_chain(
         self,
@@ -288,20 +376,21 @@ class AngelOneOptionChainEngine:
         PCR, Max Pain, and 4-Quadrant OI Buildup interpretation.
         """
         clean = canonicalize(symbol)
+        segment = EXCHANGE_TO_SEGMENT.get(exchange.upper(), "NFO")
         if not _master_loaded:
             load_and_index_scrip_master()
 
-        available_expiries = self.get_expiries(clean)
+        available_expiries = self.get_expiries(clean, exchange)
         if not available_expiries:
             # Fallback to local option chain calculator
             from nse_bse_fetcher import get_real_option_chain
             return get_real_option_chain(clean, exchange, expiry)
 
         target_expiry = expiry if (expiry and expiry in available_expiries) else available_expiries[0]
-        strike_contracts = _options_index.get(clean, {}).get(target_expiry, {})
+        strike_contracts = _options_index.get(segment, {}).get(clean, {}).get(target_expiry, {})
 
-        # Fetch live spot price
-        spot_price = self._fetch_spot_price(clean)
+        # Fetch live spot price (+ day change for the header ticker)
+        spot_price, spot_change, spot_change_pct = self._fetch_spot_quote(clean)
         if spot_price <= 0:
             # Index-specific real defaults (fallback only — live data should be present)
             INDEX_DEFAULT_SPOT = {
@@ -325,6 +414,100 @@ class AngelOneOptionChainEngine:
             selected_strikes = sorted_strikes
             atm_strike = spot_price
 
+        # Fetch real live quotes (LTP/OI/volume/depth) for every strike's CE & PE
+        # in one batched call. Falls back to theoretical Black-Scholes pricing
+        # per-leg below for any token with no live tick (illiquid/unfetched).
+        exchange_tokens: Dict[str, List[str]] = {}
+        for strike in selected_strikes:
+            for leg in ("CE", "PE"):
+                info = strike_contracts[strike].get(leg, {})
+                tok = info.get("token")
+                exch = info.get("exchange")
+                if tok and exch:
+                    exchange_tokens.setdefault(exch, []).append(tok)
+        live_quotes = fetch_live_quotes_batch(exchange_tokens)
+
+        def _build_leg(token_info: Dict[str, Any], strike: float, is_call: bool) -> Dict[str, Any]:
+            tok = token_info.get("token")
+            live = live_quotes.get(tok) if tok else None
+
+            if live and live.get("ltp"):
+                ltp = round(float(live.get("ltp") or 0.0), 2)
+                oi = int(live.get("opnInterest") or 0)
+                volume = int(live.get("tradeVolume") or 0)
+                close = float(live.get("close") or ltp)
+                price_change = round(ltp - close, 2)
+                depth = live.get("depth") or {}
+                buy = (depth.get("buy") or [])
+                sell = (depth.get("sell") or [])
+                bid_price = float(buy[0]["price"]) if buy else round(ltp * 0.995, 2)
+                bid_qty = int(buy[0]["quantity"]) if buy else 0
+                ask_price = float(sell[0]["price"]) if sell else round(ltp * 1.005, 2)
+                ask_qty = int(sell[0]["quantity"]) if sell else 0
+
+                # IV/Greeks are derived from the live bid/ask midpoint, not ltp: ltp is
+                # whenever this contract last actually traded, which for a thin strike
+                # can be stale (minutes/hours old) and inconsistent with the current
+                # spot -- producing IV noise/discontinuities across strikes. Mid-price
+                # reflects the current quotable market and is what real option
+                # terminals use for Greeks. ltp itself is still shown as-is below.
+                iv_price = (bid_price + ask_price) / 2.0 if (bid_price > 0 and ask_price > 0) else ltp
+                iv_pct = calculate_iv_from_price(spot_price, strike, tte, iv_price, is_call=is_call)
+                _, delta, gamma, theta, vega = calculate_bs_greeks(spot_price, strike, tte, iv=max(iv_pct, 1.0) / 100.0, is_call=is_call)
+
+                # SmartAPI's quote snapshot doesn't include prior-day OI, so a true
+                # OI change can't be derived from a single call — left at 0 rather
+                # than fabricated (buildup below is honestly "Neutral" in that case).
+                oi_change = 0
+
+                return {
+                    "token": tok,
+                    "symbol": token_info.get("symbol"),
+                    "ltp": ltp,
+                    "oi": oi,
+                    "change_in_oi": oi_change,
+                    "volume": volume,
+                    "iv": iv_pct,
+                    "delta": delta,
+                    "gamma": gamma,
+                    "theta": theta,
+                    "vega": vega,
+                    "bid_price": bid_price,
+                    "bid_qty": bid_qty,
+                    "ask_price": ask_price,
+                    "ask_qty": ask_qty,
+                    "buildup": interpret_oi_buildup(price_change, oi_change),
+                    "is_live": True,
+                }
+
+            # Fallback: no live tick for this contract -> theoretical pricing
+            price, delta, gamma, theta, vega = calculate_bs_greeks(spot_price, strike, tte, is_call=is_call)
+            dist = abs(strike - spot_price) / max(spot_price * 0.01, 1.0)
+            base_oi = max(500, int(35000 / (1.0 + 0.3 * dist ** 1.5)))
+            oi = int(base_oi * (1.2 if (strike >= spot_price) == is_call else 0.6))
+            oi_chg = int(oi * 0.05)
+            volume = int(oi * 1.8)
+
+            return {
+                "token": tok,
+                "symbol": token_info.get("symbol"),
+                "ltp": price,
+                "oi": oi,
+                "change_in_oi": oi_chg,
+                "volume": volume,
+                "iv": 15.0,
+                "delta": delta,
+                "gamma": gamma,
+                "theta": theta,
+                "vega": vega,
+                "bid_price": round(price * 0.995, 2),
+                "bid_qty": 1800,
+                "ask_price": round(price * 1.005, 2),
+                "ask_qty": 1800,
+                "buildup": interpret_oi_buildup(price - max(0.1, price * 0.98), oi_chg),
+                "is_live": False,
+            }
+
         rows = []
         total_ce_oi = 0
         total_pe_oi = 0
@@ -334,87 +517,58 @@ class AngelOneOptionChainEngine:
             ce_token_info = strike_contracts[strike].get("CE", {})
             pe_token_info = strike_contracts[strike].get("PE", {})
 
-            # Theoretical base pricing & Greeks
-            ce_price, ce_delta, ce_gamma, ce_theta, ce_vega = calculate_bs_greeks(spot_price, strike, tte, is_call=True)
-            pe_price, pe_delta, pe_gamma, pe_theta, pe_vega = calculate_bs_greeks(spot_price, strike, tte, is_call=False)
+            ce_leg = _build_leg(ce_token_info, strike, is_call=True)
+            pe_leg = _build_leg(pe_token_info, strike, is_call=False)
 
-            # Simulated live OI distribution with realistic volume
-            dist = abs(strike - spot_price) / max(spot_price * 0.01, 1.0)
-            base_oi = max(500, int(35000 / (1.0 + 0.3 * dist ** 1.5)))
-            
-            ce_oi = int(base_oi * (1.2 if strike >= spot_price else 0.6))
-            pe_oi = int(base_oi * (1.2 if strike <= spot_price else 0.6))
-            ce_oi_chg = int(ce_oi * 0.05)
-            pe_oi_chg = int(pe_oi * 0.04)
-            ce_vol = int(ce_oi * 1.8)
-            pe_vol = int(pe_oi * 1.6)
+            # ITM options' IV can't be solved reliably from price alone -- premium is
+            # dominated by intrinsic value, so many sigmas fit the observed price about
+            # equally well (this is what produced near-0% IV on deep-ITM calls). Standard
+            # practice: borrow the OTM leg's IV for the ITM leg at the same strike (both
+            # should be close via put-call parity) and re-derive Greeks from it.
+            if ce_leg.get("is_live") and pe_leg.get("is_live"):
+                if strike < spot_price and pe_leg["iv"] > 0:
+                    _, d, g, t, v = calculate_bs_greeks(spot_price, strike, tte, iv=pe_leg["iv"] / 100.0, is_call=True)
+                    ce_leg["iv"], ce_leg["delta"], ce_leg["gamma"], ce_leg["theta"], ce_leg["vega"] = pe_leg["iv"], d, g, t, v
+                elif strike > spot_price and ce_leg["iv"] > 0:
+                    _, d, g, t, v = calculate_bs_greeks(spot_price, strike, tte, iv=ce_leg["iv"] / 100.0, is_call=False)
+                    pe_leg["iv"], pe_leg["delta"], pe_leg["gamma"], pe_leg["theta"], pe_leg["vega"] = ce_leg["iv"], d, g, t, v
 
-            total_ce_oi += ce_oi
-            total_pe_oi += pe_oi
-
-            # 4-Quadrant Buildup Interpretation
-            ce_buildup = interpret_oi_buildup(ce_price - max(0.1, ce_price * 0.98), ce_oi_chg)
-            pe_buildup = interpret_oi_buildup(pe_price - max(0.1, pe_price * 0.98), pe_oi_chg)
-
-            ce_leg = {
-                "token": ce_token_info.get("token"),
-                "symbol": ce_token_info.get("symbol"),
-                "ltp": ce_price,
-                "oi": ce_oi,
-                "change_in_oi": ce_oi_chg,
-                "volume": ce_vol,
-                "iv": 14.5,
-                "delta": ce_delta,
-                "gamma": ce_gamma,
-                "theta": ce_theta,
-                "vega": ce_vega,
-                "bid_price": round(ce_price * 0.995, 2),
-                "bid_qty": 1800,
-                "ask_price": round(ce_price * 1.005, 2),
-                "ask_qty": 1800,
-                "buildup": ce_buildup
-            }
-
-            pe_leg = {
-                "token": pe_token_info.get("token"),
-                "symbol": pe_token_info.get("symbol"),
-                "ltp": pe_price,
-                "oi": pe_oi,
-                "change_in_oi": pe_oi_chg,
-                "volume": pe_vol,
-                "iv": 14.8,
-                "delta": pe_delta,
-                "gamma": pe_gamma,
-                "theta": pe_theta,
-                "vega": pe_vega,
-                "bid_price": round(pe_price * 0.995, 2),
-                "bid_qty": 1800,
-                "ask_price": round(pe_price * 1.005, 2),
-                "ask_qty": 1800,
-                "buildup": pe_buildup
-            }
+            total_ce_oi += ce_leg["oi"]
+            total_pe_oi += pe_leg["oi"]
 
             is_atm = (strike == atm_strike)
             rows.append({"strike": strike, "ce": ce_leg, "pe": pe_leg, "is_atm": is_atm})
 
-            # Max Pain calculation: Total payout by option writers if market closes at 'strike'
+        # Max Pain: for each candidate closing strike, sum the payout option writers
+        # owe across every OTHER strike, using that other strike's own OI (each row's
+        # CE OI matters only when it's ITM below the candidate close, PE OI only when
+        # ITM above it).
+        for row in rows:
+            candidate = row["strike"]
             loss = 0.0
-            for other_strike in selected_strikes:
-                if other_strike < strike:
-                    loss += (strike - other_strike) * ce_oi
-                elif other_strike > strike:
-                    loss += (other_strike - strike) * pe_oi
-            strike_losses[strike] = loss
+            for other in rows:
+                other_strike = other["strike"]
+                if other_strike < candidate:
+                    loss += (candidate - other_strike) * other["ce"]["oi"]
+                elif other_strike > candidate:
+                    loss += (other_strike - candidate) * other["pe"]["oi"]
+            strike_losses[candidate] = loss
 
         pcr = round(total_pe_oi / total_ce_oi, 2) if total_ce_oi > 0 else 1.0
         max_pain = min(strike_losses, key=strike_losses.get) if strike_losses else atm_strike
 
+        live_leg_count = sum(1 for row in rows for leg in ("ce", "pe") if row[leg].get("is_live"))
+        total_leg_count = len(rows) * 2
+
         return {
             "status": "success",
             "data_source": "ANGEL_ONE_SMART_API",
+            "live_quote_coverage": f"{live_leg_count}/{total_leg_count}",
             "symbol": clean,
             "exchange": exchange,
             "spot_price": spot_price,
+            "change": spot_change,
+            "change_percent": spot_change_pct,
             "atm_strike": atm_strike,
             "expiries": available_expiries,
             "selected_expiry": target_expiry,
@@ -428,14 +582,22 @@ class AngelOneOptionChainEngine:
 
     def _fetch_spot_price(self, symbol: str) -> float:
         """Fetch spot price for underlying."""
+        return self._fetch_spot_quote(symbol)[0]
+
+    def _fetch_spot_quote(self, symbol: str) -> Tuple[float, float, float]:
+        """Fetch (spot_price, day_change, day_change_percent) for the underlying."""
         try:
             from groww_data import fetch_stock_quote
             q = fetch_stock_quote(symbol)
             if q and q.get("price"):
-                return float(q["price"])
+                return (
+                    float(q["price"]),
+                    float(q.get("change") or 0.0),
+                    float(q.get("change_percent") or 0.0),
+                )
         except Exception:
             pass
-        return 0.0
+        return (0.0, 0.0, 0.0)
 
     def _calculate_tte(self, expiry_str: str) -> float:
         """Convert Angel One expiry string (e.g. '28AUG2025' or '04SEP2025') to time-to-expiry in years."""
