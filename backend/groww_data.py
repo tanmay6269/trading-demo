@@ -1090,31 +1090,23 @@ INDIAN_INDICES_DETAILED = {
     'NIFTY Bank': '^NSEBANK',
     'Nifty Financial Services': 'NIFTY_FIN_SERVICE.NS',
     'NIFTY Private Bank': 'NIFTY_PVT_BANK.NS',
-    'NIFTY PSU Bank': '^CNXPSU',
-    'BSE Bankex': 'BSE-BANK.BO',
+    'BSE Bankex': '^BSEBANK',
     'NIFTY IT': '^CNXIT',
-    'BSE FOCUSED IT': 'BSE-IT.BO',
     'NIFTY Pharma': '^CNXPHARMA',
     'NIFTY Auto': '^CNXAUTO',
     'Nifty FMCG': '^CNXFMCG',
     'NIFTY Metal': '^CNXMETAL',
     'NIFTY Realty': '^CNXREALTY',
     'Nifty Media Index': '^CNXMEDIA',
-    'NIFTY Commodities': '^CNXCOMMODITIES',
-    'BSE IPO': 'BSE-IPO.BO',
     'India VIX': '^INDIAVIX',
     'Nifty Midcap Select': 'NIFTY_MID_SELECT.NS',
     'NIFTY MIDCAP 50': '^NSEMDCP50',
     'NIFTY Midcap 100': 'NIFTY_MIDCAP_100.NS',
     'NIFTY MIDCAP 150': 'NIFTYMIDCAP150.NS',
-    'BSE Midcap': 'BSE-MIDCAP.BO',
     'NIFTY Smallcap 100': 'NIFTYSMLCAP100.NS',
     'NIFTY SMALLCAP 250': 'NIFTYSMLCAP250.NS',
-    'BSE Smallcap': 'BSE-SMLCAP.BO',
     'NIFTY 100': '^CNX100',
     'NIFTY 500': '^CRSLDX',
-    'Nifty Total Market': 'NIFTYTOTALMKT.NS',
-    'BSE 100': 'BSE-100.BO'
 }
 
 GLOBAL_INDICES_DETAILED = {
@@ -1235,24 +1227,6 @@ def fetch_detailed_ohlc(name, symbol):
 
                 change = round(price - prev, 2)
                 pct = round((change / prev) * 100, 2) if prev != 0 else 0.0
-                
-                # Standardize Global Indices scale factors matching TradingView & Groww
-                scale = 1.0
-                if name == 'Dow' and price > 50000:
-                    scale = 0.8
-                elif name == 'S&P' and price > 7000:
-                    scale = 0.743
-                elif name == 'DAX' and price > 25000:
-                    scale = 0.733
-                elif name == 'FTSE 100' and price > 10000:
-                    scale = 0.76
-
-                price = round(price * scale, 2)
-                change = round(change * scale, 2)
-                high = round(high * scale, 2)
-                low = round(low * scale, 2)
-                open_p = round(open_p * scale, 2)
-                prev = round(prev * scale, 2)
 
                 return {
                     'name': name,
@@ -1352,7 +1326,8 @@ DEFAULT_STOCK_FALLBACKS = {
     'BANK NIFTY': {'symbol': '^NSEBANK', 'value': 57509.95, 'price': 57509.95, 'prev_close': 57783.75, 'change': -273.80, 'change_percent': -0.47},
     'INDIA VIX': {'symbol': '^INDIAVIX', 'value': 11.07, 'price': 11.07, 'prev_close': 11.20, 'change': -0.13, 'change_percent': -1.16},
     'FIN NIFTY': {'symbol': 'NIFTY_FIN_SERVICE.NS', 'value': 26280.65, 'price': 26280.65, 'prev_close': 26386.75, 'change': -106.10, 'change_percent': -0.40},
-    'MIDCAP NIFTY': {'symbol': 'NIFTY_MID_SELECT.NS', 'value': 14948.85, 'price': 14948.85, 'prev_close': 14948.05, 'change': 0.80, 'change_percent': 0.01}
+    'MIDCAP NIFTY': {'symbol': 'NIFTY_MID_SELECT.NS', 'value': 14948.85, 'price': 14948.85, 'prev_close': 14948.05, 'change': 0.80, 'change_percent': 0.01},
+    'BANKEX': {'symbol': '^BSEBANK', 'value': 60500.00, 'price': 60500.00, 'prev_close': 60800.00, 'change': -300.00, 'change_percent': -0.49}
 }
 
 def get_index_data():
@@ -1363,6 +1338,7 @@ def get_index_data():
         ('NIFTY 50', '^NSEI'),
         ('SENSEX', '^BSESN'),
         ('BANK NIFTY', '^NSEBANK'),
+        ('BANKEX', '^BSEBANK'),
         ('INDIA VIX', '^INDIAVIX'),
         ('FIN NIFTY', 'NIFTY_FIN_SERVICE.NS'),
         ('MIDCAP NIFTY', 'NIFTY_MID_SELECT.NS')

@@ -710,16 +710,16 @@ async def get_fo_underlyings_route(db: Session = Depends(get_db)):
 
 
 @app.get("/api/option-chain/{symbol}")
-async def get_option_chain_route(symbol: str, expiry: Optional[str] = None):
-    """Real-time Option Chain with multi-source failover (Upstox -> Dhan -> Groww -> NSE)."""
+async def get_option_chain_route(symbol: str, expiry: Optional[str] = None, exchange: str = "NSE"):
+    """Real-time Option Chain with multi-source failover (Groww -> Angel One -> Upstox -> Black-Scholes)."""
     clean_u = canonicalize(symbol)
     poller.register(clean_u)
-    cached = await cache.get_option_chain("NSE", clean_u, expiry or "default")
+    cached = await cache.get_option_chain(exchange.upper(), clean_u, expiry or "default")
     if cached:
         return cached
-    chain = await fetch_option_chain_failover("NSE", clean_u, expiry)
+    chain = await fetch_option_chain_failover(exchange.upper(), clean_u, expiry)
     if chain:
-        await cache.set_option_chain("NSE", clean_u, expiry or "default", chain, ttl_seconds=TTL_OPTION_CHAIN)
+        await cache.set_option_chain(exchange.upper(), clean_u, expiry or "default", chain, ttl_seconds=TTL_OPTION_CHAIN)
         return chain
     local_chain = await asyncio.to_thread(_generate_local_chain_sync, clean_u, expiry)
     return local_chain

@@ -5,15 +5,16 @@ BullX Production Market Data Provider Abstraction & Failover Engine.
 
 Architecture:
 - Abstract Base Class: MarketDataProvider
-- Primary Provider: AngelOneProvider (TOTP auth, SmartAPI Scrip Master, Fast Live Greeks)
-- Backup Provider: UpstoxProvider (OAuth2 auth, Upstox API v2 option chain)
-- Safety Fallback: GrowwRealBSProvider (Live equity spot + Black-Scholes mathematical pricing)
+- Primary Provider: GrowwProvider (Free public API, no auth required)
+- Backup Provider: AngelOneProvider (TOTP auth, SmartAPI Scrip Master)
+- Tertiary Provider: UpstoxProvider (OAuth2 auth, Upstox API v2 option chain)
+- Safety Fallback: RealBSProvider (Live equity spot + Black-Scholes mathematical pricing)
 
 Failover Strategy:
-- Primary: Angel One SmartAPI by default.
-- Failover Trigger: 3 consecutive REST/WebSocket failures or HTTP 5xx -> Switched to Upstox.
-- Auto-Recovery: Periodic health probe automatically restores Angel One when healthy.
-- Normalization: Both providers mapped into ONE uniform OptionChain data contract.
+- Primary: Groww Public API by default (free, no auth).
+- Failover Trigger: 3 consecutive REST failures -> Switched to Angel One.
+- If Angel One fails, try Upstox.
+- If all fail, invoke Real Black-Scholes safety engine.
 - Debug Mode: 'force_failover' endpoint to simulate outages and verify zero-downtime failover.
 """
 
@@ -345,7 +346,72 @@ class UpstoxProvider(MarketDataProvider):
 
 
 # ------------------------------------------------------------------
-# 4. Safety Fallback: Real Option Chain Engine (Black-Scholes)
+# 4. Groww API Provider (PRIMARY - Free, No Auth Required)
+# ------------------------------------------------------------------
+class GrowwProvider(MarketDataProvider):
+    def __init__(self):
+        self.name = "GROWW_PUBLIC_API"
+        self._consecutive_errors = 0
+        self._last_error_time = 0
+
+    def get_name(self) -> str:
+        return self.name
+
+    def is_configured(self) -> bool:
+        return True
+
+    def is_healthy(self) -> bool:
+        if self._consecutive_errors >= 3:
+            if time.time() - self._last_error_time > 60:
+                return True
+            return False
+        return True
+
+    def record_success(self):
+        self._consecutive_errors = 0
+
+    def record_failure(self, reason: str):
+        self._consecutive_errors += 1
+        self._last_error_time = time.time()
+        logger.warning(f"[{self.name}] Failure #{self._consecutive_errors}: {reason}")
+
+    def get_option_chain(self, symbol: str, exchange: str = "NSE", expiry: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        try:
+            from nse_bse_fetcher import fetch_groww_option_chain_api
+            chain = fetch_groww_option_chain_api(exchange, symbol, expiry)
+            if chain and chain.get("chain"):
+                self.record_success()
+                chain["data_source"] = self.name
+                chain["active_provider"] = "PRIMARY (Groww Public API)"
+                return chain
+            else:
+                self.record_failure("Empty option chain returned")
+        except Exception as e:
+            self.record_failure(str(e))
+        return None
+
+    def get_live_tick(self, symbol: str) -> Optional[Dict[str, Any]]:
+        clean = canonicalize(symbol)
+        try:
+            from groww_data import fetch_stock_quote
+            q = fetch_stock_quote(clean)
+            if q and q.get("price"):
+                self.record_success()
+                return {
+                    "symbol": clean,
+                    "price": float(q["price"]),
+                    "change": float(q.get("change") or 0.0),
+                    "change_percent": float(q.get("change_percent") or 0.0),
+                    "prev_close": float(q.get("prev_close") or q["price"]),
+                    "source": self.name
+                }
+        except Exception as e:
+            self.record_failure(str(e))
+        return None
+
+
+# ------------------------------------------------------------------
+# 5. Safety Fallback: Real Option Chain Engine (Black-Scholes)
 # ------------------------------------------------------------------
 class RealBSProvider(MarketDataProvider):
     def get_name(self) -> str:
@@ -380,22 +446,23 @@ class RealBSProvider(MarketDataProvider):
 
 
 # ------------------------------------------------------------------
-# 5. Master Provider Selection & Failover Manager
+# 6. Master Provider Selection & Failover Manager
 # ------------------------------------------------------------------
 class MarketDataEngineManager:
-    """Coordinates Primary (Angel One) -> Backup (Upstox) -> Fallback (BS) failover."""
+    """Coordinates Primary (Groww) -> Backup (Angel One/Upstox) -> Fallback (BS) failover."""
 
     def __init__(self):
-        self.primary_provider = AngelOneProvider()
-        self.backup_provider = UpstoxProvider()
+        self.primary_provider = GrowwProvider()
+        self.backup_provider = AngelOneProvider()
+        self.tertiary_provider = UpstoxProvider()
         self.fallback_provider = RealBSProvider()
 
-        self.override_mode = "AUTO"  # "AUTO" | "FORCE_ANGEL_ONE" | "FORCE_UPSTOX"
+        self.override_mode = "AUTO"  # "AUTO" | "FORCE_GROWW" | "FORCE_ANGEL_ONE" | "FORCE_UPSTOX"
         self.failover_logs: List[Dict[str, Any]] = []
 
     def set_override_mode(self, mode: str) -> Dict[str, Any]:
         """Manually toggle debug provider mode."""
-        valid_modes = ["AUTO", "FORCE_ANGEL_ONE", "FORCE_UPSTOX"]
+        valid_modes = ["AUTO", "FORCE_GROWW", "FORCE_ANGEL_ONE", "FORCE_UPSTOX"]
         m = mode.upper().strip()
         if m in valid_modes:
             prev = self.override_mode
@@ -407,7 +474,7 @@ class MarketDataEngineManager:
                 "new_mode": m
             }
             self.failover_logs.append(event)
-            logger.info(f"🔄 Provider Override Mode changed from {prev} to {m}")
+            logger.info(f"Provider Override Mode changed from {prev} to {m}")
             return {"status": "ok", "mode": m}
         return {"status": "error", "message": f"Invalid mode. Choose from {valid_modes}"}
 
@@ -431,50 +498,60 @@ class MarketDataEngineManager:
     def get_option_chain(self, symbol: str, exchange: str = "NSE", expiry: Optional[str] = None) -> Dict[str, Any]:
         """
         Ingestion with automatic failover and recovery:
-        1. If FORCE_UPSTOX: Try Upstox -> Fallback.
-        2. If FORCE_ANGEL_ONE: Try Angel One -> Fallback.
-        3. If AUTO: Try Angel One (Primary). If healthy/success, return.
-           If Angel One fails, log failover and immediately invoke Upstox (Backup).
-           If both fail, invoke Real Black-Scholes safety engine.
+        1. AUTO: Try Groww (Primary). If healthy/success, return.
+           If Groww fails, log failover and try Angel One (Backup).
+           If Angel One fails, try Upstox (Tertiary).
+           If all fail, invoke Real Black-Scholes safety engine.
         """
         clean = canonicalize(symbol)
         ex = exchange.upper()
 
-        if self.override_mode == "FORCE_UPSTOX":
-            logger.info(f"⚡ [OVERRIDE] Using UPSTOX Provider for {clean}")
-            res = self.backup_provider.get_option_chain(clean, ex, expiry)
-            if res: return res
-            return self.fallback_provider.get_option_chain(clean, ex, expiry)
-
-        if self.override_mode == "FORCE_ANGEL_ONE":
-            logger.info(f"⚡ [OVERRIDE] Using ANGEL ONE Provider for {clean}")
+        if self.override_mode == "FORCE_GROWW":
+            logger.info(f"[OVERRIDE] Using GROWW Provider for {clean}")
             res = self.primary_provider.get_option_chain(clean, ex, expiry)
             if res: return res
             return self.fallback_provider.get_option_chain(clean, ex, expiry)
 
-        # AUTO Mode: Try Angel One first
+        if self.override_mode == "FORCE_ANGEL_ONE":
+            logger.info(f"[OVERRIDE] Using ANGEL ONE Provider for {clean}")
+            res = self.backup_provider.get_option_chain(clean, ex, expiry)
+            if res: return res
+            return self.fallback_provider.get_option_chain(clean, ex, expiry)
+
+        if self.override_mode == "FORCE_UPSTOX":
+            logger.info(f"[OVERRIDE] Using UPSTOX Provider for {clean}")
+            res = self.tertiary_provider.get_option_chain(clean, ex, expiry)
+            if res: return res
+            return self.fallback_provider.get_option_chain(clean, ex, expiry)
+
+        # AUTO Mode: Try Groww first (free, no auth needed)
         if self.primary_provider.is_healthy():
             res = self.primary_provider.get_option_chain(clean, ex, expiry)
             if res and res.get("chain"):
                 return res
 
-        # Primary failed or unhealthy -> Failover to Upstox
+        # Primary (Groww) failed -> Failover to Angel One
         log_event = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "symbol": clean,
             "event": "AUTOMATIC_FAILOVER",
-            "reason": "Angel One SmartAPI failed or error threshold exceeded",
+            "reason": "Groww API failed or error threshold exceeded",
             "provider_switched_to": self.backup_provider.get_name()
         }
         self.failover_logs.append(log_event)
-        logger.warning(f"🚨 [FAILOVER] Angel One unavailable for {clean}. Switching to Upstox Provider...")
+        logger.warning(f"[FAILOVER] Groww unavailable for {clean}. Switching to Angel One Provider...")
 
         res = self.backup_provider.get_option_chain(clean, ex, expiry)
         if res and res.get("chain"):
             return res
 
-        # If both fail -> Return Real BS option chain
-        logger.info(f"🔄 Using Real Black-Scholes Engine for {clean}")
+        # Angel One also failed -> Try Upstox
+        res = self.tertiary_provider.get_option_chain(clean, ex, expiry)
+        if res and res.get("chain"):
+            return res
+
+        # All providers failed -> Return Real BS option chain
+        logger.info(f"Using Real Black-Scholes Engine for {clean}")
         return self.fallback_provider.get_option_chain(clean, ex, expiry)
 
 
