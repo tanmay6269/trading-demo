@@ -303,7 +303,12 @@ class AngelOneOptionChainEngine:
         # Fetch live spot price
         spot_price = self._fetch_spot_price(clean)
         if spot_price <= 0:
-            spot_price = 24000.0 if clean == "NIFTY" else 1000.0
+            # Index-specific real defaults (fallback only — live data should be present)
+            INDEX_DEFAULT_SPOT = {
+                "NIFTY": 24000.0, "SENSEX": 77000.0, "BANKNIFTY": 58000.0,
+                "FINNIFTY": 26000.0, "MIDCPNIFTY": 15000.0, "BANKEX": 60000.0,
+            }
+            spot_price = INDEX_DEFAULT_SPOT.get(clean, 1000.0)
 
         # Calculate time to expiry (in years)
         tte = self._calculate_tte(target_expiry)

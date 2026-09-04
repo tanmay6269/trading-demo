@@ -1451,10 +1451,18 @@ def fetch_stock_quote(symbol):
             if groww_fno and groww_fno.get('price') is not None:
                 return groww_fno
 
-        # 1. Groww Live API direct fetcher for equities
-        groww_q = fetch_groww_direct_quote(clean_sym)
-        if groww_q and groww_q.get('price'):
-            return groww_q
+        # 1. Groww Live API direct fetcher for EQUITIES only.
+        #    IMPORTANT: Index symbols (BANKNIFTY, NIFTY, SENSEX, etc.) must NOT go
+        #    through the Groww stocks/CASH endpoint — it resolves to a wrong price.
+        is_index_symbol = (
+            clean_sym in SYMBOL_MAP
+            or clean_sym.startswith('^')
+            or clean_sym in ('NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'INDIAVIX', 'BANKEX')
+        )
+        if not is_index_symbol:
+            groww_q = fetch_groww_direct_quote(clean_sym)
+            if groww_q and groww_q.get('price'):
+                return groww_q
 
         # 2. Check SYMBOL_MAP for indices & special tickers
         target_sym = SYMBOL_MAP.get(clean_sym, clean_sym)
@@ -1512,7 +1520,7 @@ def fetch_stock_quote(symbol):
             'change': fb.get('change', 0.0),
             'change_percent': fb.get('change_percent', 0.0)
         }
-    return {'price': 1000.0, 'prev_close': 1000.0, 'change': 0.0, 'change_percent': 0.0}
+    return None
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -1842,6 +1850,54 @@ SYMBOL_MAP = {
     'TATA MOTORS': 'TMPV.NS',
 }
 
+def _fetch_groww_candles(symbol, period='1d', interval='1m'):
+    """Fetch OHLCV candles from Groww data API (free, no auth)."""
+    try:
+        clean = symbol.strip().upper().replace('.NS', '').replace('.BO', '')
+        if clean.startswith('^'):
+            return None
+        # Map period to Groww chart range
+        groww_range = {
+            '1d': '1D', '5d': '5D', '1mo': '1M', '3mo': '3M',
+            '6mo': '6M', '1y': '1Y', '5y': '5Y', 'max': 'MAX'
+        }.get(period, '1D')
+        url = f"https://groww.in/v1/api/charting_service/v2/chart/exchange/NSE/segment/CASH/{clean}/{groww_range}"
+        r = HTTP_SESSION.get(url, timeout=3.5)
+        if r.status_code == 200:
+            d = r.json()
+            candles_raw = d.get('candles') or d.get('data') or []
+            if not candles_raw:
+                return None
+            parsed = []
+            for c in candles_raw:
+                if isinstance(c, dict):
+                    o, h, l, cl, v, t = c.get('open'), c.get('high'), c.get('low'), c.get('close'), c.get('volume'), c.get('time')
+                elif isinstance(c, (list, tuple)):
+                    t, o, h, l, cl, v = c[:6]
+                else:
+                    continue
+                if t is None or o is None or h is None or l is None or cl is None:
+                    continue
+                parsed.append({
+                    'time': int(t) if not isinstance(t, str) else int(float(t)),
+                    'open': round(float(o), 2),
+                    'high': round(float(h), 2),
+                    'low': round(float(l), 2),
+                    'close': round(float(cl), 2),
+                    'volume': int(v or 0)
+                })
+            seen = set()
+            uniq = []
+            for c in parsed:
+                if c['time'] not in seen and c['close'] > 0:
+                    seen.add(c['time'])
+                    uniq.append(c)
+            if len(uniq) >= 5:
+                return uniq
+    except Exception:
+        pass
+    return None
+
 def get_historical_data(symbol, period='1d', interval='1m'):
     """Get historical OHLCV candle data for TradingView Lightweight Charts with synchronous option derivation"""
     try:
@@ -1893,6 +1949,14 @@ def get_historical_data(symbol, period='1d', interval='1m'):
             angel_candles = angel_adapter.get_historical_candles(clean_sym, period, interval)
             if angel_candles:
                 return angel_candles
+        except Exception:
+            pass
+
+        # Groww candle API source
+        try:
+            groww_candles = _fetch_groww_candles(clean_sym, period, interval)
+            if groww_candles and len(groww_candles) >= 5:
+                return groww_candles
         except Exception:
             pass
 
@@ -1983,14 +2047,23 @@ def get_historical_data(symbol, period='1d', interval='1m'):
         num_candles = 75
         start_ts = now_ts - (num_candles * step_sec)
         
-        curr = base_p * 0.98
+        # Random walk anchored to end at base_p — produces realistic price movement
+        curr = base_p * 0.985
+        price_path = []
+        for idx in range(num_candles):
+            drift = (base_p - curr) / max(num_candles - idx, 1)
+            noise = (random.random() - 0.498) * 0.004 * base_p
+            curr = curr + drift + noise
+            price_path.append(curr)
+        price_path[-1] = base_p
+
         for idx in range(num_candles):
             t = start_ts + (idx * step_sec)
-            variation = (math.sin(idx * 0.25) * 0.007 + (random.random() - 0.49) * 0.005) * base_p
-            o = round(curr, 2)
-            c = round(curr + variation, 2)
-            h = round(max(o, c) + abs(variation) * 0.4 + 0.1, 2)
-            l = round(min(o, c) - abs(variation) * 0.4 - 0.1, 2)
+            o = round(price_path[idx] if idx == 0 else price_path[idx - 1], 2)
+            c = round(price_path[idx], 2)
+            spread = abs(c - o) * 0.5 + base_p * 0.0008
+            h = round(max(o, c) + spread, 2)
+            l = round(min(o, c) - spread, 2)
             candles.append({
                 'time': t,
                 'open': o,
@@ -1999,7 +2072,6 @@ def get_historical_data(symbol, period='1d', interval='1m'):
                 'close': c,
                 'volume': random.randint(10000, 500000)
             })
-            curr = c
         return candles
     except Exception as e:
         print(f"Error fetching historical data for {symbol}: {e}")

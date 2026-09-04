@@ -292,6 +292,66 @@ def parse_groww_option_chain_payload(payload, underlying, exchange):
         "chain": chain_rows
     }
 
+def _get_nearest_thursday(from_date=None):
+    """Get the nearest Thursday from today (NSE weekly expiry day)"""
+    if from_date is None:
+        from_date = date.today()
+    days_ahead = (3 - from_date.weekday()) % 7
+    if days_ahead == 0 and from_date.weekday() != 3:
+        days_ahead = 7
+    if days_ahead == 0:
+        days_ahead = 7
+    return from_date + timedelta(days=days_ahead)
+
+def _get_next_monthly_expiry(from_date=None):
+    """Get the last Thursday of the current month (NSE monthly expiry day)"""
+    if from_date is None:
+        from_date = date.today()
+    if from_date.month == 12:
+        next_month = date(from_date.year + 1, 1, 1)
+    else:
+        next_month = date(from_date.year, from_date.month + 1, 1)
+    last_day = next_month - timedelta(days=1)
+    days_back = (last_day.weekday() - 3) % 7
+    return last_day - timedelta(days=days_back)
+
+def _calculate_days_to_expiry(expiry_date_str):
+    """Calculate actual days remaining to expiry from a date string"""
+    try:
+        exp_date = None
+        for fmt in ('%d-%b-%Y', '%d-%B-%Y', '%d-%m-%Y', '%Y-%m-%d', '%d-%b-%y'):
+            try:
+                exp_date = datetime.strptime(expiry_date_str.strip(), fmt).date()
+                break
+            except ValueError:
+                continue
+        if exp_date is None:
+            return 7
+        today = date.today()
+        delta = (exp_date - today).days
+        return max(1, delta)
+    except Exception:
+        return 7
+
+def _generate_nse_strikes(spot, step=None):
+    """Generate NSE-compliant strike prices around spot"""
+    if step is None:
+        if spot > 40000:
+            step = 100.0
+        elif spot > 10000:
+            step = 50.0
+        elif spot > 3000:
+            step = 20.0
+        elif spot > 1000:
+            step = 10.0
+        elif spot > 100:
+            step = 5.0
+        else:
+            step = 1.0
+    atm_strike = round(spot / step) * step
+    strikes = [round(atm_strike + (i * step), 2) for i in range(-10, 11)]
+    return strikes, step
+
 def get_real_option_chain(symbol, exchange='NSE', expiry=None):
     """
     Unified Option Chain Resolver:
@@ -310,22 +370,54 @@ def get_real_option_chain(symbol, exchange='NSE', expiry=None):
     from groww_data import fetch_stock_quote, get_live_price, SYMBOL_MAP
     target_sym = SYMBOL_MAP.get(clean_underlying, clean_underlying)
     quote = fetch_stock_quote(target_sym) or fetch_stock_quote(clean_underlying) or {}
-    spot = quote.get('price') or get_live_price(target_sym) or 24090.85
+    spot = quote.get('price') or get_live_price(target_sym)
+    if not spot or spot <= 0:
+        return {"status": "error", "message": "Could not fetch live spot price", "chain": []}
 
-    # 17 strikes ladder around spot
-    step = 50.0 if spot > 10000 else (20.0 if spot > 1000 else 10.0)
-    atm_strike = round(spot / step) * step
-    strikes = [round(atm_strike + (i * step), 2) for i in range(-8, 9)]
+    # NSE-compliant strike ladder around spot
+    strikes, step = _generate_nse_strikes(spot)
 
-    t_days = 4
-    base_iv = 11.8 if spot > 10000 else 23.5
+    # Dynamic expiry dates based on actual market calendar
+    today = date.today()
+    weekly_expiry = _get_nearest_thursday(today)
+    monthly_expiry = _get_next_monthly_expiry(today)
+    expiries_list = []
+    exp = weekly_expiry
+    for _ in range(4):
+        exp_str = exp.strftime('%d-%b-%Y').upper()
+        if exp > today:
+            expiries_list.append(exp_str)
+        exp += timedelta(days=7)
+    if monthly_expiry > today:
+        exp_str = monthly_expiry.strftime('%d-%b-%Y').upper()
+        if exp_str not in expiries_list:
+            expiries_list.append(exp_str)
+    if not expiries_list:
+        expiries_list = [(today + timedelta(days=i)).strftime('%d-%b-%Y').upper() for i in range(1, 8)]
+
+    selected_expiry = expiry or expiries_list[0]
+    t_days = _calculate_days_to_expiry(selected_expiry)
+
+    # Dynamic IV based on spot level and market regime
+    if spot > 40000:
+        base_iv = 13.0
+    elif spot > 20000:
+        base_iv = 14.5
+    elif spot > 10000:
+        base_iv = 16.0
+    elif spot > 3000:
+        base_iv = 20.0
+    else:
+        base_iv = 25.0
+
     chain_rows = []
     total_ce_oi, total_pe_oi = 0, 0
 
     for strike in strikes:
         dist = abs(strike - spot) / max(spot, 1)
-        ce_iv = round(base_iv + dist * 8.0, 1)
-        pe_iv = round(base_iv + dist * 8.5, 1)
+        # IV smile: higher IV for deep OTM and deep ITM options
+        ce_iv = round(base_iv + dist * 12.0, 1)
+        pe_iv = round(base_iv + dist * 13.0, 1)
 
         ce_ltp = black_scholes_price(spot, strike, t_days, ce_iv, is_call=True)
         pe_ltp = black_scholes_price(spot, strike, t_days, pe_iv, is_call=False)
@@ -333,25 +425,27 @@ def get_real_option_chain(symbol, exchange='NSE', expiry=None):
         ce_greeks = calculate_greeks(spot, strike, t_days, ce_iv, is_call=True)
         pe_greeks = calculate_greeks(spot, strike, t_days, pe_iv, is_call=False)
 
-        ce_oi = int(max(1000, (1.0 / (dist + 0.05)) * 10000))
-        pe_oi = int(max(1000, (1.0 / (dist + 0.05)) * 12000))
+        # Realistic OI: highest near ATM, decays for far strikes
+        oi_factor = max(0.1, 1.0 - (dist * 3.0))
+        ce_oi = int(max(500, oi_factor * 80000 + (hash(str(strike)) % 5000)))
+        pe_oi = int(max(500, oi_factor * 90000 + (hash(str(strike) + "PE") % 5000)))
         total_ce_oi += ce_oi
         total_pe_oi += pe_oi
 
         chain_rows.append({
             "strike": strike,
-            "is_atm": strike == atm_strike,
+            "is_atm": abs(strike - spot) < step * 0.5,
             "ce": {
                 "symbol": f"{clean_underlying}{int(strike)}CE",
                 "ltp": ce_ltp,
-                "change": round(ce_ltp * 0.02, 2),
-                "change_percent": 2.0,
+                "change": round(ce_ltp * 0.015, 2),
+                "change_percent": 1.5,
                 "oi": ce_oi,
-                "volume": int(ce_oi * 1.2),
+                "volume": int(ce_oi * 0.8),
                 "iv": ce_iv,
-                "bid_price": round(max(0.05, ce_ltp - 0.10), 2),
+                "bid_price": round(max(0.05, ce_ltp * 0.99), 2),
                 "bid_qty": 25,
-                "ask_price": round(ce_ltp + 0.10, 2),
+                "ask_price": round(ce_ltp * 1.01, 2),
                 "ask_qty": 25,
                 "delta": ce_greeks["delta"],
                 "gamma": ce_greeks["gamma"],
@@ -363,14 +457,14 @@ def get_real_option_chain(symbol, exchange='NSE', expiry=None):
             "pe": {
                 "symbol": f"{clean_underlying}{int(strike)}PE",
                 "ltp": pe_ltp,
-                "change": round(-pe_ltp * 0.02, 2),
-                "change_percent": -2.0,
+                "change": round(-pe_ltp * 0.015, 2),
+                "change_percent": -1.5,
                 "oi": pe_oi,
-                "volume": int(pe_oi * 1.2),
+                "volume": int(pe_oi * 0.8),
                 "iv": pe_iv,
-                "bid_price": round(max(0.05, pe_ltp - 0.10), 2),
+                "bid_price": round(max(0.05, pe_ltp * 0.99), 2),
                 "bid_qty": 25,
-                "ask_price": round(pe_ltp + 0.10, 2),
+                "ask_price": round(pe_ltp * 1.01, 2),
                 "ask_qty": 25,
                 "delta": pe_greeks["delta"],
                 "gamma": pe_greeks["gamma"],
@@ -386,14 +480,14 @@ def get_real_option_chain(symbol, exchange='NSE', expiry=None):
 
     return {
         "status": "success",
-        "data_source": "GROWW_API_LIVE_CALCULATOR",
+        "data_source": "BLACK_SCHOLES_CALCULATED",
         "data_timestamp": datetime.utcnow().isoformat(),
         "symbol": clean_underlying,
         "exchange": ex,
         "spot_price": spot,
         "lot_size": 25 if spot > 10000 else 250,
-        "expiries": ["01-SEP-2026", "08-SEP-2026", "15-SEP-2026", "29-SEP-2026"],
-        "selected_expiry": expiry or "01-SEP-2026",
+        "expiries": expiries_list,
+        "selected_expiry": selected_expiry,
         "pcr": pcr,
         "max_pain": max_pain or spot,
         "chain": chain_rows
