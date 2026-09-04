@@ -22,7 +22,7 @@ import OptionChainModal from './components/trading/OptionChainModal';
 
 function App() {
   // Auth & Security state
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [username, setUsername] = useState('DemoTrader');
   const [toastMsg, setToastMsg] = useState('');
@@ -71,7 +71,8 @@ function App() {
     setUsername('DemoTrader');
     setBalance(1000000);
     setUserInfo(null);
-    setIsLocked(true);
+    setIsLoggedIn(false);
+    setIsLocked(false);
     showToast('Logged out');
   };
 
@@ -84,16 +85,10 @@ function App() {
         setBalance(data.balance !== undefined ? data.balance : 1000000);
         setUserInfo(data);
       } else {
-        const guest = await api.loginGuest();
-        if (guest && guest.user) {
-          setIsLoggedIn(true);
-          setUsername(guest.user || 'DemoTrader');
-          setBalance(guest.balance !== undefined ? guest.balance : 1000000);
-          setUserInfo(guest);
-        }
+        setIsLoggedIn(false);
       }
     } catch (e) {
-      setIsLoggedIn(true);
+      setIsLoggedIn(false);
     }
   }, []);
 
@@ -177,12 +172,22 @@ function App() {
     setTimeout(() => fetchPrice(), 100);
   };
 
-  // Render Auth & PIN Lock Screen if locked
+  // Not authenticated: require login every time, no dismissing this screen.
+  if (!isLoggedIn) {
+    return (
+      <AuthScreen
+        onLoginSuccess={handleAuthSuccess}
+        showToast={showToast}
+      />
+    );
+  }
+
+  // Already logged in but app was PIN-locked: dismissible back to the live session.
   if (isLocked) {
     return (
       <AuthScreen
         onLoginSuccess={handleAuthSuccess}
-        onClose={() => { setIsLocked(false); checkSession(); }}
+        onClose={() => setIsLocked(false)}
         showToast={showToast}
       />
     );
